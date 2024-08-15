@@ -176,6 +176,19 @@ public class Main {
                             }
                             final BufferedImage read = ImageIO.read(new ByteArrayInputStream(file));
 
+                            if (read == null){
+                                out.write(("HTTP/" + httpVersion + " 404 Not Found\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                if (isGET) {
+                                    out.write(("File Not Support").getBytes(StandardCharsets.UTF_8));
+                                }
+                                out.flush();
+                                in.close();
+                                out.close();
+                                sock.close();
+
+                                return;
+                            }
+
                             int width = (read.getWidth() * 2) / 2;
                             int height = (read.getHeight() * 2) / 2;
 
@@ -206,6 +219,15 @@ public class Main {
                             out.close();
                             sock.close();
 
+                        } else {
+                            out.write(("HTTP/" + httpVersion + " 404 Not Found\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                            if (isGET) {
+                                out.write(("Not Found").getBytes(StandardCharsets.UTF_8));
+                            }
+                            out.flush();
+                            in.close();
+                            out.close();
+                            sock.close();
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
