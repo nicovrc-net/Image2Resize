@@ -99,21 +99,20 @@ public class Main {
 
                             return;
                         }
-                        final String URIText = matcher.group(2);
+                        //final String URIText = matcher.group(2);
                         //System.out.println(URIText);
 
                         matcher = UrlMatch.matcher(httpRequest);
                         boolean UrlMatchFlag = matcher.find();
                         if (UrlMatchFlag) {
-                            // 画像から動画生成
-                            final OkHttpClient.Builder builder = new OkHttpClient.Builder();
+                            //final OkHttpClient.Builder builder = new OkHttpClient.Builder();
                             final OkHttpClient client = new OkHttpClient();
 
 
                             final String url = matcher.group(2);
                             //System.out.println(url);
 
-                            if (!url.startsWith("http")) {
+                            if (!url.toLowerCase(Locale.ROOT).startsWith("http")) {
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
                                     out.write(("URL Not Found").getBytes(StandardCharsets.UTF_8));
