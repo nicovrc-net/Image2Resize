@@ -135,7 +135,7 @@ public class Main {
                             if (header == null){
                                 header = response.header("content-type");
                             }
-                            System.out.println(header);
+                            //System.out.println(header);
                             final byte[] file;
                             if (response.code() >= 200 && response.code() <= 299){
                                 if (response.body() != null){
@@ -146,7 +146,7 @@ public class Main {
                             } else {
                                 file = new byte[0];
                             }
-                            System.out.println(file.length);
+                            //System.out.println(file.length);
                             response.close();
 
                             if (header != null && !header.toLowerCase(Locale.ROOT).startsWith("image")) {
@@ -177,7 +177,7 @@ public class Main {
                             final BufferedImage read = ImageIO.read(new ByteArrayInputStream(file));
 
                             if (read == null){
-                                out.write(("HTTP/" + httpVersion + " 404 Not Found\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                out.write(("HTTP/" + httpVersion + " 403 Forbidden\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
                                     out.write(("File Not Support").getBytes(StandardCharsets.UTF_8));
                                 }
