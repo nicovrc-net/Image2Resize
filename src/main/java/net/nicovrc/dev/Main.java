@@ -41,6 +41,10 @@ public class Main {
         }
         System.out.println("[Info] TCP Port " + HTTPPort + "で 処理受付用HTTPサーバー待機開始");
 
+        if (!new File("./log").exists()){
+            new File("./log").mkdir();
+        }
+
         final boolean[] temp = {true};
         while (temp[0]) {
             try {
@@ -63,6 +67,28 @@ public class Main {
                         final String httpVersion = getHTTPVersion(httpRequest);
 
                         System.out.println(httpRequest);
+
+                        new Thread(()->{
+                            File file = new File("./log/" + new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0] + ".txt");
+                            boolean isFound = file.exists();
+                            while (isFound){
+                                file = new File("./log/" + new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0] + ".txt");
+                                isFound = file.exists();
+                                try {
+                                    Thread.sleep(500L);
+                                } catch (Exception e){
+                                    isFound = false;
+                                }
+                            }
+
+                            try {
+                                PrintWriter writer = new PrintWriter(file);
+                                writer.print(httpRequest);
+                                writer.close();
+                            } catch (Exception e){
+                                e.printStackTrace();
+                            }
+                        }).start();
 
                         if (httpVersion == null) {
                             out.write("HTTP/1.1 502 Bad Gateway\nContent-Type: text/plain; charset=utf-8\n\nbad gateway".getBytes(StandardCharsets.UTF_8));
