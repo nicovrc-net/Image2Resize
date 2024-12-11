@@ -24,6 +24,6 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - 前提ライブラリ更新
+            - バグ修正
           draft: false
           prerelease: true

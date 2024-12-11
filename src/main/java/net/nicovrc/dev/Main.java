@@ -313,6 +313,7 @@ public class Main {
                             // キャッシュ保存
                             //System.out.println("[Debug] Cache Save");
                             imageData.setFileContent(SendData);
+                            imageData.setCacheDate(new Date());
                             CacheDataList.put(url, imageData);
 
                         } else {
