@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 public class Main {
 
     private static final int HTTPPort = 25555;
-    private static final String UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:129.0) Gecko/20100101 Firefox/129.0";
+    private static final String UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0";
 
     private static final Pattern HTTPVersion = Pattern.compile("HTTP/(\\d+\\.\\d+)");
     private static final Pattern HTTPMethod = Pattern.compile("^(GET|HEAD)");

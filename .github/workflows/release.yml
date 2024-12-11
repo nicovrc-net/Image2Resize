@@ -24,7 +24,6 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - 一定期間画像をキャッシュするように
-            - 一部エラーでは終了しないように
+            - 前提ライブラリ更新
           draft: false
           prerelease: true
