@@ -9,15 +9,11 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.Locale;
-import java.util.UUID;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,7 +27,38 @@ public class Main {
     private static final Pattern HTTPURI = Pattern.compile("(GET|HEAD) (.+) HTTP/");
     private static final Pattern UrlMatch = Pattern.compile("(GET|HEAD) /\\?url=(.+) HTTP");
 
+    private static final HashMap<String, ImageData> CacheDataList = new HashMap<>();
+
+    private static final Timer timer = new Timer();
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
     public static void main(String[] args) {
+
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                int startCacheCount = CacheDataList.size();
+                System.out.println("[Info] キャッシュお掃除開始 (" + sdf.format(new Date()) + ")");
+
+                final Date date = new Date();
+                final long StartTime = date.getTime();
+                final HashMap<String, ImageData> temp = new HashMap<>(CacheDataList);
+
+                temp.forEach((url, data)->{
+
+                    if (data.getCacheDate().getTime() - StartTime >= 3600000){
+
+                        CacheDataList.remove(data.getFileId());
+
+                    }
+
+                });
+
+                System.out.println("[Info] キャッシュお掃除終了 (" + sdf.format(new Date()) + ")");
+                System.out.println("[Info] キャッシュ件数が"+startCacheCount+"件から"+CacheDataList.size()+"件になりました。 (" + sdf.format(new Date()) + ")");
+
+            }
+        }, 0L, 3600000L);
 
         ServerSocket svSock = null;
         try {
@@ -49,6 +76,7 @@ public class Main {
         while (temp[0]) {
             try {
                 System.gc();
+                //System.out.println("[Debug] HTTPRequest待機");
                 Socket sock = svSock.accept();
                 new Thread(() -> {
                     try {
@@ -66,6 +94,7 @@ public class Main {
                         final String httpRequest = new String(data, StandardCharsets.UTF_8);
                         final String httpVersion = getHTTPVersion(httpRequest);
 
+                        //System.out.println("[Debug] HTTPRequest受信");
                         System.out.println(httpRequest);
 
                         new Thread(()->{
@@ -91,6 +120,7 @@ public class Main {
                         }).start();
 
                         if (httpVersion == null) {
+                            //System.out.println("[Debug] HTTPRequest送信");
                             out.write("HTTP/1.1 502 Bad Gateway\nContent-Type: text/plain; charset=utf-8\n\nbad gateway".getBytes(StandardCharsets.UTF_8));
                             out.flush();
                             in.close();
@@ -102,6 +132,7 @@ public class Main {
 
                         Matcher matcher = HTTPMethod.matcher(httpRequest);
                         if (!matcher.find()) {
+                            //System.out.println("[Debug] HTTPRequest送信");
                             out.write(("HTTP/" + httpVersion + " 405 Method Not Allowed\nContent-Type: text/plain; charset=utf-8\n\n405").getBytes(StandardCharsets.UTF_8));
                             out.flush();
                             in.close();
@@ -114,6 +145,7 @@ public class Main {
                         matcher = HTTPURI.matcher(httpRequest);
 
                         if (!matcher.find()) {
+                            //System.out.println("[Debug] HTTPRequest送信");
                             out.write(("HTTP/" + httpVersion + " 502 Bad Gateway\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                             if (isGET) {
                                 out.write(("bad gateway").getBytes(StandardCharsets.UTF_8));
@@ -138,7 +170,33 @@ public class Main {
                             final String url = matcher.group(2);
                             //System.out.println(url);
 
+                            // キャッシュを見に行く
+                            ImageData imageData = CacheDataList.get(url);
+
+                            if (imageData != null){
+                                //System.out.println("[Debug] CacheFound");
+                                // あればキャッシュから
+                                //System.out.println("[Debug] HTTPRequest送信");
+                                out.write(("HTTP/" + httpVersion + " 200 OK\nContent-Type: image/png;\n\n").getBytes(StandardCharsets.UTF_8));
+                                if (isGET) {
+                                    out.write(imageData.getFileContent());
+                                }
+                                out.flush();
+                                in.close();
+                                out.close();
+                                sock.close();
+
+                                return;
+
+                            }
+                            //System.out.println("[Debug] Cache Not Found");
+
+                            imageData = new ImageData();
+                            imageData.setFileId(UUID.randomUUID().toString());
+                            imageData.setURL(url);
+
                             if (!url.toLowerCase(Locale.ROOT).startsWith("http")) {
+                                //System.out.println("[Debug] HTTPRequest送信");
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
                                     out.write(("URL Not Found").getBytes(StandardCharsets.UTF_8));
@@ -175,6 +233,7 @@ public class Main {
                             response.close();
 
                             if (header != null && !header.toLowerCase(Locale.ROOT).startsWith("image")) {
+                                //System.out.println("[Debug] HTTPRequest送信");
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
                                     out.write(("Not Image").getBytes(StandardCharsets.UTF_8));
@@ -188,6 +247,7 @@ public class Main {
                             }
 
                             if (file.length == 0){
+                                //System.out.println("[Debug] HTTPRequest送信");
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
                                     out.write(("File Not Found").getBytes(StandardCharsets.UTF_8));
@@ -199,9 +259,11 @@ public class Main {
 
                                 return;
                             }
+                            //System.out.println("[Debug] 画像読み込み");
                             final BufferedImage read = ImageIO.read(new ByteArrayInputStream(file));
 
                             if (read == null){
+                                //System.out.println("[Debug] HTTPRequest送信");
                                 out.write(("HTTP/" + httpVersion + " 403 Forbidden\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
                                     out.write(("File Not Support").getBytes(StandardCharsets.UTF_8));
@@ -214,6 +276,7 @@ public class Main {
                                 return;
                             }
 
+                            //System.out.println("[Debug] 画像変換");
                             int width = (read.getWidth() * 2) / 2;
                             int height = (read.getHeight() * 2) / 2;
 
@@ -234,7 +297,10 @@ public class Main {
                             ByteArrayOutputStream stream = new ByteArrayOutputStream();
                             ImageIO.write(image, "PNG", stream);
                             byte[] SendData = stream.toByteArray();
+                            //System.out.println("[Debug] 画像出力");
 
+
+                            //System.out.println("[Debug] HTTPRequest送信");
                             out.write(("HTTP/" + httpVersion + " 200 OK\nContent-Type: image/png;\n\n").getBytes(StandardCharsets.UTF_8));
                             if (isGET) {
                                 out.write(SendData);
@@ -244,7 +310,13 @@ public class Main {
                             out.close();
                             sock.close();
 
+                            // キャッシュ保存
+                            //System.out.println("[Debug] Cache Save");
+                            imageData.setFileContent(SendData);
+                            CacheDataList.put(url, imageData);
+
                         } else {
+                            //System.out.println("[Debug] HTTPRequest送信");
                             out.write(("HTTP/" + httpVersion + " 404 Not Found\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                             if (isGET) {
                                 out.write(("Not Found").getBytes(StandardCharsets.UTF_8));
@@ -254,16 +326,19 @@ public class Main {
                             out.close();
                             sock.close();
                         }
+
                     } catch (Exception e) {
                         e.printStackTrace();
-                        temp[0] = false;
+                        //temp[0] = false;
                     }
+                    //System.out.println("[Debug] HTTPRequest処理終了");
                 }).start();
             } catch (Exception e) {
                 e.printStackTrace();
                 temp[0] = false;
             }
         }
+        timer.cancel();
     }
 
     private static String getHTTPVersion(String HTTPRequest){
