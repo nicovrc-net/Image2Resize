@@ -295,7 +295,11 @@ public class Main {
                                     //System.out.println(bytes.length);
                                     read = ImageIO.read(new ByteArrayInputStream(bytes));
                                     //System.out.println(read == null);
+
+
+                                    new File("./temp-" + fileId + ".png").delete();
                                 }
+                                new File("./temp-" + fileId + ".webp").delete();
                             }
 
                             if (read == null){
