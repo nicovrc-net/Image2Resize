@@ -8,6 +8,9 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+    maven {
+        url("https://releases.groupdocs.com/java/repo/")
+    }
 }
 
 dependencies {
@@ -17,6 +20,7 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'com.amihaiemil.web:eo-yaml:8.0.6'
     implementation 'redis.clients:jedis:5.2.0'
+    implementation 'com.groupdocs:groupdocs-conversion:24.11'
 }
 
 tasks.test {
@@ -24,6 +28,7 @@ tasks.test {
 }
 
 shadowJar {
+    zip64 true
 
     compileJava.options.encoding = 'UTF-8'
     compileTestJava.options.encoding = 'UTF-8'

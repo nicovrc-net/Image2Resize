@@ -1,6 +1,7 @@
 package net.nicovrc.dev;
 
-import com.google.gson.Gson;
+import com.groupdocs.conversion.Converter;
+import com.groupdocs.conversion.internal.c.a.s.internal.pj.Ex;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -16,6 +17,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 
 public class Main {
 
@@ -260,7 +262,29 @@ public class Main {
                                 return;
                             }
                             //System.out.println("[Debug] 画像読み込み");
-                            final BufferedImage read = ImageIO.read(new ByteArrayInputStream(file));
+                            BufferedImage read = ImageIO.read(new ByteArrayInputStream(file));
+
+                            if (read == null && header.toLowerCase(Locale.ROOT).endsWith("webp")){
+                                final String fileId = new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0];
+
+                                FileOutputStream stream1 = new FileOutputStream("./temp-" + fileId + ".webp");
+                                stream1.write(file);
+                                stream1.close();
+
+                                try {
+                                    new Converter()
+                                            .load("./temp-" + fileId + ".webp")
+                                            .convertTo("./temp-" + fileId + ".png")
+                                            .convert();
+                                } catch (Exception e){
+                                    //e.printStackTrace();
+                                }
+
+                                FileInputStream stream = new FileInputStream("./temp-" + fileId + ".png");
+                                System.out.println(stream.readAllBytes().length);
+                                read = ImageIO.read(new ByteArrayInputStream(stream.readAllBytes()));
+
+                            }
 
                             if (read == null){
                                 //System.out.println("[Debug] HTTPRequest送信");
