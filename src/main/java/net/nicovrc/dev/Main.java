@@ -1,7 +1,5 @@
 package net.nicovrc.dev;
 
-import com.groupdocs.conversion.Converter;
-import com.groupdocs.conversion.internal.c.a.s.internal.pj.Ex;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -271,19 +269,33 @@ public class Main {
                                 stream1.write(file);
                                 stream1.close();
 
-                                try {
-                                    new Converter()
-                                            .load("./temp-" + fileId + ".webp")
-                                            .convertTo("./temp-" + fileId + ".png")
-                                            .convert();
-                                } catch (Exception e){
-                                    //e.printStackTrace();
+                                String ffmpeg = "";
+                                if (new File("/bin/ffmpeg").exists()){
+                                    ffmpeg = "/bin/ffmpeg";
+                                } else if (new File("/usr/bin/ffmpeg").exists()){
+                                    ffmpeg = "/usr/bin/ffmpeg";
+                                } else if (new File("/usr/local/bin/ffmpeg").exists()){
+                                    ffmpeg = "/usr/local/bin/ffmpeg";
+                                } else if (new File("./ffmpeg").exists()){
+                                    ffmpeg = "./ffmpeg";
+                                } else if (new File("./ffmpeg.exe").exists()){
+                                    ffmpeg = "./ffmpeg.exe";
+                                } else if (new File("C:\\Windows\\System32\\ffmpeg.exe").exists()){
+                                    ffmpeg = "C:\\Windows\\System32\\ffmpeg.exe";
                                 }
 
-                                FileInputStream stream = new FileInputStream("./temp-" + fileId + ".png");
-                                System.out.println(stream.readAllBytes().length);
-                                read = ImageIO.read(new ByteArrayInputStream(stream.readAllBytes()));
+                                if (!ffmpeg.isEmpty()){
+                                    Process exec = Runtime.getRuntime().exec(new String[]{ffmpeg, "-i", "./temp-" + fileId + ".webp", "./temp-" + fileId + ".png"});
+                                    exec.waitFor();
 
+                                    FileInputStream stream = new FileInputStream("./temp-" + fileId + ".png");
+                                    //System.out.println(stream.readAllBytes().length);
+                                    byte[] bytes = stream.readAllBytes();
+                                    stream.close();
+                                    //System.out.println(bytes.length);
+                                    read = ImageIO.read(new ByteArrayInputStream(bytes));
+                                    //System.out.println(read == null);
+                                }
                             }
 
                             if (read == null){

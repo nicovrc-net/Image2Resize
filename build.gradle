@@ -20,7 +20,6 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'com.amihaiemil.web:eo-yaml:8.0.6'
     implementation 'redis.clients:jedis:5.2.0'
-    implementation 'com.groupdocs:groupdocs-conversion:24.11'
 }
 
 tasks.test {
