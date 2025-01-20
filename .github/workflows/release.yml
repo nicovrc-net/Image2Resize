@@ -45,6 +45,6 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - webp対応
+            - キャッシュ削除できていなかった問題を修正
           draft: false
           prerelease: true
