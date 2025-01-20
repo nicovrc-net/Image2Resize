@@ -48,7 +48,7 @@ public class Main {
 
                     if (data.getCacheDate().getTime() - StartTime >= 3600000){
 
-                        CacheDataList.remove(data.getFileId());
+                        CacheDataList.remove(url);
 
                     }
 
