@@ -1,5 +1,6 @@
 package net.nicovrc.dev;
 
+import com.google.gson.Gson;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -26,11 +27,14 @@ public class Main {
     private static final Pattern HTTPMethod = Pattern.compile("^(GET|HEAD)");
     private static final Pattern HTTPURI = Pattern.compile("(GET|HEAD) (.+) HTTP/");
     private static final Pattern UrlMatch = Pattern.compile("(GET|HEAD) /\\?url=(.+) HTTP");
+    private static final Pattern APIMatch = Pattern.compile("(GET|HEAD) /api/(.+) HTTP");
 
     private static final HashMap<String, ImageData> CacheDataList = new HashMap<>();
 
     private static final Timer timer = new Timer();
     private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+    private static final String Version = "0.5.0-beta";
 
     public static void main(String[] args) {
 
@@ -163,9 +167,60 @@ public class Main {
                         }
                         //final String URIText = matcher.group(2);
                         //System.out.println(URIText);
+                        matcher = APIMatch.matcher(httpRequest);
+                        boolean ApiMatchFlag = matcher.find();
+
+                        if (ApiMatchFlag){
+
+                            final String apiUri = matcher.group(2);
+
+                            // /api/v1/get/data
+                            if (apiUri.equals("v1/get/data")){
+
+                                out.write(("HTTP/" + httpVersion + " 200 OK\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                if (isGET) {
+                                    out.write(("{\"Version\":\""+Version+"\",\"count\":"+CacheDataList.size()+"}").getBytes(StandardCharsets.UTF_8));
+                                }
+
+                                return;
+                            }
+
+                            // /api/v1/get/cachelist
+                            if (apiUri.equals("v1/get/CacheList".toLowerCase(Locale.ROOT))){
+
+                                out.write(("HTTP/" + httpVersion + " 200 OK\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                if (isGET) {
+
+                                    final HashMap<String, String> cacheList = new HashMap<>();
+
+                                    CacheDataList.forEach((url, imgData)->{
+                                        cacheList.put(url, sdf.format(imgData.getCacheDate()));
+                                    });
+
+                                    out.write((new Gson().toJson(cacheList)).getBytes(StandardCharsets.UTF_8));
+
+                                    cacheList.clear();
+
+                                }
+
+                                return;
+                            }
+
+
+                            out.write(("HTTP/" + httpVersion + " 404 Not Found\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                            if (isGET) {
+                                out.write(("404 not found").getBytes(StandardCharsets.UTF_8));
+                            }
+                            out.flush();
+                            in.close();
+                            out.close();
+                            sock.close();
+                            return;
+                        }
 
                         matcher = UrlMatch.matcher(httpRequest);
                         boolean UrlMatchFlag = matcher.find();
+
                         if (UrlMatchFlag) {
                             //final OkHttpClient.Builder builder = new OkHttpClient.Builder();
                             final OkHttpClient client = new OkHttpClient();
