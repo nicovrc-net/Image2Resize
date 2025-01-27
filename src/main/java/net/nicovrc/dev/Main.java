@@ -46,13 +46,17 @@ public class Main {
 
                 temp.forEach((url, data)->{
 
-                    if (data.getCacheDate().getTime() - StartTime >= 3600000){
+                    System.out.println(StartTime - data.getCacheDate().getTime());
+                    if (StartTime - data.getCacheDate().getTime() >= 3600000){
 
                         CacheDataList.remove(url);
 
                     }
 
                 });
+
+                temp.clear();
+                System.gc();
 
                 System.out.println("[Info] キャッシュお掃除終了 (" + sdf.format(new Date()) + ")");
                 System.out.println("[Info] キャッシュ件数が"+startCacheCount+"件から"+CacheDataList.size()+"件になりました。 (" + sdf.format(new Date()) + ")");
