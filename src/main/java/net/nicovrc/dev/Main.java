@@ -46,7 +46,7 @@ public class Main {
 
                 temp.forEach((url, data)->{
 
-                    System.out.println(StartTime - data.getCacheDate().getTime());
+                    //System.out.println(StartTime - data.getCacheDate().getTime());
                     if (StartTime - data.getCacheDate().getTime() >= 3600000){
 
                         CacheDataList.remove(url);
