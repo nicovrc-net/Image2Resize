@@ -45,7 +45,6 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - キャッシュ削除できていなかった問題を再度修正
-            - キャッシュ削除したあとはgcを走らすようにした
+            - API追加
           draft: false
           prerelease: true
