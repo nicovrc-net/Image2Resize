@@ -45,6 +45,6 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - API追加
+            - APIの応答速度を改善
           draft: false
           prerelease: true

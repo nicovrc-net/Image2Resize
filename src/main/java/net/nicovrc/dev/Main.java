@@ -182,6 +182,9 @@ public class Main {
                                     out.write(("{\"Version\":\""+Version+"\",\"count\":"+CacheDataList.size()+"}").getBytes(StandardCharsets.UTF_8));
                                 }
 
+                                in.close();
+                                out.close();
+                                sock.close();
                                 return;
                             }
 
@@ -203,6 +206,9 @@ public class Main {
 
                                 }
 
+                                in.close();
+                                out.close();
+                                sock.close();
                                 return;
                             }
 
