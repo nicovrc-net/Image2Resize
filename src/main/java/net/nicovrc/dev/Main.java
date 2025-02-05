@@ -129,7 +129,7 @@ public class Main {
 
                         if (httpVersion == null) {
                             //System.out.println("[Debug] HTTPRequest送信");
-                            out.write("HTTP/1.1 502 Bad Gateway\nContent-Type: text/plain; charset=utf-8\n\nbad gateway".getBytes(StandardCharsets.UTF_8));
+                            out.write("HTTP/1.1 502 Bad Gateway\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\nbad gateway".getBytes(StandardCharsets.UTF_8));
                             out.flush();
                             in.close();
                             out.close();
@@ -141,7 +141,7 @@ public class Main {
                         Matcher matcher = HTTPMethod.matcher(httpRequest);
                         if (!matcher.find()) {
                             //System.out.println("[Debug] HTTPRequest送信");
-                            out.write(("HTTP/" + httpVersion + " 405 Method Not Allowed\nContent-Type: text/plain; charset=utf-8\n\n405").getBytes(StandardCharsets.UTF_8));
+                            out.write(("HTTP/" + httpVersion + " 405 Method Not Allowed\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n405").getBytes(StandardCharsets.UTF_8));
                             out.flush();
                             in.close();
                             out.close();
@@ -154,7 +154,7 @@ public class Main {
 
                         if (!matcher.find()) {
                             //System.out.println("[Debug] HTTPRequest送信");
-                            out.write(("HTTP/" + httpVersion + " 502 Bad Gateway\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                            out.write(("HTTP/" + httpVersion + " 502 Bad Gateway\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                             if (isGET) {
                                 out.write(("bad gateway").getBytes(StandardCharsets.UTF_8));
                             }
@@ -177,7 +177,7 @@ public class Main {
                             // /api/v1/get/data
                             if (apiUri.equals("v1/get/data")){
 
-                                out.write(("HTTP/" + httpVersion + " 200 OK\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
                                     out.write(("{\"Version\":\""+Version+"\",\"count\":"+CacheDataList.size()+"}").getBytes(StandardCharsets.UTF_8));
                                 }
@@ -191,7 +191,7 @@ public class Main {
                             // /api/v1/get/cachelist
                             if (apiUri.equals("v1/get/CacheList".toLowerCase(Locale.ROOT))){
 
-                                out.write(("HTTP/" + httpVersion + " 200 OK\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
 
                                     final HashMap<String, String> cacheList = new HashMap<>();
@@ -213,7 +213,7 @@ public class Main {
                             }
 
 
-                            out.write(("HTTP/" + httpVersion + " 404 Not Found\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                            out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                             if (isGET) {
                                 out.write(("404 not found").getBytes(StandardCharsets.UTF_8));
                             }
@@ -242,7 +242,7 @@ public class Main {
                                 //System.out.println("[Debug] CacheFound");
                                 // あればキャッシュから
                                 //System.out.println("[Debug] HTTPRequest送信");
-                                out.write(("HTTP/" + httpVersion + " 200 OK\nContent-Type: image/png;\n\n").getBytes(StandardCharsets.UTF_8));
+                                out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: image/png;\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
                                     out.write(imageData.getFileContent());
                                 }
@@ -262,7 +262,7 @@ public class Main {
 
                             if (!url.toLowerCase(Locale.ROOT).startsWith("http")) {
                                 //System.out.println("[Debug] HTTPRequest送信");
-                                out.write(("HTTP/" + httpVersion + " 404 Not Found\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
                                     out.write(("URL Not Found").getBytes(StandardCharsets.UTF_8));
                                 }
@@ -299,7 +299,7 @@ public class Main {
 
                             if (header != null && !header.toLowerCase(Locale.ROOT).startsWith("image")) {
                                 //System.out.println("[Debug] HTTPRequest送信");
-                                out.write(("HTTP/" + httpVersion + " 404 Not Found\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
                                     out.write(("Not Image").getBytes(StandardCharsets.UTF_8));
                                 }
@@ -313,7 +313,7 @@ public class Main {
 
                             if (file.length == 0){
                                 //System.out.println("[Debug] HTTPRequest送信");
-                                out.write(("HTTP/" + httpVersion + " 404 Not Found\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
                                     out.write(("File Not Found").getBytes(StandardCharsets.UTF_8));
                                 }
@@ -369,7 +369,7 @@ public class Main {
 
                             if (read == null){
                                 //System.out.println("[Debug] HTTPRequest送信");
-                                out.write(("HTTP/" + httpVersion + " 403 Forbidden\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                out.write(("HTTP/" + httpVersion + " 403 Forbidden\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
                                     out.write(("File Not Support").getBytes(StandardCharsets.UTF_8));
                                 }
@@ -406,7 +406,7 @@ public class Main {
 
 
                             //System.out.println("[Debug] HTTPRequest送信");
-                            out.write(("HTTP/" + httpVersion + " 200 OK\nContent-Type: image/png;\n\n").getBytes(StandardCharsets.UTF_8));
+                            out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: image/png;\n\n").getBytes(StandardCharsets.UTF_8));
                             if (isGET) {
                                 out.write(SendData);
                             }
@@ -423,7 +423,7 @@ public class Main {
 
                         } else {
                             //System.out.println("[Debug] HTTPRequest送信");
-                            out.write(("HTTP/" + httpVersion + " 404 Not Found\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                            out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                             if (isGET) {
                                 out.write(("Not Found").getBytes(StandardCharsets.UTF_8));
                             }
