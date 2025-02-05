@@ -47,5 +47,6 @@ jobs:
           body: |
             - HTTPレスポンスのヘッダに「Access-Control-Allow-Origin: *」を追加
             - Thread生成でVirtual Threadを生成するように
+            - 新API「/api/v1/post/create」追加
           draft: false
           prerelease: true
