@@ -213,6 +213,21 @@ public class Main {
                                 return;
                             }
 
+                            // /api/v1/post/create
+                            if (apiUri.equals("v1/post/create".toLowerCase(Locale.ROOT))){
+
+                                // TODO 画像を受け取ってそれを変換しキャッシュリストに追加して結果を返す
+
+                                out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                if (isGET) {
+
+                                }
+
+                                in.close();
+                                out.close();
+                                sock.close();
+                                return;
+                            }
 
                             out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                             if (isGET) {
