@@ -45,6 +45,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - APIの応答速度を改善
+            - HTTPレスポンスのヘッダに「Access-Control-Allow-Origin: *」を追加
+            - Thread生成でVirtual Threadを生成するように
           draft: false
           prerelease: true

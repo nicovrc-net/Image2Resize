@@ -86,7 +86,8 @@ public class Main {
                 System.gc();
                 //System.out.println("[Debug] HTTPRequest待機");
                 Socket sock = svSock.accept();
-                new Thread(() -> {
+
+                Thread.ofVirtual().start(() -> {
                     try {
                         final InputStream in = sock.getInputStream();
                         final OutputStream out = sock.getOutputStream();
@@ -438,7 +439,7 @@ public class Main {
                         //temp[0] = false;
                     }
                     //System.out.println("[Debug] HTTPRequest処理終了");
-                }).start();
+                });
             } catch (Exception e) {
                 e.printStackTrace();
                 temp[0] = false;
