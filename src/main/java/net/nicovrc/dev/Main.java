@@ -106,7 +106,7 @@ public class Main {
                         //System.out.println("[Debug] HTTPRequest受信");
                         System.out.println(httpRequest);
 
-                        new Thread(()->{
+                        Thread.ofVirtual().start(()->{
                             File file = new File("./log/" + new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0] + ".txt");
                             boolean isFound = file.exists();
                             while (isFound){
@@ -126,7 +126,7 @@ public class Main {
                             } catch (Exception e){
                                 e.printStackTrace();
                             }
-                        }).start();
+                        });
 
                         if (httpVersion == null) {
                             //System.out.println("[Debug] HTTPRequest送信");
