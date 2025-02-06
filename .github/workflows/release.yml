@@ -80,9 +80,6 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - APIのURIを「/api/v1/(get|post)/*」から「/api/v1/*」に変更
-            - HTTPレスポンスのヘッダに「Access-Control-Allow-Origin: *」を追加
-            - Thread生成でVirtual Threadを生成するように
-            - 新API「/api/v1/image_resize」追加
+            - API「/api/v1/image_resize」でのCloudflare経由の考慮漏れを修正
           draft: false
           prerelease: true

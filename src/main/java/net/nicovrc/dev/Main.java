@@ -37,7 +37,7 @@ public class Main {
     private static final Timer timer = new Timer();
     private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-    private static final String Version = "0.6.0-beta";
+    private static final String Version = "0.6.1-beta";
 
     public static void main(String[] args) {
 
@@ -223,7 +223,17 @@ public class Main {
                                 Matcher matcher1 = ImagePostMatch.matcher(httpRequest);
 
                                 if (matcher1.find()){
-                                    final JsonElement json = new Gson().fromJson("{" + matcher1.group(1) + "}", JsonElement.class);
+                                    final Gson gson = new Gson();
+                                    JsonElement json = gson.fromJson("{" + matcher1.group(1) + "}", JsonElement.class);
+
+                                    if (json.isJsonObject() && json.getAsJsonObject().has("scheme")){
+                                        // cf
+                                        if (matcher1.find()){
+                                            json = gson.fromJson("{" + matcher1.group(1) + "}", JsonElement.class);
+                                        }
+                                        //System.out.println(json);
+                                    }
+
                                     if (!json.isJsonObject() || !json.getAsJsonObject().has("filename") || !json.getAsJsonObject().has("content")){
                                         out.write(("HTTP/" + httpVersion + " 502 Bad Gateway\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                         if (isGET) {
