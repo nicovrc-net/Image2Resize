@@ -219,7 +219,6 @@ public class Main {
                             // /api/v1/image_resize
                             if (apiUri.equals("v1/image_resize".toLowerCase(Locale.ROOT))){
 
-                                // TODO 画像を受け取ってそれを変換しキャッシュリストに追加して結果を返す
                                 // {"filename": "(ファイル名)", "content": "(Base64エンコードしたもの)"}
                                 Matcher matcher1 = ImagePostMatch.matcher(httpRequest);
 
