@@ -80,6 +80,6 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - API「/api/v1/image_resize」でのCloudflare経由の考慮漏れを修正
+            - 一回で受け付けるHTTPリクエストを50MiB以内にする
           draft: false
           prerelease: true

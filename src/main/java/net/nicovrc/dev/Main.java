@@ -37,7 +37,7 @@ public class Main {
     private static final Timer timer = new Timer();
     private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-    private static final String Version = "0.6.1-beta";
+    private static final String Version = "0.6.2-beta";
 
     public static void main(String[] args) {
 
@@ -95,7 +95,7 @@ public class Main {
                         final InputStream in = sock.getInputStream();
                         final OutputStream out = sock.getOutputStream();
 
-                        byte[] data = new byte[1073741824];
+                        byte[] data = new byte[20971520];
                         int readSize = in.read(data);
                         if (readSize <= 0) {
                             sock.close();
@@ -105,6 +105,9 @@ public class Main {
 
                         final String httpRequest = new String(data, StandardCharsets.UTF_8);
                         final String httpVersion = getHTTPVersion(httpRequest);
+
+                        data = null;
+                        System.gc();
 
                         //System.out.println("[Debug] HTTPRequest受信");
                         System.out.println(httpRequest);
