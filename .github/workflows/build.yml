@@ -34,3 +34,44 @@ jobs:
         run: chmod +x ./gradlew
       - name: Build with Gradle Wrapper
         run: ./gradlew shadowJar
+  autotest_commit:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      # Configure Gradle for optimal use in GiHub Actions, including caching of downloaded dependencies.
+      # See: https://github.com/gradle/actions/blob/main/setup-gradle/README.md
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3.5.0
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+      - name: Build with Gradle Wrapper
+        run: ./gradlew shadowJar
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build with Gradle Wrapper
+        run: ./gradlew shadowJar
+
+      - name: Run the application
+        run: java -jar build/libs/Image2Resize-1.0-SNAPSHOT-all.jar &
+        shell: bash
+
+      - name: Wait for the application to start
+        run: sleep 1
+
+      - name: Check if the application is running and returns 302
+        run: |
+          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:25555/?url=https://nicovrc.net/i2i_autotest.png)
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "Expected HTTP status 200 but got $HTTP_STATUS"
+            exit 1
+          fi
