@@ -1,6 +1,7 @@
 package net.nicovrc.dev;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -24,10 +25,12 @@ public class Main {
     private static final String UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0";
 
     private static final Pattern HTTPVersion = Pattern.compile("HTTP/(\\d+\\.\\d+)");
-    private static final Pattern HTTPMethod = Pattern.compile("^(GET|HEAD)");
-    private static final Pattern HTTPURI = Pattern.compile("(GET|HEAD) (.+) HTTP/");
+    private static final Pattern HTTPMethod = Pattern.compile("^(GET|HEAD|POST)");
+    private static final Pattern HTTPURI = Pattern.compile("(GET|HEAD|POST) (.+) HTTP/");
     private static final Pattern UrlMatch = Pattern.compile("(GET|HEAD) /\\?url=(.+) HTTP");
-    private static final Pattern APIMatch = Pattern.compile("(GET|HEAD) /api/(.+) HTTP");
+    private static final Pattern APIMatch = Pattern.compile("(GET|HEAD|POST) /api/(.+) HTTP");
+
+    private static final Pattern ImagePostMatch = Pattern.compile("\\{(.+)\\}");
 
     private static final HashMap<String, ImageData> CacheDataList = new HashMap<>();
 
@@ -92,7 +95,7 @@ public class Main {
                         final InputStream in = sock.getInputStream();
                         final OutputStream out = sock.getOutputStream();
 
-                        byte[] data = new byte[1000000];
+                        byte[] data = new byte[1073741824];
                         int readSize = in.read(data);
                         if (readSize <= 0) {
                             sock.close();
@@ -150,7 +153,7 @@ public class Main {
 
                             return;
                         }
-                        final boolean isGET = matcher.group(1).toLowerCase(Locale.ROOT).equals("get");
+                        final boolean isGET = matcher.group(1).toLowerCase(Locale.ROOT).equals("get") || matcher.group(1).toLowerCase(Locale.ROOT).equals("post");
                         matcher = HTTPURI.matcher(httpRequest);
 
                         if (!matcher.find()) {
@@ -175,8 +178,8 @@ public class Main {
 
                             final String apiUri = matcher.group(2);
 
-                            // /api/v1/get/data
-                            if (apiUri.equals("v1/get/data")){
+                            // /api/v1/get_data
+                            if (apiUri.equals("v1/get_data")){
 
                                 out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
@@ -189,8 +192,8 @@ public class Main {
                                 return;
                             }
 
-                            // /api/v1/get/cachelist
-                            if (apiUri.equals("v1/get/CacheList".toLowerCase(Locale.ROOT))){
+                            // /api/v1/get_cachelist
+                            if (apiUri.equals("v1/get_cachelist".toLowerCase(Locale.ROOT))){
 
                                 out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
@@ -213,14 +216,53 @@ public class Main {
                                 return;
                             }
 
-                            // /api/v1/post/create
-                            if (apiUri.equals("v1/post/create".toLowerCase(Locale.ROOT))){
+                            // /api/v1/image_resize
+                            if (apiUri.equals("v1/image_resize".toLowerCase(Locale.ROOT))){
 
                                 // TODO 画像を受け取ってそれを変換しキャッシュリストに追加して結果を返す
+                                // {"filename": "(ファイル名)", "content": "(Base64エンコードしたもの)"}
+                                Matcher matcher1 = ImagePostMatch.matcher(httpRequest);
 
-                                out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                                if (isGET) {
+                                if (matcher1.find()){
+                                    final JsonElement json = new Gson().fromJson("{" + matcher1.group(1) + "}", JsonElement.class);
+                                    if (!json.isJsonObject() || !json.getAsJsonObject().has("filename") || !json.getAsJsonObject().has("content")){
+                                        out.write(("HTTP/" + httpVersion + " 502 Bad Gateway\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                        if (isGET) {
+                                            out.write("{\"message\": \"Not Support Request\"}".getBytes(StandardCharsets.UTF_8));
+                                        }
+                                        out.flush();
+                                        in.close();
+                                        out.close();
+                                        sock.close();
+                                        return;
+                                    }
 
+                                    final String base64 = json.getAsJsonObject().has("content") ? json.getAsJsonObject().get("content").getAsString() : "";
+                                    final byte[] bytes = Base64.getDecoder().decode(base64);
+                                    if (bytes == null){
+                                        System.out.println("debug 1-1");
+                                        out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                        if (isGET) {
+                                            out.write("{\"message\": \"Not Found Image\"}".getBytes(StandardCharsets.UTF_8));
+                                        }
+                                    } else {
+                                        System.out.println("debug 1-2");
+                                        byte[] resize = ImageResize(bytes);
+
+                                        out.write(("HTTP/" + httpVersion + " 200 OK\nContent-Type: image/png\n\n").getBytes(StandardCharsets.UTF_8));
+                                        if (isGET) {
+                                            out.write(resize != null ? resize : new byte[0]);
+                                        }
+                                    }
+
+                                    out.flush();
+                                } else {
+                                    System.out.println("debug 2");
+                                    out.write(("HTTP/" + httpVersion + " 502 Bad Gateway\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                    if (isGET) {
+                                        out.write("{\"message\": \"Not Support Request\"}".getBytes(StandardCharsets.UTF_8));
+                                    }
+                                    out.flush();
                                 }
 
                                 in.close();
@@ -341,86 +383,10 @@ public class Main {
                                 return;
                             }
                             //System.out.println("[Debug] 画像読み込み");
-                            BufferedImage read = ImageIO.read(new ByteArrayInputStream(file));
-
-                            if (read == null && header.toLowerCase(Locale.ROOT).endsWith("webp")){
-                                final String fileId = new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0];
-
-                                FileOutputStream stream1 = new FileOutputStream("./temp-" + fileId + ".webp");
-                                stream1.write(file);
-                                stream1.close();
-
-                                String ffmpeg = "";
-                                if (new File("/bin/ffmpeg").exists()){
-                                    ffmpeg = "/bin/ffmpeg";
-                                } else if (new File("/usr/bin/ffmpeg").exists()){
-                                    ffmpeg = "/usr/bin/ffmpeg";
-                                } else if (new File("/usr/local/bin/ffmpeg").exists()){
-                                    ffmpeg = "/usr/local/bin/ffmpeg";
-                                } else if (new File("./ffmpeg").exists()){
-                                    ffmpeg = "./ffmpeg";
-                                } else if (new File("./ffmpeg.exe").exists()){
-                                    ffmpeg = "./ffmpeg.exe";
-                                } else if (new File("C:\\Windows\\System32\\ffmpeg.exe").exists()){
-                                    ffmpeg = "C:\\Windows\\System32\\ffmpeg.exe";
-                                }
-
-                                if (!ffmpeg.isEmpty()){
-                                    Process exec = Runtime.getRuntime().exec(new String[]{ffmpeg, "-i", "./temp-" + fileId + ".webp", "./temp-" + fileId + ".png"});
-                                    exec.waitFor();
-
-                                    FileInputStream stream = new FileInputStream("./temp-" + fileId + ".png");
-                                    //System.out.println(stream.readAllBytes().length);
-                                    byte[] bytes = stream.readAllBytes();
-                                    stream.close();
-                                    //System.out.println(bytes.length);
-                                    read = ImageIO.read(new ByteArrayInputStream(bytes));
-                                    //System.out.println(read == null);
-
-
-                                    new File("./temp-" + fileId + ".png").delete();
-                                }
-                                new File("./temp-" + fileId + ".webp").delete();
-                            }
-
-                            if (read == null){
-                                //System.out.println("[Debug] HTTPRequest送信");
-                                out.write(("HTTP/" + httpVersion + " 403 Forbidden\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                                if (isGET) {
-                                    out.write(("File Not Support").getBytes(StandardCharsets.UTF_8));
-                                }
-                                out.flush();
-                                in.close();
-                                out.close();
-                                sock.close();
-
-                                return;
-                            }
-
                             //System.out.println("[Debug] 画像変換");
-                            int width = (read.getWidth() * 2) / 2;
-                            int height = (read.getHeight() * 2) / 2;
+                            final byte[] SendData = ImageResize(file);
 
-                            if (width >= 1920){
-                                height = (int) ((double)height * ((double)1920 / (double)width));
-                                //System.out.println(((double)height * ((double)1920 / (double)width)));
-                                width = 1920;
-                            }
-                            if (height >= 1920){
-                                width = (int) ((double)width * ((double)1920 / (double)height));
-                                height = 1920;
-                            }
-
-                            BufferedImage image = new BufferedImage(width, height, read.getType());
-                            Image instance = read.getScaledInstance(width, height, Image.SCALE_AREA_AVERAGING);
-                            image.getGraphics().drawImage(instance, 0, 0, width, height, null);
-
-                            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                            ImageIO.write(image, "PNG", stream);
-                            byte[] SendData = stream.toByteArray();
                             //System.out.println("[Debug] 画像出力");
-
-
                             //System.out.println("[Debug] HTTPRequest送信");
                             out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: image/png;\n\n").getBytes(StandardCharsets.UTF_8));
                             if (isGET) {
@@ -467,6 +433,76 @@ public class Main {
         Matcher matcher = HTTPVersion.matcher(HTTPRequest);
         if (matcher.find()){
             return matcher.group(1);
+        }
+
+        return null;
+    }
+
+    private static byte[] ImageResize(byte[] bytes) throws Exception{
+        BufferedImage read = ImageIO.read(new ByteArrayInputStream(bytes));
+
+        if (read == null){
+            final String fileId = new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0];
+
+            FileOutputStream stream1 = new FileOutputStream("./temp-" + fileId + ".webp");
+            stream1.write(bytes);
+            stream1.close();
+
+            String ffmpeg = "";
+            if (new File("/bin/ffmpeg").exists()){
+                ffmpeg = "/bin/ffmpeg";
+            } else if (new File("/usr/bin/ffmpeg").exists()){
+                ffmpeg = "/usr/bin/ffmpeg";
+            } else if (new File("/usr/local/bin/ffmpeg").exists()){
+                ffmpeg = "/usr/local/bin/ffmpeg";
+            } else if (new File("./ffmpeg").exists()){
+                ffmpeg = "./ffmpeg";
+            } else if (new File("./ffmpeg.exe").exists()){
+                ffmpeg = "./ffmpeg.exe";
+            } else if (new File("C:\\Windows\\System32\\ffmpeg.exe").exists()){
+                ffmpeg = "C:\\Windows\\System32\\ffmpeg.exe";
+            }
+
+            if (!ffmpeg.isEmpty()){
+                Process exec = Runtime.getRuntime().exec(new String[]{ffmpeg, "-i", "./temp-" + fileId + ".webp", "./temp-" + fileId + ".png"});
+                exec.waitFor();
+
+                FileInputStream stream = new FileInputStream("./temp-" + fileId + ".png");
+                //System.out.println(stream.readAllBytes().length);
+                byte[] bytes2 = stream.readAllBytes();
+                stream.close();
+                //System.out.println(bytes.length);
+                read = ImageIO.read(new ByteArrayInputStream(bytes2));
+                //System.out.println(read == null);
+
+
+                new File("./temp-" + fileId + ".png").delete();
+            }
+            new File("./temp-" + fileId + ".webp").delete();
+        }
+
+        if (read != null){
+            int width = (read.getWidth() * 2) / 2;
+            int height = (read.getHeight() * 2) / 2;
+
+            if (width >= 1920){
+                height = (int) ((double)height * ((double)1920 / (double)width));
+                //System.out.println(((double)height * ((double)1920 / (double)width)));
+                width = 1920;
+            }
+            if (height >= 1920){
+                width = (int) ((double)width * ((double)1920 / (double)height));
+                height = 1920;
+            }
+
+            BufferedImage image = new BufferedImage(width, height, read.getType());
+            Image instance = read.getScaledInstance(width, height, Image.SCALE_AREA_AVERAGING);
+            image.getGraphics().drawImage(instance, 0, 0, width, height, null);
+
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            ImageIO.write(image, "PNG", stream);
+
+            return stream.toByteArray();
         }
 
         return null;
