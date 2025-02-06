@@ -240,13 +240,13 @@ public class Main {
                                     final String base64 = json.getAsJsonObject().has("content") ? json.getAsJsonObject().get("content").getAsString() : "";
                                     final byte[] bytes = Base64.getDecoder().decode(base64);
                                     if (bytes == null){
-                                        System.out.println("debug 1-1");
+                                        //System.out.println("debug 1-1");
                                         out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                         if (isGET) {
                                             out.write("{\"message\": \"Not Found Image\"}".getBytes(StandardCharsets.UTF_8));
                                         }
                                     } else {
-                                        System.out.println("debug 1-2");
+                                        //System.out.println("debug 1-2");
                                         byte[] resize = ImageResize(bytes);
 
                                         out.write(("HTTP/" + httpVersion + " 200 OK\nContent-Type: image/png\n\n").getBytes(StandardCharsets.UTF_8));
@@ -257,7 +257,7 @@ public class Main {
 
                                     out.flush();
                                 } else {
-                                    System.out.println("debug 2");
+                                    //System.out.println("debug 2");
                                     out.write(("HTTP/" + httpVersion + " 502 Bad Gateway\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                     if (isGET) {
                                         out.write("{\"message\": \"Not Support Request\"}".getBytes(StandardCharsets.UTF_8));
