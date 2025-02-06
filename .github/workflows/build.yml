@@ -68,7 +68,7 @@ jobs:
       - name: Wait for the application to start
         run: sleep 1
 
-      - name: Check if the application is running and returns 302
+      - name: URL Resize Test
         run: |
           HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:25555/?url=https://nicovrc.net/i2i_autotest.png)
           if [ "$HTTP_STATUS" -ne 200 ]; then
