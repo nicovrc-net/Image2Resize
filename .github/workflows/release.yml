@@ -112,5 +112,6 @@ jobs:
           body: |
             - 内部リファクタリング
             - ログ保存先をRedisまたは指定のフォルダに指定できるように
+            - 指定のファイルを置くと正常終了できるように
           draft: false
           prerelease: true
