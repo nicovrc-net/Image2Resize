@@ -1,11 +1,10 @@
 package net.nicovrc.dev;
 
-import net.nicovrc.dev.data.ImageData;
-
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
@@ -17,6 +16,7 @@ public class Function {
     public static final int HTTPPort = 25555;
     public static final String UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0";
     public static final String Version = "0.8.0-beta";
+    public static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     private static final Pattern HTTPVersion = Pattern.compile("HTTP/(\\d+\\.\\d+)");
 
