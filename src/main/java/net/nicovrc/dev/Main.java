@@ -421,7 +421,7 @@ public class Main {
                             if (isGET && !sock.isClosed() && !sock.isOutputShutdown()) {
                                 out.write(SendData != null ? SendData : new byte[0]);
                             }
-                            imageData.setFileContent(null);
+                            //imageData.setFileContent(null);
                             out.flush();
                             in.close();
                             out.close();
