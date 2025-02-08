@@ -80,8 +80,6 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - ログ書き込みをキャッシュするように
-            - すでにキャッシュ待ちのがある場合は待機するように
-            - その他メモリ節約？
+            - 変換結果が返ってこないバグ修正
           draft: false
           prerelease: true
