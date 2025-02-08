@@ -80,6 +80,6 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - 変換結果が返ってこないバグ修正
+            - 内部リファクタリング
           draft: false
           prerelease: true
