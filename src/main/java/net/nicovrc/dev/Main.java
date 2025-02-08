@@ -2,6 +2,7 @@ package net.nicovrc.dev;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import net.nicovrc.dev.data.ImageData;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -21,10 +22,7 @@ import java.util.regex.Pattern;
 
 public class Main {
 
-    private static final int HTTPPort = 25555;
-    private static final String UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0";
 
-    private static final Pattern HTTPVersion = Pattern.compile("HTTP/(\\d+\\.\\d+)");
     private static final Pattern HTTPMethod = Pattern.compile("^(GET|HEAD|POST)");
     private static final Pattern HTTPURI = Pattern.compile("(GET|HEAD|POST) (.+) HTTP/");
     private static final Pattern UrlMatch = Pattern.compile("(GET|HEAD) /\\?url=(.+) HTTP");
@@ -39,7 +37,6 @@ public class Main {
     private static final Timer timer2 = new Timer();
     private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-    private static final String Version = "0.7.1-beta";
 
     public static void main(String[] args) {
 
@@ -77,7 +74,7 @@ public class Main {
             @Override
             public void run() {
                 System.out.println("[Info] ログ書き込み開始 (" + sdf.format(new Date()) + ")");
-                long writeCount = WriteLog();
+                long writeCount = Function.WriteLog(LogWriteCacheList);
                 System.out.println("[Info] ログ書き込み終了("+writeCount+"件) (" + sdf.format(new Date()) + ")");
                 System.gc();
             }
@@ -85,11 +82,11 @@ public class Main {
 
         ServerSocket svSock = null;
         try {
-            svSock = new ServerSocket(HTTPPort);
+            svSock = new ServerSocket(Function.HTTPPort);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        System.out.println("[Info] TCP Port " + HTTPPort + "で 処理受付用HTTPサーバー待機開始");
+        System.out.println("[Info] TCP Port " + Function.HTTPPort + "で 処理受付用HTTPサーバー待機開始");
 
         if (!new File("./log").exists()){
             new File("./log").mkdir();
@@ -118,7 +115,7 @@ public class Main {
                         data = Arrays.copyOf(data, readSize);
 
                         final String httpRequest = new String(data, StandardCharsets.UTF_8);
-                        final String httpVersion = getHTTPVersion(httpRequest);
+                        final String httpVersion = Function.getHTTPVersion(httpRequest);
 
                         data = null;
                         //System.out.println("[Debug] HTTPRequest受信");
@@ -179,7 +176,7 @@ public class Main {
 
                                 out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
-                                    out.write(("{\"Version\":\""+Version+"\",\"count\":"+CacheDataList.size()+"}").getBytes(StandardCharsets.UTF_8));
+                                    out.write(("{\"Version\":\""+Function.Version+"\",\"count\":"+CacheDataList.size()+"}").getBytes(StandardCharsets.UTF_8));
                                 }
 
                                 in.close();
@@ -252,7 +249,7 @@ public class Main {
                                         }
                                     } else {
                                         //System.out.println("debug 1-2");
-                                        byte[] resize = ImageResize(bytes);
+                                        byte[] resize = Function.ImageResize(bytes);
 
                                         out.write(("HTTP/" + httpVersion + " 200 OK\nContent-Type: image/png\n\n").getBytes(StandardCharsets.UTF_8));
                                         if (isGET) {
@@ -357,7 +354,7 @@ public class Main {
 
                             Request request = new Request.Builder()
                                     .url(url)
-                                    .addHeader("User-Agent", UserAgent)
+                                    .addHeader("User-Agent", Function.UserAgent)
                                     .build();
                             Response response = client.newCall(request).execute();
                             String header = response.header("Content-Type");
@@ -407,7 +404,7 @@ public class Main {
                             }
                             //System.out.println("[Debug] 画像読み込み");
                             //System.out.println("[Debug] 画像変換");
-                            final byte[] SendData = ImageResize(file);
+                            final byte[] SendData = Function.ImageResize(file);
 
                             // キャッシュ保存
                             //System.out.println("[Debug] Cache Save");
@@ -458,120 +455,7 @@ public class Main {
         }
         timer.cancel();
         timer2.cancel();
-        WriteLog();
+        Function.WriteLog(LogWriteCacheList);
     }
 
-    private static String getHTTPVersion(String HTTPRequest){
-        Matcher matcher = HTTPVersion.matcher(HTTPRequest);
-        if (matcher.find()){
-            return matcher.group(1);
-        }
-
-        return null;
-    }
-
-    private static byte[] ImageResize(byte[] bytes) throws Exception{
-        BufferedImage read = ImageIO.read(new ByteArrayInputStream(bytes));
-
-        if (read == null){
-            final String fileId = new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0];
-
-            FileOutputStream stream1 = new FileOutputStream("./temp-" + fileId + ".webp");
-            stream1.write(bytes);
-            stream1.close();
-
-            String ffmpeg = "";
-            if (new File("/bin/ffmpeg").exists()){
-                ffmpeg = "/bin/ffmpeg";
-            } else if (new File("/usr/bin/ffmpeg").exists()){
-                ffmpeg = "/usr/bin/ffmpeg";
-            } else if (new File("/usr/local/bin/ffmpeg").exists()){
-                ffmpeg = "/usr/local/bin/ffmpeg";
-            } else if (new File("./ffmpeg").exists()){
-                ffmpeg = "./ffmpeg";
-            } else if (new File("./ffmpeg.exe").exists()){
-                ffmpeg = "./ffmpeg.exe";
-            } else if (new File("C:\\Windows\\System32\\ffmpeg.exe").exists()){
-                ffmpeg = "C:\\Windows\\System32\\ffmpeg.exe";
-            }
-
-            if (!ffmpeg.isEmpty()){
-                Process exec = Runtime.getRuntime().exec(new String[]{ffmpeg, "-i", "./temp-" + fileId + ".webp", "./temp-" + fileId + ".png"});
-                exec.waitFor();
-
-                FileInputStream stream = new FileInputStream("./temp-" + fileId + ".png");
-                //System.out.println(stream.readAllBytes().length);
-                byte[] bytes2 = stream.readAllBytes();
-                stream.close();
-                //System.out.println(bytes.length);
-                read = ImageIO.read(new ByteArrayInputStream(bytes2));
-                //System.out.println(read == null);
-
-
-                new File("./temp-" + fileId + ".png").delete();
-            }
-            new File("./temp-" + fileId + ".webp").delete();
-        }
-
-        if (read != null){
-            int width = (read.getWidth() * 2) / 2;
-            int height = (read.getHeight() * 2) / 2;
-
-            if (width >= 1920){
-                height = (int) ((double)height * ((double)1920 / (double)width));
-                //System.out.println(((double)height * ((double)1920 / (double)width)));
-                width = 1920;
-            }
-            if (height >= 1920){
-                width = (int) ((double)width * ((double)1920 / (double)height));
-                height = 1920;
-            }
-
-            BufferedImage image = new BufferedImage(width, height, read.getType());
-            Image instance = read.getScaledInstance(width, height, Image.SCALE_AREA_AVERAGING);
-            image.getGraphics().drawImage(instance, 0, 0, width, height, null);
-
-            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            ImageIO.write(image, "PNG", stream);
-
-            return stream.toByteArray();
-        }
-
-        return null;
-    }
-
-    private static long WriteLog(){
-        HashMap<String, String> temp = new HashMap<>(LogWriteCacheList);
-        LogWriteCacheList.clear();
-        temp.forEach((id, httpRequest)->{
-            File file = new File("./log/" + id + ".txt");
-            boolean isFound = file.exists();
-            while (isFound){
-                file = new File("./log/" + new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0] + ".txt");
-                id = new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0];
-                isFound = file.exists();
-                try {
-                    Thread.sleep(500L);
-                } catch (Exception e){
-                    isFound = false;
-                }
-            }
-
-            try {
-                PrintWriter writer = new PrintWriter(file);
-                writer.print(httpRequest);
-                writer.close();
-                writer = null;
-            } catch (Exception e){
-                LogWriteCacheList.put(id, httpRequest);
-            }
-
-            file = null;
-        });
-
-        long count = temp.size();
-        temp = null;
-
-        return count;
-    }
 }
