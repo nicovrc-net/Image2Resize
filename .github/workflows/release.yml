@@ -80,6 +80,8 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - 一回で受け付けるHTTPリクエストを50MiB以内にする
+            - ログ書き込みをキャッシュするように
+            - すでにキャッシュ待ちのがある場合は待機するように
+            - その他メモリ節約？
           draft: false
           prerelease: true
