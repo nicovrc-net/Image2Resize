@@ -20,12 +20,6 @@ import java.util.regex.Pattern;
 public class HTTPServer extends Thread {
 
     private final int HTTPPort;
-    private static final HashMap<String, ImageData> CacheDataList = new HashMap<>();
-    private static final HashMap<String, String> LogWriteCacheList = new HashMap<>();
-    private static final Timer timer = new Timer();
-    private static final Timer timer2 = new Timer();
-
-
     public HTTPServer(){
         this.HTTPPort = Function.HTTPPort;
     }
@@ -33,6 +27,10 @@ public class HTTPServer extends Thread {
         this.HTTPPort = HTTPPort;
     }
 
+    private static final HashMap<String, ImageData> CacheDataList = new HashMap<>();
+    private static final HashMap<String, String> LogWriteCacheList = new HashMap<>();
+    private static final Timer timer = new Timer();
+    private static final Timer timer2 = new Timer();
     private static final Pattern HTTPMethod = Pattern.compile("^(GET|HEAD|POST)");
     private static final Pattern HTTPURI = Pattern.compile("(GET|HEAD|POST) (.+) HTTP/");
     private static final Pattern UrlMatch = Pattern.compile("(GET|HEAD) /\\?url=(.+) HTTP");
