@@ -106,6 +106,14 @@ public class HTTPServer extends Thread {
                             return;
                         }
                         System.out.println("[Info] 終了するための準備処理を開始します。");
+                        temp[0] = false;
+
+                        Socket socket = new Socket("127.0.0.1", HTTPPort);
+                        OutputStream stream = socket.getOutputStream();
+                        stream.write("".getBytes(StandardCharsets.UTF_8));
+                        stream.close();
+                        socket.close();
+                        System.out.println("[Info] (終了準備処理)処理受付中止 完了");
 
                         boolean newFile = file.createNewFile();
                         if (newFile){
@@ -123,13 +131,6 @@ public class HTTPServer extends Thread {
                             }
 
                             CheckStopTimer.cancel();
-                            temp[0] = false;
-
-                            Socket socket = new Socket("127.0.0.1", HTTPPort);
-                            OutputStream stream = socket.getOutputStream();
-                            stream.write("".getBytes(StandardCharsets.UTF_8));
-                            stream.close();
-                            socket.close();
                             System.out.println("[Info] 終了準備処理完了");
                             file.deleteOnExit();
                         }
