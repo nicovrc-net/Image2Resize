@@ -2,6 +2,9 @@ package net.nicovrc.dev;
 
 import com.amihaiemil.eoyaml.Yaml;
 import com.amihaiemil.eoyaml.YamlMapping;
+import com.google.gson.GsonBuilder;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -10,6 +13,7 @@ import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -102,45 +106,93 @@ public class Function {
         return null;
     }
 
-    public static long WriteLog(HashMap<String, String> LogWriteCacheList){        // Config
-        final String FolderPass;
-        String folderPass1;
+    public static long WriteLog(HashMap<String, String> LogWriteCacheList){
+        // Config
+        String tempPass;
+        boolean tempFlag;
+        String tempRedisServer;
+        int tempRedisPort;
+        String tempRedisPass;
+
+
         try {
             final YamlMapping yamlMapping = Yaml.createYamlInput(new File("./config.yml")).readYamlMapping();
-            folderPass1 = yamlMapping.string("LogFileFolderPass");
+            tempFlag = yamlMapping.string("LogToRedis").toLowerCase(Locale.ROOT).equals("true");
+            tempPass = yamlMapping.string("LogFileFolderPass");
+            tempRedisServer = yamlMapping.string("RedisServer");
+            tempRedisPort = yamlMapping.integer("RedisPort");
+            tempRedisPass = yamlMapping.string("RedisPass");
         } catch (Exception e){
             // e.printStackTrace();
-            folderPass1 = "./log";
+            tempPass = "./log";
+            tempFlag = false;
+            tempRedisServer = "127.0.0.1";
+            tempRedisPort = 6379;
+            tempRedisPass = "";
         }
-        FolderPass = folderPass1;
+        final String FolderPass = tempPass;
+        final boolean isWriteRedis = tempFlag;
+        final String RedisServer = tempRedisServer;
+        final int RedisServerPort = tempRedisPort;
+        final String RedisServerPass = tempRedisPass;
 
         HashMap<String, String> temp = new HashMap<>(LogWriteCacheList);
         LogWriteCacheList.clear();
-        temp.forEach((id, httpRequest)->{
-            File file = new File(FolderPass+"/" + id + ".txt");
-            boolean isFound = file.exists();
-            while (isFound){
-                file = new File(FolderPass+"/" + new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0] + ".txt");
-                id = new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0];
-                isFound = file.exists();
-                try {
-                    Thread.sleep(500L);
-                } catch (Exception e){
-                    isFound = false;
+        if (isWriteRedis){
+
+            JedisPool jedisPool = new JedisPool(RedisServer, RedisServerPort);
+            Jedis jedis = jedisPool.getResource();
+            if (!RedisServerPass.isEmpty()){
+                jedis.auth(RedisServerPass);
+            }
+
+            temp.forEach((id, httpRequest)->{
+
+                boolean isFound = jedis.get(id) != null;
+                while (isFound){
+                    id = new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0];
+                    isFound = jedis.get(id) != null;
+                    try {
+                        Thread.sleep(500L);
+                    } catch (Exception e){
+                        isFound = false;
+                    }
                 }
-            }
 
-            try {
-                PrintWriter writer = new PrintWriter(file);
-                writer.print(httpRequest);
-                writer.close();
-                writer = null;
-            } catch (Exception e){
-                LogWriteCacheList.put(id, httpRequest);
-            }
+                jedis.set("image2resize:log:"+id, new GsonBuilder().serializeNulls().setPrettyPrinting().create().toJson(httpRequest));
 
-            file = null;
-        });
+            });
+
+            jedis.close();
+            jedisPool.close();
+
+        } else {
+            temp.forEach((id, httpRequest)->{
+                File file = new File(FolderPass+"/" + id + ".txt");
+                boolean isFound = file.exists();
+                while (isFound){
+                    id = new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0];
+                    file = new File(FolderPass+"/" + id + ".txt");
+                    isFound = file.exists();
+                    try {
+                        Thread.sleep(500L);
+                    } catch (Exception e){
+                        isFound = false;
+                    }
+                }
+
+                try {
+                    PrintWriter writer = new PrintWriter(file);
+                    writer.print(httpRequest);
+                    writer.close();
+                    writer = null;
+                } catch (Exception e){
+                    LogWriteCacheList.put(id, httpRequest);
+                }
+
+                file = null;
+            });
+        }
 
         long count = temp.size();
         temp = null;
