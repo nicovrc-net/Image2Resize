@@ -2,6 +2,8 @@
 ## これは何
 `https://i2i.nicovrc.net`のプログラム
 
+## [変更履歴](CHANGELOG.md)
+
 ## 使い方
 - 画像を変換する
 ```
