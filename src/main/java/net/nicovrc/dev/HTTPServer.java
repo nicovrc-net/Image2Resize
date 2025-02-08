@@ -65,7 +65,7 @@ public class HTTPServer extends Thread {
                 System.gc();
 
                 System.out.println("[Info] キャッシュお掃除終了 (" + Function.sdf.format(new Date()) + ")");
-                System.out.println("[Info] キャッシュ件数が"+startCacheCount+"件から"+CacheDataList.size()+"件になりました。 (" + sdf.format(new Date()) + ")");
+                System.out.println("[Info] キャッシュ件数が"+startCacheCount+"件から"+CacheDataList.size()+"件になりました。 (" + Function.sdf.format(new Date()) + ")");
 
             }
         }, 0L, 3600000L);
@@ -190,7 +190,7 @@ public class HTTPServer extends Thread {
                                     final HashMap<String, String> cacheList = new HashMap<>();
 
                                     CacheDataList.forEach((url, imgData)->{
-                                        cacheList.put(url, imgData.getCacheDate() != null ? sdf.format(imgData.getCacheDate()) : "-");
+                                        cacheList.put(url, imgData.getCacheDate() != null ? Function.sdf.format(imgData.getCacheDate()) : "-");
                                     });
 
                                     out.write((new Gson().toJson(cacheList)).getBytes(StandardCharsets.UTF_8));
