@@ -39,7 +39,7 @@ public class Main {
     private static final Timer timer2 = new Timer();
     private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-    private static final String Version = "0.7.0-beta";
+    private static final String Version = "0.7.1-beta";
 
     public static void main(String[] args) {
 
