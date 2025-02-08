@@ -33,11 +33,13 @@ public class Main {
     private static final Pattern ImagePostMatch = Pattern.compile("\\{(.+)\\}");
 
     private static final HashMap<String, ImageData> CacheDataList = new HashMap<>();
+    private static final HashMap<String, String> LogWriteCacheList = new HashMap<>();
 
     private static final Timer timer = new Timer();
+    private static final Timer timer2 = new Timer();
     private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-    private static final String Version = "0.6.2-beta";
+    private static final String Version = "0.7.0-beta";
 
     public static void main(String[] args) {
 
@@ -71,6 +73,16 @@ public class Main {
             }
         }, 0L, 3600000L);
 
+        timer2.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                System.out.println("[Info] ログ書き込み開始 (" + sdf.format(new Date()) + ")");
+                long writeCount = WriteLog();
+                System.out.println("[Info] ログ書き込み終了("+writeCount+"件) (" + sdf.format(new Date()) + ")");
+                System.gc();
+            }
+        }, 0L, 60000L);
+
         ServerSocket svSock = null;
         try {
             svSock = new ServerSocket(HTTPPort);
@@ -98,6 +110,8 @@ public class Main {
                         byte[] data = new byte[20971520];
                         int readSize = in.read(data);
                         if (readSize <= 0) {
+                            in.close();
+                            out.close();
                             sock.close();
                             return;
                         }
@@ -107,32 +121,11 @@ public class Main {
                         final String httpVersion = getHTTPVersion(httpRequest);
 
                         data = null;
-                        System.gc();
-
                         //System.out.println("[Debug] HTTPRequest受信");
                         System.out.println(httpRequest);
 
-                        Thread.ofVirtual().start(()->{
-                            File file = new File("./log/" + new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0] + ".txt");
-                            boolean isFound = file.exists();
-                            while (isFound){
-                                file = new File("./log/" + new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0] + ".txt");
-                                isFound = file.exists();
-                                try {
-                                    Thread.sleep(500L);
-                                } catch (Exception e){
-                                    isFound = false;
-                                }
-                            }
-
-                            try {
-                                PrintWriter writer = new PrintWriter(file);
-                                writer.print(httpRequest);
-                                writer.close();
-                            } catch (Exception e){
-                                e.printStackTrace();
-                            }
-                        });
+                        // ログ保存は時間がかかるのでキャッシュする
+                        LogWriteCacheList.put(new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0], httpRequest);
 
                         if (httpVersion == null) {
                             //System.out.println("[Debug] HTTPRequest送信");
@@ -204,7 +197,7 @@ public class Main {
                                     final HashMap<String, String> cacheList = new HashMap<>();
 
                                     CacheDataList.forEach((url, imgData)->{
-                                        cacheList.put(url, sdf.format(imgData.getCacheDate()));
+                                        cacheList.put(url, imgData.getCacheDate() != null ? sdf.format(imgData.getCacheDate()) : "-");
                                     });
 
                                     out.write((new Gson().toJson(cacheList)).getBytes(StandardCharsets.UTF_8));
@@ -309,9 +302,24 @@ public class Main {
                             ImageData imageData = CacheDataList.get(url);
 
                             if (imageData != null){
-                                //System.out.println("[Debug] CacheFound");
                                 // あればキャッシュから
+                                //System.out.println("[Debug] CacheFound");
                                 //System.out.println("[Debug] HTTPRequest送信");
+
+                                boolean isTemp = new String(imageData.getFileContent(), StandardCharsets.UTF_8).equals("Temp");
+                                while (isTemp){
+                                    if (CacheDataList.get(url) == null){
+                                        continue;
+                                    }
+
+                                    isTemp = new String(CacheDataList.get(url).getFileContent(), StandardCharsets.UTF_8).equals("Temp");
+                                    try {
+                                        Thread.sleep(100L);
+                                    } catch (Exception e){
+                                        //e.printStackTrace();
+                                    }
+                                }
+
                                 out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: image/png;\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
                                     out.write(imageData.getFileContent());
@@ -329,6 +337,9 @@ public class Main {
                             imageData = new ImageData();
                             imageData.setFileId(UUID.randomUUID().toString());
                             imageData.setURL(url);
+                            imageData.setFileContent("Temp".getBytes(StandardCharsets.UTF_8));
+                            imageData.setCacheDate(new Date());
+                            CacheDataList.put(url, imageData);
 
                             if (!url.toLowerCase(Locale.ROOT).startsWith("http")) {
                                 //System.out.println("[Debug] HTTPRequest送信");
@@ -398,22 +409,24 @@ public class Main {
                             //System.out.println("[Debug] 画像変換");
                             final byte[] SendData = ImageResize(file);
 
+                            // キャッシュ保存
+                            //System.out.println("[Debug] Cache Save");
+                            imageData.setFileContent(SendData);
+                            CacheDataList.remove(url);
+                            CacheDataList.put(url, imageData);
+
                             //System.out.println("[Debug] 画像出力");
                             //System.out.println("[Debug] HTTPRequest送信");
                             out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: image/png;\n\n").getBytes(StandardCharsets.UTF_8));
-                            if (isGET) {
-                                out.write(SendData);
+                            if (isGET && !sock.isClosed() && !sock.isOutputShutdown()) {
+                                out.write(SendData != null ? SendData : new byte[0]);
                             }
+                            imageData.setFileContent(null);
                             out.flush();
                             in.close();
                             out.close();
                             sock.close();
 
-                            // キャッシュ保存
-                            //System.out.println("[Debug] Cache Save");
-                            imageData.setFileContent(SendData);
-                            imageData.setCacheDate(new Date());
-                            CacheDataList.put(url, imageData);
 
                         } else {
                             //System.out.println("[Debug] HTTPRequest送信");
@@ -430,6 +443,11 @@ public class Main {
                     } catch (Exception e) {
                         e.printStackTrace();
                         //temp[0] = false;
+                        try {
+                            sock.close();
+                        } catch (Exception ex){
+                            //e.printStackTrace();
+                        }
                     }
                     //System.out.println("[Debug] HTTPRequest処理終了");
                 });
@@ -439,6 +457,8 @@ public class Main {
             }
         }
         timer.cancel();
+        timer2.cancel();
+        WriteLog();
     }
 
     private static String getHTTPVersion(String HTTPRequest){
@@ -518,5 +538,40 @@ public class Main {
         }
 
         return null;
+    }
+
+    private static long WriteLog(){
+        HashMap<String, String> temp = new HashMap<>(LogWriteCacheList);
+        LogWriteCacheList.clear();
+        temp.forEach((id, httpRequest)->{
+            File file = new File("./log/" + id + ".txt");
+            boolean isFound = file.exists();
+            while (isFound){
+                file = new File("./log/" + new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0] + ".txt");
+                id = new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0];
+                isFound = file.exists();
+                try {
+                    Thread.sleep(500L);
+                } catch (Exception e){
+                    isFound = false;
+                }
+            }
+
+            try {
+                PrintWriter writer = new PrintWriter(file);
+                writer.print(httpRequest);
+                writer.close();
+                writer = null;
+            } catch (Exception e){
+                LogWriteCacheList.put(id, httpRequest);
+            }
+
+            file = null;
+        });
+
+        long count = temp.size();
+        temp = null;
+
+        return count;
     }
 }
