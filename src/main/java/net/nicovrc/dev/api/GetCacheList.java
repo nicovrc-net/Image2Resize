@@ -1,0 +1,46 @@
+package net.nicovrc.dev.api;
+
+import com.google.gson.Gson;
+import net.nicovrc.dev.Function;
+import net.nicovrc.dev.data.ImageData;
+
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+
+public class GetCacheList implements ImageResizeAPI {
+
+    @Override
+    @Deprecated
+    public APIResult run() {
+        return null;
+    }
+
+    @Override
+    public APIResult run(HashMap<String, ImageData> CacheDataList, HashMap<String, String> LogWriteCacheList) {
+        if (CacheDataList == null){
+            return null;
+        }
+
+        final HashMap<String, String> cacheList = new HashMap<>();
+
+        CacheDataList.forEach((url, imgData)->{
+            cacheList.put(url, imgData.getCacheDate() != null ? Function.sdf.format(imgData.getCacheDate()) : "-");
+        });
+
+        String json = new Gson().toJson(cacheList);
+        cacheList.clear();
+
+        return new APIResult("200 OK", json.getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Override
+    @Deprecated
+    public APIResult run(HashMap<String, ImageData> CacheDataList, HashMap<String, String> LogWriteCacheList, String httpRequest) {
+        return run(CacheDataList, LogWriteCacheList);
+    }
+
+    @Override
+    public String getURI() {
+        return "/api/v1/get_cachelist";
+    }
+}

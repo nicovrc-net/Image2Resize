@@ -1,7 +1,6 @@
 package net.nicovrc.dev;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
+import net.nicovrc.dev.api.*;
 import net.nicovrc.dev.data.ImageData;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -36,10 +35,16 @@ public class HTTPServer extends Thread {
     private final Pattern UrlMatch = Pattern.compile("(GET|HEAD) /\\?url=(.+) HTTP");
     private final Pattern APIMatch = Pattern.compile("(GET|HEAD|POST) /api/(.+) HTTP");
 
-    private final Pattern ImagePostMatch = Pattern.compile("\\{(.+)\\}");
+
+    private final List<ImageResizeAPI> apiList = new ArrayList<>();
 
     @Override
     public void run() {
+        // API
+        apiList.add(new GetData());
+        apiList.add(new GetCacheList());
+        apiList.add(new PostImageResize());
+
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
@@ -165,108 +170,22 @@ public class HTTPServer extends Thread {
 
                         if (ApiMatchFlag){
 
-                            final String apiUri = matcher.group(2);
+                            final String apiUri = "/api/" + matcher.group(2);
 
-                            // /api/v1/get_data
-                            if (apiUri.equals("v1/get_data")){
+                            for (ImageResizeAPI api : apiList){
+                                if (api.getURI().equals(apiUri)){
+                                    APIResult run = api.run(CacheDataList, LogWriteCacheList, httpRequest);
 
-                                out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                                if (isGET) {
-                                    out.write(("{\"Version\":\""+Function.Version+"\",\"count\":"+CacheDataList.size()+"}").getBytes(StandardCharsets.UTF_8));
-                                }
-
-                                in.close();
-                                out.close();
-                                sock.close();
-                                return;
-                            }
-
-                            // /api/v1/get_cachelist
-                            if (apiUri.equals("v1/get_cachelist".toLowerCase(Locale.ROOT))){
-
-                                out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                                if (isGET) {
-
-                                    final HashMap<String, String> cacheList = new HashMap<>();
-
-                                    CacheDataList.forEach((url, imgData)->{
-                                        cacheList.put(url, imgData.getCacheDate() != null ? Function.sdf.format(imgData.getCacheDate()) : "-");
-                                    });
-
-                                    out.write((new Gson().toJson(cacheList)).getBytes(StandardCharsets.UTF_8));
-
-                                    cacheList.clear();
-
-                                }
-
-                                in.close();
-                                out.close();
-                                sock.close();
-                                return;
-                            }
-
-                            // /api/v1/image_resize
-                            if (apiUri.equals("v1/image_resize".toLowerCase(Locale.ROOT))){
-
-                                // {"filename": "(ファイル名)", "content": "(Base64エンコードしたもの)"}
-                                Matcher matcher1 = ImagePostMatch.matcher(httpRequest);
-
-                                if (matcher1.find()){
-                                    final Gson gson = new Gson();
-                                    JsonElement json = gson.fromJson("{" + matcher1.group(1) + "}", JsonElement.class);
-
-                                    if (json.isJsonObject() && json.getAsJsonObject().has("scheme")){
-                                        // cf
-                                        if (matcher1.find()){
-                                            json = gson.fromJson("{" + matcher1.group(1) + "}", JsonElement.class);
-                                        }
-                                        //System.out.println(json);
-                                    }
-
-                                    if (!json.isJsonObject() || !json.getAsJsonObject().has("filename") || !json.getAsJsonObject().has("content")){
-                                        out.write(("HTTP/" + httpVersion + " 502 Bad Gateway\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                                        if (isGET) {
-                                            out.write("{\"message\": \"Not Support Request\"}".getBytes(StandardCharsets.UTF_8));
-                                        }
-                                        out.flush();
-                                        in.close();
-                                        out.close();
-                                        sock.close();
-                                        return;
-                                    }
-
-                                    final String base64 = json.getAsJsonObject().has("content") ? json.getAsJsonObject().get("content").getAsString() : "";
-                                    final byte[] bytes = Base64.getDecoder().decode(base64);
-                                    if (bytes == null){
-                                        //System.out.println("debug 1-1");
-                                        out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                                        if (isGET) {
-                                            out.write("{\"message\": \"Not Found Image\"}".getBytes(StandardCharsets.UTF_8));
-                                        }
-                                    } else {
-                                        //System.out.println("debug 1-2");
-                                        byte[] resize = Function.ImageResize(bytes);
-
-                                        out.write(("HTTP/" + httpVersion + " 200 OK\nContent-Type: image/png\n\n").getBytes(StandardCharsets.UTF_8));
-                                        if (isGET) {
-                                            out.write(resize != null ? resize : new byte[0]);
-                                        }
-                                    }
-
-                                    out.flush();
-                                } else {
-                                    //System.out.println("debug 2");
-                                    out.write(("HTTP/" + httpVersion + " 502 Bad Gateway\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                    out.write(("HTTP/" + httpVersion + " "+run.getHttpResponseCode()+"\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                     if (isGET) {
-                                        out.write("{\"message\": \"Not Support Request\"}".getBytes(StandardCharsets.UTF_8));
+                                        out.write(run.getHttpContent());
                                     }
-                                    out.flush();
-                                }
 
-                                in.close();
-                                out.close();
-                                sock.close();
-                                return;
+                                    in.close();
+                                    out.close();
+                                    sock.close();
+                                    return;
+                                }
                             }
 
                             out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
