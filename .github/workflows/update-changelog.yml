@@ -1,0 +1,41 @@
+# ChatGPTに聞いた結果なので動かない場合はなんとかする
+name: Update Changelog
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-changelog:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get release information
+        id: release_info
+        run: |
+          echo "RELEASE_TAG=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
+          echo "RELEASE_BODY<<EOF" >> $GITHUB_ENV
+          echo "${{ github.event.release.body }}" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Update CHANGELOG.md
+        run: |
+          TMP_FILE=$(mktemp)
+          echo "# 変更履歴" > "$TMP_FILE"
+          echo "" >> "$TMP_FILE"
+          echo "## $RELEASE_TAG ($(date +'%Y/%m/%d'))" >> "$TMP_FILE"
+          echo "" >> "$TMP_FILE"
+          echo "$RELEASE_BODY" >> "$TMP_FILE"
+          echo "" >> "$TMP_FILE"
+          tail -n +2 CHANGELOG.md >> "$TMP_FILE"
+          mv "$TMP_FILE" CHANGELOG.md
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "Update CHANGELOG for $RELEASE_TAG"
+          git push origin HEAD
