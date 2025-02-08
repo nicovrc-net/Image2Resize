@@ -6,6 +6,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -28,8 +29,10 @@ public class HTTPServer extends Thread {
 
     private final HashMap<String, ImageData> CacheDataList = new HashMap<>();
     private final HashMap<String, String> LogWriteCacheList = new HashMap<>();
-    private final Timer timer = new Timer();
-    private final Timer timer2 = new Timer();
+    private final Timer CacheCheckTimer = new Timer();
+    private final Timer LogWriteTimer = new Timer();
+    private final Timer CheckStopTimer = new Timer();
+
     private final Pattern HTTPMethod = Pattern.compile("^(GET|HEAD|POST)");
     private final Pattern HTTPURI = Pattern.compile("(GET|HEAD|POST) (.+) HTTP/");
     private final Pattern UrlMatch = Pattern.compile("(GET|HEAD) /\\?url=(.+) HTTP");
@@ -45,7 +48,7 @@ public class HTTPServer extends Thread {
         apiList.add(new GetCacheList());
         apiList.add(new PostImageResize());
 
-        timer.scheduleAtFixedRate(new TimerTask() {
+        CacheCheckTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 int startCacheCount = CacheDataList.size();
@@ -75,7 +78,7 @@ public class HTTPServer extends Thread {
             }
         }, 0L, 3600000L);
 
-        timer2.scheduleAtFixedRate(new TimerTask() {
+        LogWriteTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 System.out.println("[Info] ログ書き込み開始 (" + Function.sdf.format(new Date()) + ")");
@@ -85,6 +88,59 @@ public class HTTPServer extends Thread {
             }
         }, 0L, 60000L);
 
+        final boolean[] temp = {true};
+        CheckStopTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    File file = new File("./stop.txt");
+
+                    if (!file.exists()){
+                        return;
+                    }
+
+                    boolean delete = file.delete();
+                    if (delete){
+                        file = new File("./lock-stop");
+                        if (file.exists()){
+                            return;
+                        }
+                        System.out.println("[Info] 終了するための準備処理を開始します。");
+
+                        boolean newFile = file.createNewFile();
+                        if (newFile){
+                            long count = Function.WriteLog(LogWriteCacheList);
+                            if (count == 0){
+                                System.out.println("[Info] (終了準備処理)ログ書き出し完了");
+                            } else {
+                                while (count > 0){
+                                    if (LogWriteCacheList.isEmpty()){
+                                        count = 0;
+                                    } else {
+                                        count = Function.WriteLog(LogWriteCacheList);
+                                    }
+                                }
+                            }
+
+                            CheckStopTimer.cancel();
+                            temp[0] = false;
+
+                            Socket socket = new Socket("127.0.0.1", HTTPPort);
+                            OutputStream stream = socket.getOutputStream();
+                            stream.write("".getBytes(StandardCharsets.UTF_8));
+                            stream.close();
+                            socket.close();
+                            System.out.println("[Info] 終了準備処理完了");
+                            file.deleteOnExit();
+                        }
+                    }
+
+                } catch (Exception e){
+                    // e.printStackTrace();
+                }
+            }
+        }, 0L, 1000L);
+
         ServerSocket svSock = null;
         try {
             svSock = new ServerSocket(HTTPPort);
@@ -93,7 +149,6 @@ public class HTTPServer extends Thread {
         }
         System.out.println("[Info] TCP Port " + HTTPPort + "で 処理受付用HTTPサーバー待機開始");
 
-        final boolean[] temp = {true};
         while (temp[0]) {
             try {
                 System.gc();
@@ -369,8 +424,9 @@ public class HTTPServer extends Thread {
             }
         }
 
-        timer.cancel();
-        timer2.cancel();
+        CacheCheckTimer.cancel();
+        LogWriteTimer.cancel();
         Function.WriteLog(LogWriteCacheList);
+        System.out.println("[Info] 終了します...");
     }
 }
