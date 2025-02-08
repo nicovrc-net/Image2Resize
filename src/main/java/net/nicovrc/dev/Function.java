@@ -1,5 +1,8 @@
 package net.nicovrc.dev;
 
+import com.amihaiemil.eoyaml.Yaml;
+import com.amihaiemil.eoyaml.YamlMapping;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -99,14 +102,25 @@ public class Function {
         return null;
     }
 
-    public static long WriteLog(HashMap<String, String> LogWriteCacheList){
+    public static long WriteLog(HashMap<String, String> LogWriteCacheList){        // Config
+        final String FolderPass;
+        String folderPass1;
+        try {
+            final YamlMapping yamlMapping = Yaml.createYamlInput(new File("./config.yml")).readYamlMapping();
+            folderPass1 = yamlMapping.string("LogFileFolderPass");
+        } catch (Exception e){
+            // e.printStackTrace();
+            folderPass1 = "./log";
+        }
+        FolderPass = folderPass1;
+
         HashMap<String, String> temp = new HashMap<>(LogWriteCacheList);
         LogWriteCacheList.clear();
         temp.forEach((id, httpRequest)->{
-            File file = new File("./log/" + id + ".txt");
+            File file = new File(FolderPass+"/" + id + ".txt");
             boolean isFound = file.exists();
             while (isFound){
-                file = new File("./log/" + new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0] + ".txt");
+                file = new File(FolderPass+"/" + new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0] + ".txt");
                 id = new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0];
                 isFound = file.exists();
                 try {
