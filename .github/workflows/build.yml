@@ -61,12 +61,37 @@ jobs:
       - name: Build with Gradle Wrapper
         run: ./gradlew shadowJar
 
-      - name: Run the application
+      - name: Run the application 1
         run: java -jar build/libs/Image2Resize-1.0-SNAPSHOT-all.jar &
         shell: bash
 
       - name: Wait for the application to start
         run: sleep 1
+
+      - name: Create config.yml Test
+        run: |
+          if [ -f ./config.yml ]; then
+            echo "OK"
+          else 
+            exit 1
+          fi
+        shell: bash
+
+      - name: Run the application 2
+        run: java -jar build/libs/Image2Resize-1.0-SNAPSHOT-all.jar &
+        shell: bash
+
+      - name: Wait for the application to start
+        run: sleep 1
+
+      - name: Create LogFolder Test
+        run: |
+          if [ -d ./log ]; then
+            echo "OK"
+          else
+            exit 1
+          fi
+        shell: bash
 
       - name: URL Resize Test
         run: |
@@ -75,3 +100,4 @@ jobs:
             echo "Expected HTTP status 200 but got $HTTP_STATUS"
             exit 1
           fi
+        shell: bash
