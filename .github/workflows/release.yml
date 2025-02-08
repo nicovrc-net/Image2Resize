@@ -111,5 +111,6 @@ jobs:
           release_name: v${{ github.ref }}
           body: |
             - 内部リファクタリング
+            - ログ保存先をRedisまたは指定のフォルダに指定できるように
           draft: false
           prerelease: true
