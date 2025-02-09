@@ -110,8 +110,6 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - 内部リファクタリング
-            - ログ保存先をRedisまたは指定のフォルダに指定できるように
-            - 指定のファイルを置くと正常終了できるように
+            - エラーになった場合キャッシュが残り続けるのを修正
           draft: false
           prerelease: true

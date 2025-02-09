@@ -347,6 +347,7 @@ public class HTTPServer extends Thread {
                             response.close();
 
                             if (header != null && !header.toLowerCase(Locale.ROOT).startsWith("image")) {
+                                CacheDataList.remove(url);
                                 //System.out.println("[Debug] HTTPRequest送信");
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
@@ -361,6 +362,7 @@ public class HTTPServer extends Thread {
                             }
 
                             if (file.length == 0){
+                                CacheDataList.remove(url);
                                 //System.out.println("[Debug] HTTPRequest送信");
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
