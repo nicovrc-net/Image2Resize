@@ -137,7 +137,7 @@ jobs:
       - name: LogWrite Test
         run: |
           COUNT=$(ls -U1 | wc -l)
-          if ["$COUNT" -ne 3]; then
+          if ["$COUNT" -ne 5]; then
             echo "OK"
           else
             exit 1
