@@ -47,6 +47,7 @@ LogFileFolderPass: "./log"
 # ----------------------------
 # Redisサーバー
 RedisServer: "127.0.0.1"
+# Redisサーバーのポート
 RedisPort: 6379
 # Redis AUTHパスワード
 # パスワードがない場合は以下の通りに設定してください
