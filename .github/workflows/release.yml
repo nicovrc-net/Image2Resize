@@ -131,6 +131,7 @@ jobs:
           if [ "$COUNT" = "5" ]; then
             echo "OK"
           else
+            echo "$COUNT <> 5"
             exit 1
           fi
         shell: bash
