@@ -427,6 +427,7 @@ public class HTTPServer extends Thread {
             }
         }
 
+        CheckStopTimer.cancel();
         CacheCheckTimer.cancel();
         LogWriteTimer.cancel();
         Function.WriteLog(LogWriteCacheList);
