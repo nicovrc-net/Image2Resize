@@ -111,5 +111,7 @@ jobs:
           release_name: v${{ github.ref }}
           body: |
             - エラーになった場合キャッシュが残り続けるのを修正
+            - config.ymlを自動生成する際のコメント漏れを修正
+            - 正常終了しない場合を修正
           draft: false
           prerelease: true
