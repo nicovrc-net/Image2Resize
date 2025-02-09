@@ -96,7 +96,7 @@ jobs:
       - name: API Check Test 2-2
         run: |
           HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"filename":"autotest.txt", "content":"44Gm44GN44GZ44Go44Gg44KI44O844KT"}' http://localhost:25555/api/v1/image_resize)
-          CODE=$(curl -X POST -H "Content-Type: application/json" -d '{"filename":"autotest.txt", "content":"44Gm44GN44GZ44Go44Gg44KI44O844KT"}' http://localhost:25555/api/v1/image_resize)
+          CODE=$(curl -s -X POST -H "Content-Type: application/json" -d '{"filename":"autotest.txt", "content":"44Gm44GN44GZ44Go44Gg44KI44O844KT"}' http://localhost:25555/api/v1/image_resize)
           if [ "$HTTP_STATUS" -ne 404 ]; then
             exit 1
           else
