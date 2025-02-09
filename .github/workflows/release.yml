@@ -100,7 +100,7 @@ jobs:
           if [ "$HTTP_STATUS" -ne 404 ]; then
             exit 1
           else
-            if ["$CODE" = '{"message": "Not Support Image"}']; then
+            if [$CODE = '{"message": "Not Support Image"}']; then
               echo "OK"
             else
               exit 1
