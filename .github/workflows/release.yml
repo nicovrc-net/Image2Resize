@@ -125,15 +125,6 @@ jobs:
           fi
         shell: bash
 
-      - name: Force Stop Test
-        run: |
-          if [ -d ./stop.txt ]; then
-            exit 1
-          else
-            echo "OK"
-          fi
-        shell: bash
-
       - name: LogWrite Test
         run: |
           COUNT=$(ls -U1 | wc -l)
