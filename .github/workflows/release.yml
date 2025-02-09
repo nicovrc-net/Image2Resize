@@ -92,6 +92,43 @@ jobs:
             exit 1
           fi
         shell: bash
+
+      - name: Create stop.txt
+        run: |
+          echo "" > stop.txt
+        shell: bash
+
+      - name: Wait 2s
+        run: sleep 2
+
+      - name: Force Stop Test
+        run: |
+          if [ -d ./stop.txt ]; then
+            exit 1
+          else
+            echo "OK"
+          fi
+        shell: bash
+
+      - name: Force Stop Test
+        run: |
+          if [ -d ./stop.txt ]; then
+            exit 1
+          else
+            echo "OK"
+          fi
+        shell: bash
+
+      - name: LogWrite Test
+        run: |
+          COUNT=$(ls -U1 | wc -l)
+          if ["$COUNT" -ne 3]; then
+            echo "OK"
+          else
+            exit 1
+          fi
+        shell: bash
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@latest
