@@ -127,7 +127,7 @@ jobs:
 
       - name: LogWrite Test
         run: |
-          COUNT=$(ls -U1 | wc -l)
+          COUNT=$(ls -U1 ./log | wc -l)
           if [ "$COUNT" = "5" ]; then
             echo "OK"
           else
