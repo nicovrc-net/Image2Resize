@@ -5,15 +5,23 @@ import java.nio.charset.StandardCharsets;
 public class APIResult {
 
     private String httpResponseCode;
+    private String httpContentType;
     private byte[] httpContent;
 
     public APIResult(){
         this.httpResponseCode = "200 OK";
-        this.setHttpContent("Test Data".getBytes(StandardCharsets.UTF_8));
+        this.httpContent = "Test Data".getBytes(StandardCharsets.UTF_8);
+    }
+
+    public APIResult(String httpResponseCode, String httpContentType, byte[] httpContent){
+        this.httpResponseCode = httpResponseCode;
+        this.httpContentType = httpContentType;
+        this.httpContent = httpContent;
     }
 
     public APIResult(String httpResponseCode, byte[] httpContent){
         this.httpResponseCode = httpResponseCode;
+        this.httpContentType = "application/json; charset=utf-8";
         this.httpContent = httpContent;
     }
 
@@ -23,6 +31,14 @@ public class APIResult {
 
     public void setHttpResponseCode(String httpResponseCode) {
         this.httpResponseCode = httpResponseCode;
+    }
+
+    public String getHttpContentType() {
+        return httpContentType;
+    }
+
+    public void setHttpContentType(String httpContentType) {
+        this.httpContentType = httpContentType;
     }
 
     public byte[] getHttpContent() {

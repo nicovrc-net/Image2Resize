@@ -57,9 +57,11 @@ public class PostImageResize implements ImageResizeAPI {
                 try {
                     resize = Function.ImageResize(bytes);
                 } catch (Exception e) {
-                    // e.printStackTrace();
+                    //e.printStackTrace();
+                    return new APIResult("404 Not Found", "{\"message\": \"Not Support Image\"}".getBytes(StandardCharsets.UTF_8));
                 }
-                return new APIResult(resize != null ? "200 OK" : "404 Not Found", resize != null ? resize : "Not Support Image".getBytes(StandardCharsets.UTF_8));
+                //System.out.println(resize != null);
+                return new APIResult(resize != null ? "200 OK" : "404 Not Found", resize != null ? "image/png" : "application/json; charset=utf-8", resize != null ? resize : "{\"message\": \"Not Support Image\"}".getBytes(StandardCharsets.UTF_8));
             }
         } else {
             //System.out.println("debug 2");

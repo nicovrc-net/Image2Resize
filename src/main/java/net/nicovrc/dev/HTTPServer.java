@@ -232,7 +232,7 @@ public class HTTPServer extends Thread {
                                 if (api.getURI().equals(apiUri)){
                                     APIResult run = api.run(CacheDataList, LogWriteCacheList, httpRequest);
 
-                                    out.write(("HTTP/" + httpVersion + " "+run.getHttpResponseCode()+"\nAccess-Control-Allow-Origin: *\nContent-Type: application/json; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                    out.write(("HTTP/" + httpVersion + " "+run.getHttpResponseCode()+"\nAccess-Control-Allow-Origin: *\nContent-Type: "+run.getHttpContentType()+"\n\n").getBytes(StandardCharsets.UTF_8));
                                     if (isGET) {
                                         out.write(run.getHttpContent());
                                     }

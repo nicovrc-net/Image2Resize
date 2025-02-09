@@ -63,18 +63,29 @@ public class Function {
 
             if (!ffmpeg.isEmpty()){
                 Process exec = Runtime.getRuntime().exec(new String[]{ffmpeg, "-i", "./temp-" + fileId + ".webp", "./temp-" + fileId + ".png"});
+                Thread.ofVirtual().start(()->{
+                   try {
+                       Thread.sleep(5000L);
+                   } catch (Exception e){
+                       //e.printStackTrace();
+                   }
+
+                   if (exec.isAlive()){
+                       exec.destroy();
+                   }
+                });
                 exec.waitFor();
-
-                FileInputStream stream = new FileInputStream("./temp-" + fileId + ".png");
-                //System.out.println(stream.readAllBytes().length);
-                byte[] bytes2 = stream.readAllBytes();
-                stream.close();
-                //System.out.println(bytes.length);
-                read = ImageIO.read(new ByteArrayInputStream(bytes2));
-                //System.out.println(read == null);
-
-
-                new File("./temp-" + fileId + ".png").delete();
+                //System.out.println("debug");
+                if (new File("./temp-" + fileId + ".png").exists()){
+                    FileInputStream stream = new FileInputStream("./temp-" + fileId + ".png");
+                    //System.out.println(stream.readAllBytes().length);
+                    byte[] bytes2 = stream.readAllBytes();
+                    stream.close();
+                    //System.out.println(bytes.length);
+                    read = ImageIO.read(new ByteArrayInputStream(bytes2));
+                    //System.out.println(read == null);
+                    new File("./temp-" + fileId + ".png").delete();
+                }
             }
             new File("./temp-" + fileId + ".webp").delete();
         }
