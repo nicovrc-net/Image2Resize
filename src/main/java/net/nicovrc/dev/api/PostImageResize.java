@@ -44,7 +44,7 @@ public class PostImageResize implements ImageResizeAPI {
             }
 
             if (!json.isJsonObject() || !json.getAsJsonObject().has("filename") || !json.getAsJsonObject().has("content")){
-                return new APIResult("502 Bad Gateway", "{\"message\": \"Not Support Request\"}".getBytes(StandardCharsets.UTF_8));
+                return new APIResult("404 Not Found", "{\"message\": \"Not Support Request\"}".getBytes(StandardCharsets.UTF_8));
             }
 
             final String base64 = json.getAsJsonObject().has("content") ? json.getAsJsonObject().get("content").getAsString() : "";
@@ -59,7 +59,7 @@ public class PostImageResize implements ImageResizeAPI {
                 } catch (Exception e) {
                     // e.printStackTrace();
                 }
-                return new APIResult("200 OK", resize != null ? resize : new byte[0]);
+                return new APIResult(resize != null ? "200 OK" : "404 Not Found", resize != null ? resize : "Not Support Image".getBytes(StandardCharsets.UTF_8));
             }
         } else {
             //System.out.println("debug 2");
