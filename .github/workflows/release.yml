@@ -110,7 +110,7 @@ jobs:
 
       - name: Create stop.txt
         run: |
-          echo "" > stop.txt
+          cat /dev/null > stop.txt
         shell: bash
 
       - name: Wait 2s
