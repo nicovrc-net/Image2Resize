@@ -142,6 +142,8 @@ public class HTTPServer extends Thread {
             }
         }, 0L, 1000L);
 
+        //TODO 死活監視追加
+
         ServerSocket svSock = null;
         try {
             svSock = new ServerSocket(HTTPPort);
