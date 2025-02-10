@@ -222,8 +222,7 @@ public class HTTPServer extends Thread {
                     }
                 }
             }
-        }, 0L, 1000L);
-
+        }, 1000L, 1000L);
         while (temp[0]) {
             try {
                 System.gc();
