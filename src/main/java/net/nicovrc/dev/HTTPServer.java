@@ -150,6 +150,14 @@ public class HTTPServer extends Thread {
             }
         }, 0L, 1000L);
 
+        ServerSocket svSock = null;
+        try {
+            svSock = new ServerSocket(HTTPPort);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println("[Info] TCP Port " + HTTPPort + "で 処理受付用HTTPサーバー待機開始");
+
         //死活監視追加
         CheckAccessTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -215,14 +223,6 @@ public class HTTPServer extends Thread {
                 }
             }
         }, 0L, 1000L);
-
-        ServerSocket svSock = null;
-        try {
-            svSock = new ServerSocket(HTTPPort);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        System.out.println("[Info] TCP Port " + HTTPPort + "で 処理受付用HTTPサーバー待機開始");
 
         while (temp[0]) {
             try {
