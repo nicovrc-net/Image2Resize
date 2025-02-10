@@ -12,6 +12,10 @@ http://(Host)/?url=(URL)
 
 ## APIもどき
 - レスポンスはすべてJSON形式
+### /api/v1/test
+- リクエスト形式 : GET
+- パラメータ : なし
+- 結果 : `{"message": "ok"}`
 ### /api/v1/get_data
 - リクエスト形式 : GET
 - パラメータ : なし

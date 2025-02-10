@@ -39,6 +39,8 @@ Port: 25555
 LogToRedis: false
 # (Redis使わない場合)ログの保存先
 LogFileFolderPass: "./log"
+# アクセスできるかを監視するURL
+CheckAccessURL: "http://localhost:25555/api/v1/test"
 # ----------------------------
 #
 # Redis設定

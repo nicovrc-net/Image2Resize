@@ -1,5 +1,7 @@
 package net.nicovrc.dev;
 
+import com.amihaiemil.eoyaml.Yaml;
+import com.amihaiemil.eoyaml.YamlMapping;
 import net.nicovrc.dev.api.*;
 import net.nicovrc.dev.data.ImageData;
 import okhttp3.OkHttpClient;
@@ -32,11 +34,16 @@ public class HTTPServer extends Thread {
     private final Timer CacheCheckTimer = new Timer();
     private final Timer LogWriteTimer = new Timer();
     private final Timer CheckStopTimer = new Timer();
+    private final Timer CheckAccessTimer = new Timer();
 
     private final Pattern HTTPMethod = Pattern.compile("^(GET|HEAD|POST)");
     private final Pattern HTTPURI = Pattern.compile("(GET|HEAD|POST) (.+) HTTP/");
     private final Pattern UrlMatch = Pattern.compile("(GET|HEAD) /\\?url=(.+) HTTP");
     private final Pattern APIMatch = Pattern.compile("(GET|HEAD|POST) /api/(.+) HTTP");
+
+
+    //private final OkHttpClient.Builder builder = new OkHttpClient.Builder();
+    private final OkHttpClient client = new OkHttpClient();
 
 
     private final List<ImageResizeAPI> apiList = new ArrayList<>();
@@ -47,6 +54,7 @@ public class HTTPServer extends Thread {
         apiList.add(new GetData());
         apiList.add(new GetCacheList());
         apiList.add(new PostImageResize());
+        apiList.add(new Test());
 
         CacheCheckTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -142,7 +150,71 @@ public class HTTPServer extends Thread {
             }
         }, 0L, 1000L);
 
-        //TODO 死活監視追加
+        //死活監視追加
+        CheckAccessTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (!temp[0]){
+                    try {
+                        Socket socket = new Socket("127.0.0.1", HTTPPort);
+                        OutputStream stream = socket.getOutputStream();
+                        stream.write("".getBytes(StandardCharsets.UTF_8));
+                        stream.close();
+                        socket.close();
+                    } catch (Exception e){
+                        //e.printStackTrace();
+                    }
+                    CheckAccessTimer.cancel();
+                    return;
+                }
+
+                try {
+                    Socket socket = new Socket("127.0.0.1", HTTPPort);
+                    OutputStream out_stream = socket.getOutputStream();
+                    out_stream.write(("GET /api/v1/test HTTP/1.1\n" +
+                            "User-Agent: "+Function.UserAgent+" image2resize-access-check/"+Function.Version+"\n" +
+                            "Host: localhost\n" +
+                            "Connection: Keep-Alive\n" +
+                            "Accept-Encoding: gzip").getBytes(StandardCharsets.UTF_8));
+                    out_stream.close();
+                    socket.close();
+                } catch (Exception e){
+                    CheckAccessTimer.cancel();
+                    File file = new File("./stop.txt");
+                    try {
+                        boolean newFile = file.createNewFile();
+                    } catch (IOException ex) {
+                        //ex.printStackTrace();
+                    }
+                }
+
+                String url = "";
+                try {
+                    final YamlMapping yamlMapping = Yaml.createYamlInput(new File("./config.yml")).readYamlMapping();
+                    url = yamlMapping.string("CheckAccessURL");
+                } catch (Exception e){
+                    return;
+                }
+
+                try {
+
+                    Request request = new Request.Builder()
+                            .url(url)
+                            .addHeader("User-Agent", Function.UserAgent+" image2resize-access-check/"+Function.Version)
+                            .build();
+                    Response response = client.newCall(request).execute();
+                    response.close();
+                } catch (Exception e){
+                    CheckAccessTimer.cancel();
+                    File file = new File("./stop.txt");
+                    try {
+                        boolean newFile = file.createNewFile();
+                    } catch (IOException ex) {
+                        //ex.printStackTrace();
+                    }
+                }
+            }
+        }, 0L, 1000L);
 
         ServerSocket svSock = null;
         try {
@@ -261,10 +333,6 @@ public class HTTPServer extends Thread {
                         boolean UrlMatchFlag = matcher.find();
 
                         if (UrlMatchFlag) {
-                            //final OkHttpClient.Builder builder = new OkHttpClient.Builder();
-                            final OkHttpClient client = new OkHttpClient();
-
-
                             final String url = matcher.group(2);
                             //System.out.println(url);
 
