@@ -40,6 +40,7 @@ public class HTTPServer extends Thread {
     private final Pattern HTTPURI = Pattern.compile("(GET|HEAD|POST) (.+) HTTP/");
     private final Pattern UrlMatch = Pattern.compile("(GET|HEAD) /\\?url=(.+) HTTP");
     private final Pattern APIMatch = Pattern.compile("(GET|HEAD|POST) /api/(.+) HTTP");
+    private final Pattern NotLog = Pattern.compile("x-image2-resize-test: example\\.com");
 
 
     //private final OkHttpClient.Builder builder = new OkHttpClient.Builder();
@@ -179,11 +180,7 @@ public class HTTPServer extends Thread {
                 try {
                     Socket socket = new Socket("127.0.0.1", HTTPPort);
                     OutputStream out_stream = socket.getOutputStream();
-                    out_stream.write(("GET /api/v1/test HTTP/1.1\n" +
-                            "User-Agent: "+Function.UserAgent+" image2resize-access-check/"+Function.Version+"\n" +
-                            "Host: localhost\n" +
-                            "Connection: Keep-Alive\n" +
-                            "Accept-Encoding: gzip").getBytes(StandardCharsets.UTF_8));
+                    out_stream.write(("").getBytes(StandardCharsets.UTF_8));
                     try {
                         Thread.sleep(500L);
                     } catch (Exception e){
@@ -217,6 +214,7 @@ public class HTTPServer extends Thread {
 
                     Request request = new Request.Builder()
                             .url(url)
+                            .addHeader("x-image2-resize-test", "example.com")
                             .addHeader("User-Agent", Function.UserAgent+" image2resize-access-check/"+Function.Version)
                             .build();
                     Response response = client.newCall(request).execute();
@@ -261,7 +259,9 @@ public class HTTPServer extends Thread {
                         System.out.println(httpRequest);
 
                         // ログ保存は時間がかかるのでキャッシュする
-                        LogWriteCacheList.put(new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0], httpRequest);
+                        if (!NotLog.matcher(httpRequest).find()){
+                            LogWriteCacheList.put(new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0], httpRequest);
+                        }
 
                         if (httpVersion == null) {
                             //System.out.println("[Debug] HTTPRequest送信");
