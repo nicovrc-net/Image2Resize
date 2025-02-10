@@ -184,9 +184,14 @@ public class HTTPServer extends Thread {
                             "Host: localhost\n" +
                             "Connection: Keep-Alive\n" +
                             "Accept-Encoding: gzip").getBytes(StandardCharsets.UTF_8));
-                    out_stream.close();
+                    try {
+                        Thread.sleep(500L);
+                    } catch (Exception e){
+                        //e.printStackTrace();
+                    }
                     socket.close();
                 } catch (Exception e){
+                    //e.printStackTrace();
                     CheckAccessTimer.cancel();
                     File file = new File("./stop.txt");
                     try {
@@ -201,6 +206,10 @@ public class HTTPServer extends Thread {
                     final YamlMapping yamlMapping = Yaml.createYamlInput(new File("./config.yml")).readYamlMapping();
                     url = yamlMapping.string("CheckAccessURL");
                 } catch (Exception e){
+                    return;
+                }
+
+                if (url == null || url.isEmpty()){
                     return;
                 }
 
