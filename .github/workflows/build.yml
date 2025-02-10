@@ -162,3 +162,8 @@ jobs:
             exit 1
           fi
         shell: bash
+
+      - name: Delete Log Folder
+        run: |
+          rm -fr ./log
+        shell: bash
