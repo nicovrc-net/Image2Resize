@@ -40,7 +40,6 @@ public class HTTPServer extends Thread {
     private final Pattern HTTPURI = Pattern.compile("(GET|HEAD|POST) (.+) HTTP/");
     private final Pattern UrlMatch = Pattern.compile("(GET|HEAD) /\\?url=(.+) HTTP");
     private final Pattern APIMatch = Pattern.compile("(GET|HEAD|POST) /api/(.+) HTTP");
-    private final Pattern NotLog = Pattern.compile("x-image2-resize-test: example\\.com");
 
 
     //private final OkHttpClient.Builder builder = new OkHttpClient.Builder();
@@ -51,6 +50,22 @@ public class HTTPServer extends Thread {
 
     @Override
     public void run() {
+
+        String match_url = "";
+        try {
+            final YamlMapping yamlMapping = Yaml.createYamlInput(new File("./config.yml")).readYamlMapping();
+            match_url = yamlMapping.string("CheckAccessURL");
+        } catch (Exception e){
+            match_url = "";
+        }
+
+        final Pattern NotLog;
+        if (match_url != null){
+            NotLog = Pattern.compile("x-image2-resize-test: " + match_url.replaceAll("\\.", "\\\\."));
+        } else {
+            NotLog = null;
+        }
+
         // API
         apiList.add(new GetData());
         apiList.add(new GetCacheList());
@@ -214,7 +229,7 @@ public class HTTPServer extends Thread {
 
                     Request request = new Request.Builder()
                             .url(url)
-                            .addHeader("x-image2-resize-test", "example.com")
+                            .addHeader("x-image2-resize-test", url)
                             .addHeader("User-Agent", Function.UserAgent+" image2resize-access-check/"+Function.Version)
                             .build();
                     Response response = client.newCall(request).execute();
@@ -256,10 +271,11 @@ public class HTTPServer extends Thread {
 
                         data = null;
                         //System.out.println("[Debug] HTTPRequest受信");
-                        System.out.println(httpRequest);
-
                         // ログ保存は時間がかかるのでキャッシュする
+                        // しかし死活管理からのアクセスは邪魔なのでログには記録しない
                         if (!NotLog.matcher(httpRequest).find()){
+                            System.out.println(httpRequest);
+
                             LogWriteCacheList.put(new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0], httpRequest);
                         }
 
@@ -403,7 +419,7 @@ public class HTTPServer extends Thread {
 
                             Request request = new Request.Builder()
                                     .url(url)
-                                    .addHeader("User-Agent", Function.UserAgent)
+                                    .addHeader("User-Agent", Function.UserAgent + " image2resize/" + Function.Version)
                                     .build();
                             Response response = client.newCall(request).execute();
                             String header = response.header("Content-Type");
