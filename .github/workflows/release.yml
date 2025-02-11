@@ -150,7 +150,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - 死活監視を追加
-            - API「`/api/v1/test`」を追加
+            - 死活監視からのアクセスは画面上に表示しないように
+            - 画像取得のUA変更
           draft: false
           prerelease: true
