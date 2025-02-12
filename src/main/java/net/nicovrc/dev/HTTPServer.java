@@ -14,7 +14,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -42,8 +47,11 @@ public class HTTPServer extends Thread {
     private final Pattern APIMatch = Pattern.compile("(GET|HEAD|POST) /api/(.+) HTTP");
 
 
-    //private final OkHttpClient.Builder builder = new OkHttpClient.Builder();
-    private final OkHttpClient client = new OkHttpClient();
+    private final HttpClient client = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_2)
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
 
 
     private final List<ImageResizeAPI> apiList = new ArrayList<>();
@@ -226,14 +234,16 @@ public class HTTPServer extends Thread {
                 }
 
                 try {
-
-                    Request request = new Request.Builder()
-                            .url(url)
-                            .addHeader("x-image2-resize-test", url)
-                            .addHeader("User-Agent", Function.UserAgent+" image2resize-access-check/"+Function.Version)
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .uri(new URI(url))
+                            .headers("User-Agent", Function.UserAgent + " image2resize-access-check/"+Function.Version)
+                            .headers("x-image2-resize-test", url)
+                            .GET()
                             .build();
-                    Response response = client.newCall(request).execute();
-                    response.close();
+
+                    client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                    client.close();
+
                 } catch (Exception e){
                     CheckAccessTimer.cancel();
                     File file = new File("./stop.txt");
@@ -417,31 +427,24 @@ public class HTTPServer extends Thread {
                                 return;
                             }
 
-                            String header;
+                            String header = null;
                             final byte[] file;
                             try {
-                                Request request = new Request.Builder()
-                                        .url(url)
-                                        .addHeader("User-Agent", Function.UserAgent + " image2resize/" + Function.Version)
+                                HttpRequest request = HttpRequest.newBuilder()
+                                        .uri(new URI(url))
+                                        .headers("User-Agent", Function.UserAgent + " image2resize/"+Function.Version)
+                                        .GET()
                                         .build();
-                                Response response = client.newCall(request).execute();
-                                header = response.header("Content-Type");
-                                if (header == null){
-                                    header = response.header("content-type");
-                                }
-                                //System.out.println(header);
 
-                                if (response.code() >= 200 && response.code() <= 299){
-                                    if (response.body() != null){
-                                        file = response.body().bytes();
-                                    } else {
-                                        file = new byte[0];
-                                    }
-                                } else {
-                                    file = new byte[0];
+                                HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                                if (send.headers().firstValue("Content-Type").isPresent()){
+                                    header = send.headers().firstValue("Content-Type").get();
                                 }
-                                //System.out.println(file.length);
-                                response.close();
+                                if (send.headers().firstValue("content-type").isPresent()){
+                                    header = send.headers().firstValue("content-type").get();
+                                }
+                                file = send.body();
+                                client.close();
                             } catch (Exception e){
                                 CacheDataList.remove(url);
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
