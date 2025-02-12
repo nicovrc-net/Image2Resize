@@ -150,7 +150,6 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - URL以外とかが来たときにキャッシュに残り続けるのを修正
-            - OkHttpをやめた
+            - 死活監視がうまく動いてない問題を修正
           draft: false
           prerelease: true
