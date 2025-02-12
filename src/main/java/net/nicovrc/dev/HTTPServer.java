@@ -44,14 +44,6 @@ public class HTTPServer extends Thread {
     private final Pattern UrlMatch = Pattern.compile("(GET|HEAD) /\\?url=(.+) HTTP");
     private final Pattern APIMatch = Pattern.compile("(GET|HEAD|POST) /api/(.+) HTTP");
 
-
-    private final HttpClient client = HttpClient.newBuilder()
-            .version(HttpClient.Version.HTTP_2)
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .connectTimeout(Duration.ofSeconds(5))
-            .build();
-
-
     private final List<ImageResizeAPI> apiList = new ArrayList<>();
 
     @Override
@@ -232,6 +224,12 @@ public class HTTPServer extends Thread {
                 }
 
                 try {
+                    final HttpClient client = HttpClient.newBuilder()
+                            .version(HttpClient.Version.HTTP_2)
+                            .followRedirects(HttpClient.Redirect.NORMAL)
+                            .connectTimeout(Duration.ofSeconds(5))
+                            .build();
+
                     HttpRequest request = HttpRequest.newBuilder()
                             .uri(new URI(url))
                             .headers("User-Agent", Function.UserAgent + " image2resize-access-check/"+Function.Version)
@@ -243,6 +241,7 @@ public class HTTPServer extends Thread {
                     client.close();
 
                 } catch (Exception e){
+                    e.printStackTrace();
                     CheckAccessTimer.cancel();
                     File file = new File("./stop.txt");
                     try {
@@ -428,6 +427,12 @@ public class HTTPServer extends Thread {
                             String header = null;
                             final byte[] file;
                             try {
+                                final HttpClient client = HttpClient.newBuilder()
+                                        .version(HttpClient.Version.HTTP_2)
+                                        .followRedirects(HttpClient.Redirect.NORMAL)
+                                        .connectTimeout(Duration.ofSeconds(5))
+                                        .build();
+
                                 HttpRequest request = HttpRequest.newBuilder()
                                         .uri(new URI(url))
                                         .headers("User-Agent", Function.UserAgent + " image2resize/"+Function.Version)
