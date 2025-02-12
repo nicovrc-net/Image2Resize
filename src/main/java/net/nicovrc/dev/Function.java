@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -117,7 +118,7 @@ public class Function {
         return null;
     }
 
-    public static long WriteLog(HashMap<String, String> LogWriteCacheList){
+    public static long WriteLog(ConcurrentHashMap<String, String> LogWriteCacheList){
         // Config
         String tempPass;
         boolean tempFlag;

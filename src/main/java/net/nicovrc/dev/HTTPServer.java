@@ -4,9 +4,6 @@ import com.amihaiemil.eoyaml.Yaml;
 import com.amihaiemil.eoyaml.YamlMapping;
 import net.nicovrc.dev.api.*;
 import net.nicovrc.dev.data.ImageData;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,6 +18,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,8 +32,8 @@ public class HTTPServer extends Thread {
         this.HTTPPort = HTTPPort;
     }
 
-    private final HashMap<String, ImageData> CacheDataList = new HashMap<>();
-    private final HashMap<String, String> LogWriteCacheList = new HashMap<>();
+    private final ConcurrentHashMap<String, ImageData> CacheDataList = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, String> LogWriteCacheList = new ConcurrentHashMap<>();
     private final Timer CacheCheckTimer = new Timer();
     private final Timer LogWriteTimer = new Timer();
     private final Timer CheckStopTimer = new Timer();

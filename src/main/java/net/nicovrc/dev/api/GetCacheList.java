@@ -6,6 +6,7 @@ import net.nicovrc.dev.data.ImageData;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class GetCacheList implements ImageResizeAPI {
 
@@ -16,7 +17,7 @@ public class GetCacheList implements ImageResizeAPI {
     }
 
     @Override
-    public APIResult run(HashMap<String, ImageData> CacheDataList, HashMap<String, String> LogWriteCacheList) {
+    public APIResult run(ConcurrentHashMap<String, ImageData> CacheDataList, ConcurrentHashMap<String, String> LogWriteCacheList) {
         if (CacheDataList == null){
             return null;
         }
@@ -35,7 +36,7 @@ public class GetCacheList implements ImageResizeAPI {
 
     @Override
     @Deprecated
-    public APIResult run(HashMap<String, ImageData> CacheDataList, HashMap<String, String> LogWriteCacheList, String httpRequest) {
+    public APIResult run(ConcurrentHashMap<String, ImageData> CacheDataList, ConcurrentHashMap<String, String> LogWriteCacheList, String httpRequest) {
         return run(CacheDataList, LogWriteCacheList);
     }
 
