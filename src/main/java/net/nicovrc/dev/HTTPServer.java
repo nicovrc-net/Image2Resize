@@ -237,7 +237,10 @@ public class HTTPServer extends Thread {
                             .GET()
                             .build();
 
-                    client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                    HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                    if (send.statusCode() < 200 && send.statusCode() > 399 ){
+                        throw new Exception("Error");
+                    }
                     client.close();
 
                 } catch (Exception e){
