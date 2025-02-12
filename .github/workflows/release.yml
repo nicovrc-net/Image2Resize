@@ -150,7 +150,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - 死活監視からのアクセスは画面上に表示しないように
-            - 画像取得のUA変更
+            - URL以外とかが来たときにキャッシュに残り続けるのを修正
+            - OkHttpをやめた
           draft: false
           prerelease: true
