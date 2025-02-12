@@ -63,7 +63,7 @@ public class HTTPServer extends Thread {
         if (match_url != null){
             NotLog = Pattern.compile("x-image2-resize-test: " + match_url.replaceAll("\\.", "\\\\."));
         } else {
-            NotLog = null;
+            NotLog = Pattern.compile("x-image2-resize-test: ");
         }
 
         // API
@@ -417,28 +417,44 @@ public class HTTPServer extends Thread {
                                 return;
                             }
 
-                            Request request = new Request.Builder()
-                                    .url(url)
-                                    .addHeader("User-Agent", Function.UserAgent + " image2resize/" + Function.Version)
-                                    .build();
-                            Response response = client.newCall(request).execute();
-                            String header = response.header("Content-Type");
-                            if (header == null){
-                                header = response.header("content-type");
-                            }
-                            //System.out.println(header);
+                            String header;
                             final byte[] file;
-                            if (response.code() >= 200 && response.code() <= 299){
-                                if (response.body() != null){
-                                    file = response.body().bytes();
+                            try {
+                                Request request = new Request.Builder()
+                                        .url(url)
+                                        .addHeader("User-Agent", Function.UserAgent + " image2resize/" + Function.Version)
+                                        .build();
+                                Response response = client.newCall(request).execute();
+                                header = response.header("Content-Type");
+                                if (header == null){
+                                    header = response.header("content-type");
+                                }
+                                //System.out.println(header);
+
+                                if (response.code() >= 200 && response.code() <= 299){
+                                    if (response.body() != null){
+                                        file = response.body().bytes();
+                                    } else {
+                                        file = new byte[0];
+                                    }
                                 } else {
                                     file = new byte[0];
                                 }
-                            } else {
-                                file = new byte[0];
+                                //System.out.println(file.length);
+                                response.close();
+                            } catch (Exception e){
+                                CacheDataList.remove(url);
+                                out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                if (isGET) {
+                                    out.write(("URL Not Found").getBytes(StandardCharsets.UTF_8));
+                                }
+                                out.flush();
+                                in.close();
+                                out.close();
+                                sock.close();
+
+                                return;
                             }
-                            //System.out.println(file.length);
-                            response.close();
 
                             if (header != null && !header.toLowerCase(Locale.ROOT).startsWith("image")) {
                                 CacheDataList.remove(url);
