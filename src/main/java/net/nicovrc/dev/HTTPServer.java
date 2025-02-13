@@ -516,6 +516,21 @@ public class HTTPServer extends Thread {
                             //System.out.println("[Debug] 画像変換");
                             final byte[] SendData = Function.ImageResize(file);
 
+                            if (SendData == null){
+                                CacheDataList.remove(url);
+                                //System.out.println("[Debug] HTTPRequest送信");
+                                out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                if (isGET) {
+                                    out.write(("File Not Support").getBytes(StandardCharsets.UTF_8));
+                                }
+                                out.flush();
+                                in.close();
+                                out.close();
+                                sock.close();
+
+                                return;
+                            }
+
                             // キャッシュ保存
                             //System.out.println("[Debug] Cache Save");
                             imageData.setFileContent(SendData);
@@ -526,7 +541,7 @@ public class HTTPServer extends Thread {
                             //System.out.println("[Debug] HTTPRequest送信");
                             out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: image/png;\n\n").getBytes(StandardCharsets.UTF_8));
                             if (isGET && !sock.isClosed() && !sock.isOutputShutdown()) {
-                                out.write(SendData != null ? SendData : new byte[0]);
+                                out.write(SendData);
                             }
                             //imageData.setFileContent(null);
                             out.flush();
