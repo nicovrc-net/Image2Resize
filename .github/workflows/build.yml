@@ -159,7 +159,7 @@ jobs:
             echo "OK"
           else
             echo "$COUNT <> 5"
-            ls -U1
+            ls -U1 ./log
             exit 1
           fi
         shell: bash
