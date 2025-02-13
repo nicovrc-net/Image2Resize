@@ -176,84 +176,86 @@ public class HTTPServer extends Thread {
         CheckAccessTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                if (!temp[0]){
+                Thread.ofVirtual().start(()->{
+                    if (!temp[0]){
+                        try {
+                            Socket socket = new Socket("127.0.0.1", HTTPPort);
+                            OutputStream stream = socket.getOutputStream();
+                            stream.write("".getBytes(StandardCharsets.UTF_8));
+                            stream.close();
+                            socket.close();
+                        } catch (Exception e){
+                            //e.printStackTrace();
+                        }
+                        CheckAccessTimer.cancel();
+                        return;
+                    }
+
                     try {
                         Socket socket = new Socket("127.0.0.1", HTTPPort);
-                        OutputStream stream = socket.getOutputStream();
-                        stream.write("".getBytes(StandardCharsets.UTF_8));
-                        stream.close();
+                        OutputStream out_stream = socket.getOutputStream();
+                        out_stream.write(("").getBytes(StandardCharsets.UTF_8));
+                        try {
+                            Thread.sleep(500L);
+                        } catch (Exception e){
+                            //e.printStackTrace();
+                        }
                         socket.close();
                     } catch (Exception e){
                         //e.printStackTrace();
+                        CheckAccessTimer.cancel();
+                        File file = new File("./stop.txt");
+                        try {
+                            boolean newFile = file.createNewFile();
+                        } catch (IOException ex) {
+                            //ex.printStackTrace();
+                        }
                     }
-                    CheckAccessTimer.cancel();
-                    return;
-                }
 
-                try {
-                    Socket socket = new Socket("127.0.0.1", HTTPPort);
-                    OutputStream out_stream = socket.getOutputStream();
-                    out_stream.write(("").getBytes(StandardCharsets.UTF_8));
+                    String url = "";
                     try {
-                        Thread.sleep(500L);
+                        final YamlMapping yamlMapping = Yaml.createYamlInput(new File("./config.yml")).readYamlMapping();
+                        url = yamlMapping.string("CheckAccessURL");
+                    } catch (Exception e){
+                        return;
+                    }
+
+                    if (url == null || url.isEmpty()){
+                        return;
+                    }
+
+                    try {
+                        final HttpClient client = HttpClient.newBuilder()
+                                .version(HttpClient.Version.HTTP_2)
+                                .followRedirects(HttpClient.Redirect.NORMAL)
+                                .connectTimeout(Duration.ofSeconds(5))
+                                .build();
+
+                        HttpRequest request = HttpRequest.newBuilder()
+                                .uri(new URI(url))
+                                .headers("User-Agent", Function.UserAgent + " image2resize-access-check/"+Function.Version)
+                                .headers("x-image2-resize-test", url)
+                                .GET()
+                                .build();
+
+                        HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                        //System.out.println(send.statusCode());
+                        if (send.statusCode() < 200 || send.statusCode() > 399 ){
+                            throw new Exception("Error");
+                        }
+                        client.close();
+
                     } catch (Exception e){
                         //e.printStackTrace();
+                        CheckAccessTimer.cancel();
+                        File file = new File("./stop.txt");
+                        try {
+                            boolean newFile = file.createNewFile();
+                        } catch (IOException ex) {
+                            //ex.printStackTrace();
+                        }
                     }
-                    socket.close();
-                } catch (Exception e){
-                    //e.printStackTrace();
-                    CheckAccessTimer.cancel();
-                    File file = new File("./stop.txt");
-                    try {
-                        boolean newFile = file.createNewFile();
-                    } catch (IOException ex) {
-                        //ex.printStackTrace();
-                    }
-                }
-
-                String url = "";
-                try {
-                    final YamlMapping yamlMapping = Yaml.createYamlInput(new File("./config.yml")).readYamlMapping();
-                    url = yamlMapping.string("CheckAccessURL");
-                } catch (Exception e){
-                    return;
-                }
-
-                if (url == null || url.isEmpty()){
-                    return;
-                }
-
-                try {
-                    final HttpClient client = HttpClient.newBuilder()
-                            .version(HttpClient.Version.HTTP_2)
-                            .followRedirects(HttpClient.Redirect.NORMAL)
-                            .connectTimeout(Duration.ofSeconds(5))
-                            .build();
-
-                    HttpRequest request = HttpRequest.newBuilder()
-                            .uri(new URI(url))
-                            .headers("User-Agent", Function.UserAgent + " image2resize-access-check/"+Function.Version)
-                            .headers("x-image2-resize-test", url)
-                            .GET()
-                            .build();
-
-                    HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-                    //System.out.println(send.statusCode());
-                    if (send.statusCode() < 200 || send.statusCode() > 399 ){
-                        throw new Exception("Error");
-                    }
-                    client.close();
-
-                } catch (Exception e){
-                    e.printStackTrace();
-                    CheckAccessTimer.cancel();
-                    File file = new File("./stop.txt");
-                    try {
-                        boolean newFile = file.createNewFile();
-                    } catch (IOException ex) {
-                        //ex.printStackTrace();
-                    }
-                }
+                });
             }
         }, 1000L, 1000L);
         while (temp[0]) {
