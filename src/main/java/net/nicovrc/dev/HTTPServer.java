@@ -417,6 +417,7 @@ public class HTTPServer extends Thread {
                             CacheDataList.put(url, imageData);
 
                             if (!url.toLowerCase(Locale.ROOT).startsWith("http")) {
+                                CacheDataList.remove(url);
                                 //System.out.println("[Debug] HTTPRequest送信");
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET) {
