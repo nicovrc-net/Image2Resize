@@ -453,6 +453,20 @@ public class HTTPServer extends Thread {
                                 if (send.headers().firstValue("content-type").isPresent()){
                                     header = send.headers().firstValue("content-type").get();
                                 }
+                                if (send.statusCode() < 200 || send.statusCode() > 399){
+                                    CacheDataList.remove(url);
+                                    out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                    if (isGET) {
+                                        out.write(("URL Not Found").getBytes(StandardCharsets.UTF_8));
+                                    }
+                                    out.flush();
+                                    in.close();
+                                    out.close();
+                                    sock.close();
+
+                                    client.close();
+                                    return;
+                                }
                                 file = send.body();
                                 client.close();
                             } catch (Exception e){
