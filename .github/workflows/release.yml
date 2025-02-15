@@ -150,9 +150,6 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - 死活監視がうまく動いてない問題を修正
-            - URLがhttpから始まらない場合キャッシュに残り続けるのを修正
-            - アクセス先のHTTPステータスコードが200-299以外のときエラーにならないのを修正
-            - 対応してない画像の場合は404を返すように
+            - メモリ使用量の改善
           draft: false
           prerelease: true
