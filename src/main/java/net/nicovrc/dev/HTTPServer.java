@@ -284,7 +284,7 @@ public class HTTPServer extends Thread {
                         final boolean isHead = sb.substring(0, 4).toUpperCase(Locale.ROOT).equals("HEAD");
 
                         Matcher matcher1 = Length.matcher(sb.toString());
-                        if (isPOST && matcher1.find() && readSize == 1024){
+                        if (matcher1.find() && readSize == 1024){
                             int byteCount = Integer.parseInt(matcher1.group(1));
 
                             if (byteCount > 0){
