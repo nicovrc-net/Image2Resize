@@ -266,25 +266,12 @@ public class HTTPServer extends Thread {
                         final InputStream in = sock.getInputStream();
                         final OutputStream out = sock.getOutputStream();
 
-                        final BufferedReader br = new BufferedReader(new InputStreamReader(in));
-                        final StringBuilder sb = new StringBuilder();
-                        int nullCount = 0;
+                        BufferedReader br = new BufferedReader(new InputStreamReader(in));
+                        StringBuilder sb = new StringBuilder();
                         String requestLine = br.readLine();
-
-                        while (nullCount <= 2){
+                        while (!requestLine.isEmpty()){
                             sb.append(requestLine).append("\n");
-
-                            if (requestLine == null || requestLine.isEmpty()){
-                                nullCount++;
-                            }
-
-                            //System.out.println(requestLine + " : " + nullCount);
-
-                            try {
-                                requestLine = br.readLine();
-                            } catch (Exception e){
-                                //e.printStackTrace();
-                            }
+                            requestLine = br.readLine();
                         }
 
                         if (sb.isEmpty()){
