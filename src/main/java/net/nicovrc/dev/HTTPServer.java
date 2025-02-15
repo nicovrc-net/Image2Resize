@@ -36,7 +36,6 @@ public class HTTPServer extends Thread {
     private final Timer CheckStopTimer = new Timer();
     private final Timer CheckAccessTimer = new Timer();
 
-    private final Pattern HTTPMethod = Pattern.compile("^(GET|HEAD|POST)");
     private final Pattern HTTPURI = Pattern.compile("(GET|HEAD|POST) (.+) HTTP/");
     private final Pattern UrlMatch = Pattern.compile("(GET|HEAD) /\\?url=(.+) HTTP");
     private final Pattern APIMatch = Pattern.compile("(GET|HEAD|POST) /api/(.+) HTTP");
@@ -266,43 +265,22 @@ public class HTTPServer extends Thread {
                         final InputStream in = sock.getInputStream();
                         final OutputStream out = sock.getOutputStream();
 
-                        BufferedReader br = new BufferedReader(new InputStreamReader(in));
-                        StringBuilder sb = new StringBuilder();
-                        String requestLine = br.readLine();
-
-                        int contentLength = 0;
-                        boolean isGET = false;
-                        boolean isPost = false;
-                        boolean isHead = false;
-
-                        int count = 0;
-
-                        while (requestLine != null && !requestLine.isEmpty()){
-                            //System.out.println(requestLine);
-                            if (requestLine.startsWith("GET")){
-                                isGET = true;
-                            }
-                            if (requestLine.startsWith("POST")){
-                                isPost = true;
-                            }
-                            if (requestLine.startsWith("HEAD")){
-                                isHead = true;
-                            }
-                            if (requestLine.toLowerCase(Locale.ROOT).startsWith("content-length")) {
-                                contentLength = Integer.parseInt(requestLine.split(":")[1].trim());
-                                //System.out.println(contentLength);
-                            }
-
-                            sb.append(requestLine).append("\n");
-                            requestLine = br.readLine();
-                        }
-
-                        if (sb.isEmpty()){
+                        byte[] data = new byte[1024];
+                        int readSize = in.read(data);
+                        if (readSize <= 0) {
+                            in.close();
+                            out.close();
+                            sock.close();
                             return;
                         }
+                        data = Arrays.copyOf(data, readSize);
 
-                        final String httpRequest = sb.toString();
+                        final String httpRequest = new String(data, StandardCharsets.UTF_8);
                         final String httpVersion = Function.getHTTPVersion(httpRequest);
+
+                        boolean isGET = httpRequest.substring(0, 3).toUpperCase(Locale.ROOT).equals("GET");
+                        boolean isPost = httpRequest.substring(0, 4).toUpperCase(Locale.ROOT).equals("POST");
+                        boolean isHead = httpRequest.substring(0, 4).toUpperCase(Locale.ROOT).equals("HEAD");
 
                         //System.out.println("[Debug] HTTPRequest受信");
                         // ログ保存は時間がかかるのでキャッシュする
@@ -324,8 +302,7 @@ public class HTTPServer extends Thread {
                             return;
                         }
 
-                        Matcher matcher = HTTPMethod.matcher(httpRequest);
-                        if (!matcher.find()) {
+                        if (!isGET && !isPost && !isHead) {
                             //System.out.println("[Debug] HTTPRequest送信");
                             out.write(("HTTP/" + httpVersion + " 405 Method Not Allowed\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n405").getBytes(StandardCharsets.UTF_8));
                             out.flush();
@@ -335,7 +312,7 @@ public class HTTPServer extends Thread {
 
                             return;
                         }
-                        matcher = HTTPURI.matcher(httpRequest);
+                        Matcher matcher = HTTPURI.matcher(httpRequest);
 
                         if (!matcher.find()) {
                             //System.out.println("[Debug] HTTPRequest送信");
@@ -583,7 +560,7 @@ public class HTTPServer extends Thread {
                         }
 
                     } catch (Exception e) {
-                        //e.printStackTrace();
+                        e.printStackTrace();
                         //temp[0] = false;
                         try {
                             sock.close();
