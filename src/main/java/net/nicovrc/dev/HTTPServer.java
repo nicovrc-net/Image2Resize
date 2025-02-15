@@ -5,10 +5,7 @@ import com.amihaiemil.eoyaml.YamlMapping;
 import net.nicovrc.dev.api.*;
 import net.nicovrc.dev.data.ImageData;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
@@ -45,6 +42,9 @@ public class HTTPServer extends Thread {
     private final Pattern APIMatch = Pattern.compile("(GET|HEAD|POST) /api/(.+) HTTP");
 
     private final List<ImageResizeAPI> apiList = new ArrayList<>();
+
+    private final File stop_file = new File("./stop.txt");
+    private final File stop_lock_file = new File("./lock-stop");
 
     @Override
     public void run() {
@@ -92,21 +92,22 @@ public class HTTPServer extends Thread {
                 });
 
                 temp.clear();
-                System.gc();
+                //System.gc();
 
                 System.out.println("[Info] キャッシュお掃除終了 (" + Function.sdf.format(new Date()) + ")");
                 System.out.println("[Info] キャッシュ件数が"+startCacheCount+"件から"+CacheDataList.size()+"件になりました。 (" + Function.sdf.format(new Date()) + ")");
-
             }
         }, 0L, 3600000L);
 
         LogWriteTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                System.out.println("[Info] ログ書き込み開始 (" + Function.sdf.format(new Date()) + ")");
-                long writeCount = Function.WriteLog(LogWriteCacheList);
-                System.out.println("[Info] ログ書き込み終了("+writeCount+"件) (" + Function.sdf.format(new Date()) + ")");
-                System.gc();
+                new Thread(()->{
+                    System.out.println("[Info] ログ書き込み開始 (" + Function.sdf.format(new Date()) + ")");
+                    long writeCount = Function.WriteLog(LogWriteCacheList);
+                    System.out.println("[Info] ログ書き込み終了("+writeCount+"件) (" + Function.sdf.format(new Date()) + ")");
+                    System.gc();
+                }).start();
             }
         }, 0L, 60000L);
 
@@ -115,16 +116,14 @@ public class HTTPServer extends Thread {
             @Override
             public void run() {
                 try {
-                    File file = new File("./stop.txt");
 
-                    if (!file.exists()){
+                    if (!stop_file.exists()){
                         return;
                     }
 
-                    boolean delete = file.delete();
+                    boolean delete = stop_file.delete();
                     if (delete){
-                        file = new File("./lock-stop");
-                        if (file.exists()){
+                        if (stop_lock_file.exists()){
                             return;
                         }
                         System.out.println("[Info] 終了するための準備処理を開始します。");
@@ -137,7 +136,7 @@ public class HTTPServer extends Thread {
                         socket.close();
                         System.out.println("[Info] (終了準備処理)処理受付中止 完了");
 
-                        boolean newFile = file.createNewFile();
+                        boolean newFile = stop_lock_file.createNewFile();
                         if (newFile){
                             long count = Function.WriteLog(LogWriteCacheList);
                             if (count == 0){
@@ -154,7 +153,7 @@ public class HTTPServer extends Thread {
 
                             CheckStopTimer.cancel();
                             System.out.println("[Info] 終了準備処理完了");
-                            file.deleteOnExit();
+                            stop_lock_file.deleteOnExit();
                         }
                     }
 
@@ -173,94 +172,92 @@ public class HTTPServer extends Thread {
         System.out.println("[Info] TCP Port " + HTTPPort + "で 処理受付用HTTPサーバー待機開始");
 
         //死活監視追加
+        final String check_url;
+        try {
+            final YamlMapping yamlMapping = Yaml.createYamlInput(new File("./config.yml")).readYamlMapping();
+            check_url = yamlMapping.string("CheckAccessURL");
+        } catch (Exception e){
+            return;
+        }
+
         CheckAccessTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                Thread.ofVirtual().start(()->{
-                    if (!temp[0]){
-                        try {
-                            Socket socket = new Socket("127.0.0.1", HTTPPort);
-                            OutputStream stream = socket.getOutputStream();
-                            stream.write("".getBytes(StandardCharsets.UTF_8));
-                            stream.close();
-                            socket.close();
-                        } catch (Exception e){
-                            //e.printStackTrace();
-                        }
-                        CheckAccessTimer.cancel();
-                        return;
-                    }
-
+                if (!temp[0]){
                     try {
                         Socket socket = new Socket("127.0.0.1", HTTPPort);
-                        OutputStream out_stream = socket.getOutputStream();
-                        out_stream.write(("").getBytes(StandardCharsets.UTF_8));
-                        try {
-                            Thread.sleep(500L);
-                        } catch (Exception e){
-                            //e.printStackTrace();
-                        }
+                        OutputStream stream = socket.getOutputStream();
+                        stream.write("".getBytes(StandardCharsets.UTF_8));
+                        stream.close();
                         socket.close();
                     } catch (Exception e){
                         //e.printStackTrace();
-                        CheckAccessTimer.cancel();
-                        File file = new File("./stop.txt");
-                        try {
-                            boolean newFile = file.createNewFile();
-                        } catch (IOException ex) {
-                            //ex.printStackTrace();
-                        }
                     }
+                    CheckAccessTimer.cancel();
+                    return;
+                }
 
-                    String url = "";
+                try {
+                    Socket socket = new Socket("127.0.0.1", HTTPPort);
+                    OutputStream out_stream = socket.getOutputStream();
+                    out_stream.write(("").getBytes(StandardCharsets.UTF_8));
                     try {
-                        final YamlMapping yamlMapping = Yaml.createYamlInput(new File("./config.yml")).readYamlMapping();
-                        url = yamlMapping.string("CheckAccessURL");
-                    } catch (Exception e){
-                        return;
-                    }
-
-                    if (url == null || url.isEmpty()){
-                        return;
-                    }
-
-                    try {
-                        final HttpClient client = HttpClient.newBuilder()
-                                .version(HttpClient.Version.HTTP_2)
-                                .followRedirects(HttpClient.Redirect.NORMAL)
-                                .connectTimeout(Duration.ofSeconds(5))
-                                .build();
-
-                        HttpRequest request = HttpRequest.newBuilder()
-                                .uri(new URI(url))
-                                .headers("User-Agent", Function.UserAgent + " image2resize-access-check/"+Function.Version)
-                                .headers("x-image2-resize-test", url)
-                                .GET()
-                                .build();
-
-                        HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-                        //System.out.println(send.statusCode());
-                        if (send.statusCode() < 200 || send.statusCode() > 399 ){
-                            throw new Exception("Error");
-                        }
-                        client.close();
-
+                        Thread.sleep(500L);
                     } catch (Exception e){
                         //e.printStackTrace();
-                        CheckAccessTimer.cancel();
-                        File file = new File("./stop.txt");
-                        try {
-                            boolean newFile = file.createNewFile();
-                        } catch (IOException ex) {
-                            //ex.printStackTrace();
-                        }
                     }
-                });
+                    socket.close();
+                } catch (Exception e){
+                    //e.printStackTrace();
+                    CheckAccessTimer.cancel();
+                    try {
+                        boolean newFile = stop_file.createNewFile();
+                    } catch (IOException ex) {
+                        //ex.printStackTrace();
+                    }
+                }
+
+                if (check_url == null || check_url.isEmpty()){
+                    return;
+                }
+
+                try {
+                    final HttpClient client = HttpClient.newBuilder()
+                            .version(HttpClient.Version.HTTP_2)
+                            .followRedirects(HttpClient.Redirect.NORMAL)
+                            .connectTimeout(Duration.ofSeconds(15))
+                            .build();
+
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .uri(new URI(check_url))
+                            .headers("User-Agent", Function.UserAgent + " image2resize-access-check/"+Function.Version)
+                            .headers("x-image2-resize-test", check_url)
+                            .GET()
+                            .build();
+
+                    HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                    //System.out.println(send.statusCode());
+                    if (send.statusCode() < 200 || send.statusCode() > 399 ){
+                        throw new Exception("Error");
+                    }
+                    client.close();
+
+                } catch (Exception e){
+                    //e.printStackTrace();
+                    CheckAccessTimer.cancel();
+                    try {
+                        boolean newFile = stop_file.createNewFile();
+                    } catch (IOException ex) {
+                        //ex.printStackTrace();
+                    }
+                }
             }
         }, 1000L, 1000L);
+
+
         while (temp[0]) {
             try {
-                System.gc();
+                //System.gc();
                 //System.out.println("[Debug] HTTPRequest待機");
                 Socket sock = svSock.accept();
 
@@ -269,20 +266,21 @@ public class HTTPServer extends Thread {
                         final InputStream in = sock.getInputStream();
                         final OutputStream out = sock.getOutputStream();
 
-                        byte[] data = new byte[20971520];
-                        int readSize = in.read(data);
-                        if (readSize <= 0) {
-                            in.close();
-                            out.close();
-                            sock.close();
+                        BufferedReader br = new BufferedReader(new InputStreamReader(in));
+                        StringBuilder sb = new StringBuilder();
+                        String requestLine = br.readLine();
+                        while (!requestLine.isEmpty()){
+                            sb.append(requestLine).append("\n");
+                            requestLine = br.readLine();
+                        }
+
+                        if (sb.isEmpty()){
                             return;
                         }
-                        data = Arrays.copyOf(data, readSize);
 
-                        final String httpRequest = new String(data, StandardCharsets.UTF_8);
+                        final String httpRequest = sb.toString();
                         final String httpVersion = Function.getHTTPVersion(httpRequest);
 
-                        data = null;
                         //System.out.println("[Debug] HTTPRequest受信");
                         // ログ保存は時間がかかるのでキャッシュする
                         // しかし死活管理からのアクセスは邪魔なのでログには記録しない
@@ -563,7 +561,7 @@ public class HTTPServer extends Thread {
                         }
 
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        //e.printStackTrace();
                         //temp[0] = false;
                         try {
                             sock.close();
@@ -574,7 +572,7 @@ public class HTTPServer extends Thread {
                     //System.out.println("[Debug] HTTPRequest処理終了");
                 });
             } catch (Exception e) {
-                e.printStackTrace();
+                //e.printStackTrace();
                 temp[0] = false;
             }
         }
@@ -583,6 +581,7 @@ public class HTTPServer extends Thread {
         CacheCheckTimer.cancel();
         LogWriteTimer.cancel();
         Function.WriteLog(LogWriteCacheList);
+        CheckAccessTimer.cancel();
         System.out.println("[Info] 終了します...");
     }
 }
