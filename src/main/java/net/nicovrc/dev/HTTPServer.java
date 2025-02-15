@@ -292,9 +292,28 @@ public class HTTPServer extends Thread {
                                 readSize = in.read(data);
                                 System.out.println(readSize);
 
-                                if (readSize > 0){
+                                if (readSize >= 0){
                                     data = Arrays.copyOf(data, readSize);
                                     sb.append(new String(data, StandardCharsets.UTF_8));
+                                }
+                            }
+                        } else if (readSize == 1024){
+                            data = new byte[1024];
+                            readSize = in.read(data);
+                            boolean isLoop = true;
+                            while (readSize >= 0){
+                                System.out.println(readSize);
+                                data = Arrays.copyOf(data, readSize);
+                                sb.append(new String(data, StandardCharsets.UTF_8));
+
+                                if (!isLoop){
+                                    break;
+                                }
+
+                                data = new byte[1024];
+                                readSize = in.read(data);
+                                if (readSize < 1024){
+                                    isLoop = false;
                                 }
                             }
                         }
