@@ -7,7 +7,7 @@ public class ImageData {
     private String FileId;
     private Date CacheDate;
     private String URL;
-    private byte[] FileContent;
+    private String FileName;
 
     public String getFileId() {
         return FileId;
@@ -33,11 +33,11 @@ public class ImageData {
         this.URL = URL;
     }
 
-    public byte[] getFileContent() {
-        return FileContent;
+    public String getFileName() {
+        return FileName;
     }
 
-    public void setFileContent(byte[] fileContent) {
-        FileContent = fileContent;
+    public void setFileName(String fileName) {
+        FileName = fileName;
     }
 }

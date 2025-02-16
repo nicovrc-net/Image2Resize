@@ -151,5 +151,6 @@ jobs:
           release_name: v${{ github.ref }}
           body: |
             - メモリ使用量の改善
+            - キャッシュは別途pngファイルを保存するように
           draft: false
           prerelease: true

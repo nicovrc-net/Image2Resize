@@ -86,6 +86,10 @@ public class HTTPServer extends Thread {
                     if (StartTime - data.getCacheDate().getTime() >= 3600000){
 
                         CacheDataList.remove(url);
+                        File file = new File("./cache/" + data.getFileName());
+                        if (file.exists()){
+                            file.delete();
+                        }
 
                     }
 
@@ -302,9 +306,13 @@ public class HTTPServer extends Thread {
                             readSize = in.read(data);
                             boolean isLoop = true;
                             while (readSize >= 0){
-                                System.out.println(readSize);
+                                //System.out.println(readSize);
                                 data = Arrays.copyOf(data, readSize);
                                 sb.append(new String(data, StandardCharsets.UTF_8));
+
+                                if (readSize < 1024){
+                                    isLoop = false;
+                                }
 
                                 if (!isLoop){
                                     break;
@@ -419,13 +427,13 @@ public class HTTPServer extends Thread {
                                 //System.out.println("[Debug] CacheFound");
                                 //System.out.println("[Debug] HTTPRequest送信");
 
-                                boolean isTemp = new String(imageData.getFileContent(), StandardCharsets.UTF_8).equals("Temp");
+                                boolean isTemp = imageData.getFileName().equals("temp");
                                 while (isTemp){
                                     if (CacheDataList.get(url) == null){
                                         continue;
                                     }
 
-                                    isTemp = new String(CacheDataList.get(url).getFileContent(), StandardCharsets.UTF_8).equals("Temp");
+                                    isTemp = imageData.getFileName().equals("temp");
                                     try {
                                         Thread.sleep(100L);
                                     } catch (Exception e){
@@ -435,7 +443,14 @@ public class HTTPServer extends Thread {
 
                                 out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: image/png;\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET || isPOST) {
-                                    out.write(imageData.getFileContent());
+
+                                    try (DataInputStream dis = new DataInputStream(new FileInputStream("./cache/"+imageData.getFileName()))) {
+                                        byte[] readByte = dis.readAllBytes();
+                                        out.write(readByte);
+                                    } catch (Exception e){
+                                        //e.printStackTrace();
+                                    }
+
                                 }
                                 out.flush();
                                 in.close();
@@ -450,7 +465,7 @@ public class HTTPServer extends Thread {
                             imageData = new ImageData();
                             imageData.setFileId(UUID.randomUUID().toString());
                             imageData.setURL(url);
-                            imageData.setFileContent("Temp".getBytes(StandardCharsets.UTF_8));
+                            imageData.setFileName("temp");
                             imageData.setCacheDate(new Date());
                             CacheDataList.put(url, imageData);
 
@@ -571,7 +586,19 @@ public class HTTPServer extends Thread {
 
                             // キャッシュ保存
                             //System.out.println("[Debug] Cache Save");
-                            imageData.setFileContent(SendData);
+                            if (!new File("./cache").exists()){
+                                new File("./cache").mkdir();
+                            }
+                            File save = new File("./cache/" + imageData.getFileId() + ".png");
+
+                            try (FileOutputStream fos = new FileOutputStream("./cache/" + imageData.getFileId() + ".png");
+                                 BufferedOutputStream bos = new BufferedOutputStream(fos);
+                                 DataOutputStream dos = new DataOutputStream(bos)) {
+                                dos.write(SendData, 0, SendData.length);
+                            }
+
+
+                            imageData.setFileName(save.getName());
                             CacheDataList.remove(url);
                             CacheDataList.put(url, imageData);
 
