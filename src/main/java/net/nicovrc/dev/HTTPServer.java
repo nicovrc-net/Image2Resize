@@ -310,6 +310,8 @@ public class HTTPServer extends Thread {
                                 data = Arrays.copyOf(data, readSize);
                                 sb.append(new String(data, StandardCharsets.UTF_8));
 
+                                data = null;
+
                                 if (readSize < 1024){
                                     isLoop = false;
                                 }
