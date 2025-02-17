@@ -78,10 +78,6 @@ public class Function {
             imageMagickPass1 = "./convert.exe";
         } else if (new File("./magick.exe").exists()){
             imageMagickPass1 = "./magick.exe";
-        //} else if (new File("C:\\Windows\\System32\\convert.exe").exists()){
-        //    imageMagickPass1 = "C:\\Windows\\System32\\convert.exe";
-        //} else if (new File("C:\\Windows\\System32\\magick.exe").exists()){
-        //    imageMagickPass1 = "C:\\Windows\\System32\\magick.exe";
         } else {
             File folders = new File("C:\\Program Files\\");
 
@@ -209,7 +205,7 @@ public class Function {
 
         if (ffmpegPass.isEmpty() && !imageMagickPass.isEmpty()){
             // ImageMagick
-            final Process exec1 = Runtime.getRuntime().exec(new String[]{imageMagickPass.replaceAll("(convert|magick)", "identify"), "-format", "%W,%H",fileName});
+            final Process exec1 = imageMagickPass.endsWith("magick.exe") ? Runtime.getRuntime().exec(new String[]{imageMagickPass, "identify", "-format", "%W,%H",fileName}) : Runtime.getRuntime().exec(new String[]{imageMagickPass.replaceAll("convert", "identify"), "-format", "%W,%H",fileName});
             Thread.ofVirtual().start(()->{
                 try {
                     Thread.sleep(5000L);
@@ -244,7 +240,7 @@ public class Function {
                 height = 1920;
             }
 
-            final Process exec2 = Runtime.getRuntime().exec(new String[]{imageMagickPass, "-resize", width+"x"+height+"!", fileName, fileName+".png"});
+            final Process exec2 = imageMagickPass.endsWith("magick.exe") ? Runtime.getRuntime().exec(new String[]{imageMagickPass, fileName, "-resize", width+"x"+height+"!", fileName+".png"}) : Runtime.getRuntime().exec(new String[]{imageMagickPass, "-resize", width+"x"+height+"!", fileName, fileName+".png"});
             Thread.ofVirtual().start(()->{
                 try {
                     Thread.sleep(5000L);
