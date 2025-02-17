@@ -152,5 +152,6 @@ jobs:
           body: |
             - メモリ使用量の改善
             - キャッシュは別途pngファイルを保存するように
+            - 画像リサイズにJava標準ライブラリとffmpegを使う実装からImageMagickを使う実装に変更
           draft: false
           prerelease: true
