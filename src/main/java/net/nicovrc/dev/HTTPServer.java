@@ -74,33 +74,35 @@ public class HTTPServer extends Thread {
             @Override
             public void run() {
                 int startCacheCount = CacheDataList.size();
-                System.out.println("[Info] キャッシュお掃除開始 (" + Function.sdf.format(new Date()) + ")");
+                if (startCacheCount > 0){
+                    System.out.println("[Info] キャッシュお掃除開始 (" + Function.sdf.format(new Date()) + ")");
 
-                final Date date = new Date();
-                final long StartTime = date.getTime();
-                final HashMap<String, ImageData> temp = new HashMap<>(CacheDataList);
+                    final Date date = new Date();
+                    final long StartTime = date.getTime();
+                    final HashMap<String, ImageData> temp = new HashMap<>(CacheDataList);
 
-                temp.forEach((url, data)->{
+                    temp.forEach((url, data)->{
 
-                    //System.out.println(StartTime - data.getCacheDate().getTime());
-                    if (StartTime - data.getCacheDate().getTime() >= 3600000){
+                        //System.out.println(StartTime - data.getCacheDate().getTime());
+                        if (StartTime - data.getCacheDate().getTime() >= 3600000){
 
-                        CacheDataList.remove(url);
-                        File file = new File("./cache/" + data.getFileName());
-                        if (file.exists()){
-                            file.delete();
+                            CacheDataList.remove(url);
+                            File file = new File("./cache/" + data.getFileName());
+                            if (file.exists()){
+                                file.delete();
+                            }
+                            file = null;
+
                         }
-                        file = null;
 
-                    }
+                    });
 
-                });
+                    temp.clear();
+                    //System.gc();
 
-                temp.clear();
-                //System.gc();
-
-                System.out.println("[Info] キャッシュお掃除終了 (" + Function.sdf.format(new Date()) + ")");
-                System.out.println("[Info] キャッシュ件数が"+startCacheCount+"件から"+CacheDataList.size()+"件になりました。 (" + Function.sdf.format(new Date()) + ")");
+                    System.out.println("[Info] キャッシュお掃除終了 (" + Function.sdf.format(new Date()) + ")");
+                    System.out.println("[Info] キャッシュ件数が"+startCacheCount+"件から"+CacheDataList.size()+"件になりました。 (" + Function.sdf.format(new Date()) + ")");
+                }
             }
         }, 0L, 3600000L);
 
