@@ -20,7 +20,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Install ffmpeg
-        run: apt install -y ffmpeg
+        run: sudo apt install -y ffmpeg
         shell: bash
 
       # Configure Gradle for optimal use in GiHub Actions, including caching of downloaded dependencies.
