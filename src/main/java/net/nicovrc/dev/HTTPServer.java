@@ -90,6 +90,7 @@ public class HTTPServer extends Thread {
                         if (file.exists()){
                             file.delete();
                         }
+                        file = null;
 
                     }
 

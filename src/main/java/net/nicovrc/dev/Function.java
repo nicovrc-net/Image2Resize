@@ -186,6 +186,8 @@ public class Function {
                     id = new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0];
                     file = new File(FolderPass+"/" + id + ".txt");
                     isFound = file.exists();
+                    file = null;
+
                     try {
                         Thread.sleep(500L);
                     } catch (Exception e){
