@@ -47,7 +47,14 @@ jobs:
           distribution: 'temurin'
 
       - name: Install ffmpeg
-        run: sudo apt install -y ffmpeg
+        run: |
+          sudo apt build-dep ffmpeg
+          sudo apt install -y chromaprint
+          wget https://www.ffmpeg.org/releases/ffmpeg-7.1.tar.gz
+          tar -zxvf ./ffmpeg-7.1.tar.gz
+          cd ./ffmpeg-7.1
+          ./configure --prefix=/usr/local --disable-x86asm
+          sudo make install
         shell: bash
 
       # Configure Gradle for optimal use in GiHub Actions, including caching of downloaded dependencies.
