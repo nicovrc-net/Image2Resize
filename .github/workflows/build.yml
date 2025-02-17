@@ -48,8 +48,6 @@ jobs:
 
       - name: Install ffmpeg
         run: |
-          sudo apt build-dep ffmpeg
-          sudo apt install -y chromaprint
           wget https://www.ffmpeg.org/releases/ffmpeg-7.1.tar.gz
           tar -zxvf ./ffmpeg-7.1.tar.gz
           cd ./ffmpeg-7.1
