@@ -21,6 +21,7 @@ jobs:
 
       - name: Install ffmpeg
         run: apt install -y ffmpeg
+        shell: bash
 
       # Configure Gradle for optimal use in GiHub Actions, including caching of downloaded dependencies.
       # See: https://github.com/gradle/actions/blob/main/setup-gradle/README.md
