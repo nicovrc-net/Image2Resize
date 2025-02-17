@@ -666,6 +666,16 @@ public class HTTPServer extends Thread {
         LogWriteTimer.cancel();
         Function.WriteLog(LogWriteCacheList);
         CheckAccessTimer.cancel();
+        File file = new File("./cache");
+        if (file.listFiles() != null){
+            for (File listFile : Objects.requireNonNull(file.listFiles())) {
+                if (listFile.getName().equals(".") || listFile.getName().equals("..")){
+                    continue;
+                }
+
+                listFile.delete();
+            }
+        }
         System.out.println("[Info] 終了します...");
     }
 }
