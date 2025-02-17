@@ -4,6 +4,10 @@
 
 ## [変更履歴](CHANGELOG.md)
 
+## 必要なもの
+- Java 21以降
+- ffmpegまたはImageMagic
+
 ## 使い方
 - 画像を変換する
 ```
