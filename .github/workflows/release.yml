@@ -21,11 +21,11 @@ jobs:
 
       - name: Install ffmpeg
         run: |
-          wget https://www.ffmpeg.org/releases/ffmpeg-7.1.tar.gz
-          tar -zxvf ./ffmpeg-7.1.tar.gz
-          cd ./ffmpeg-7.1
-          ./configure --prefix=/usr/local --disable-x86asm
-          sudo make install
+          wget https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz
+          tar -Jxvf ./ffmpeg-master-latest-linux64-gpl.tar.xz
+          cp ./ffmpeg-master-latest-linux64-gpl/bin/* ./
+          rm ./ffmpeg-master-latest-linux64-gpl.tar.xz
+          rm ./ffmpeg-master-latest-linux64-gpl -fr
         shell: bash
 
       # Configure Gradle for optimal use in GiHub Actions, including caching of downloaded dependencies.
