@@ -108,9 +108,11 @@ public class HTTPServer extends Thread {
             @Override
             public void run() {
                 new Thread(()->{
-                    System.out.println("[Info] ログ書き込み開始 (" + Function.sdf.format(new Date()) + ")");
-                    long writeCount = Function.WriteLog(LogWriteCacheList);
-                    System.out.println("[Info] ログ書き込み終了("+writeCount+"件) (" + Function.sdf.format(new Date()) + ")");
+                    if (!LogWriteCacheList.isEmpty()){
+                        System.out.println("[Info] ログ書き込み開始 (" + Function.sdf.format(new Date()) + ")");
+                        long writeCount = Function.WriteLog(LogWriteCacheList);
+                        System.out.println("[Info] ログ書き込み終了("+writeCount+"件) (" + Function.sdf.format(new Date()) + ")");
+                    }
                     System.gc();
                 }).start();
             }
@@ -459,6 +461,7 @@ public class HTTPServer extends Thread {
                                     try (DataInputStream dis = new DataInputStream(new FileInputStream("./cache/"+imageData.getFileName()))) {
                                         byte[] readByte = dis.readAllBytes();
                                         out.write(readByte);
+                                        readByte = null;
                                     } catch (Exception e){
                                         //e.printStackTrace();
                                     }
