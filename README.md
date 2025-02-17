@@ -4,6 +4,12 @@
 
 ## [変更履歴](CHANGELOG.md)
 
+## branch内容
+### master
+- i2i.nicovrc.netの本番環境に適用されているもの
+### v1
+- 開発中のVer 1.x.x
+
 ## 必要なもの
 - Java 21以降
 - ffmpegまたはImageMagic
