@@ -38,7 +38,7 @@ public class Function {
     }
 
     public static byte[] ImageResize(byte[] bytes) throws Exception {
-        //ToDo ImageMagickを使う方法に書き換える
+        //ToDo ffmpegまたはImageMagickを使う方法に書き換える
         return null;
     }
 
