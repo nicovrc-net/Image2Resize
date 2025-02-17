@@ -332,6 +332,8 @@ public class HTTPServer extends Thread {
                         final String httpRequest = sb.toString();
                         final String httpVersion = Function.getHTTPVersion(httpRequest);
 
+                        sb.setLength(0);
+                        sb = null;
 
                         //System.out.println("[Debug] HTTPRequest受信");
                         // ログ保存は時間がかかるのでキャッシュする
