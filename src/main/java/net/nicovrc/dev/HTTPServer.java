@@ -243,8 +243,14 @@ public class HTTPServer extends Thread {
                     HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
                     //System.out.println(send.statusCode());
                     if (send.statusCode() < 200 || send.statusCode() > 399 ){
+                        send = null;
+                        request = null;
+                        client.close();
                         throw new Exception("Error");
                     }
+
+                    send = null;
+                    request = null;
                     client.close();
 
                 } catch (Exception e){
@@ -329,6 +335,7 @@ public class HTTPServer extends Thread {
                             }
                         }
 
+                        data = null;
 
                         final String httpRequest = sb.toString();
                         final String httpVersion = Function.getHTTPVersion(httpRequest);
@@ -490,7 +497,7 @@ public class HTTPServer extends Thread {
                             }
 
                             String header = null;
-                            final byte[] file;
+                            byte[] file;
                             try {
                                 final HttpClient client = HttpClient.newBuilder()
                                         .version(HttpClient.Version.HTTP_2)
@@ -522,10 +529,15 @@ public class HTTPServer extends Thread {
                                     out.close();
                                     sock.close();
 
+                                    send = null;
+                                    request = null;
                                     client.close();
                                     return;
                                 }
                                 file = send.body();
+
+                                send = null;
+                                request = null;
                                 client.close();
                             } catch (Exception e){
                                 CacheDataList.remove(url);
@@ -573,7 +585,6 @@ public class HTTPServer extends Thread {
                             //System.out.println("[Debug] 画像読み込み");
                             //System.out.println("[Debug] 画像変換");
                             final byte[] SendData = Function.ImageResize(file);
-                            data = null;
 
                             if (SendData == null){
                                 CacheDataList.remove(url);
