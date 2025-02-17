@@ -25,7 +25,7 @@ http://(Host)/?url=(URL)
 ```
 
 ## APIもどき
-- レスポンスはすべてJSON形式
+- レスポンスは`/api/v1/image_resize`を除いてJSON形式
 ### /api/v1/test
 - リクエスト形式 : GET
 - パラメータ : なし
