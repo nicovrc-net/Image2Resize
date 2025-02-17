@@ -158,3 +158,8 @@ jobs:
             - 終了時にキャッシュファイルを削除するように
           draft: false
           prerelease: false
+
+      - name: Upload JarFile
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ github.ref }} ./build/libs/Image2Resize-1.0-SNAPSHOT-all.jar
