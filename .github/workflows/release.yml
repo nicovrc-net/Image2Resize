@@ -150,6 +150,6 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            -
+            - 終了時にキャッシュファイルを削除するように
           draft: false
           prerelease: false
