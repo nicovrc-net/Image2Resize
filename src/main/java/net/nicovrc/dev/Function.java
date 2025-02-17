@@ -162,6 +162,7 @@ public class Function {
                     height = Integer.parseInt(matcher.group(5));
                 }
             }
+            read = null;
             matcher = null;
             infoMessage = null;
 
@@ -228,6 +229,9 @@ public class Function {
             width = Integer.parseInt(split[0]);
             height = Integer.parseInt(split[1]);
 
+            read = null;
+            split = null;
+
             width = (width * 2) / 2;
             height = (height * 2) / 2;
             if (width >= 1920){
@@ -272,6 +276,8 @@ public class Function {
         if (delete2.exists()){
             delete2.delete();
         }
+        delete1 = null;
+        delete2 = null;
 
         return file;
     }
