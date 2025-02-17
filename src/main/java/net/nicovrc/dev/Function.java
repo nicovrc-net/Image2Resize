@@ -118,6 +118,7 @@ public class Function {
             stream = null;
             instance = null;
             image = null;
+            read = null;
 
 
             return  byteArray;

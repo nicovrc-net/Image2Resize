@@ -573,6 +573,7 @@ public class HTTPServer extends Thread {
                             //System.out.println("[Debug] 画像読み込み");
                             //System.out.println("[Debug] 画像変換");
                             final byte[] SendData = Function.ImageResize(file);
+                            data = null;
 
                             if (SendData == null){
                                 CacheDataList.remove(url);
