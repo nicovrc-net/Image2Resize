@@ -112,7 +112,15 @@ public class Function {
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
             ImageIO.write(image, "PNG", stream);
 
-            return stream.toByteArray();
+            byte[] byteArray = stream.toByteArray();
+
+            stream.close();
+            stream = null;
+            instance = null;
+            image = null;
+
+
+            return  byteArray;
         }
 
         return null;
