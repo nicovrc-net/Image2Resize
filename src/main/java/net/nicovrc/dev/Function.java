@@ -6,9 +6,6 @@ import com.google.gson.GsonBuilder;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -27,7 +24,8 @@ public class Function {
     private static final Pattern HTTPVersion = Pattern.compile("HTTP/(\\d+\\.\\d+)");
 
     private static final Pattern ImageMagickPass = Pattern.compile("ImageMagick-");
-    private static final Pattern ffmpegImageInfo = Pattern.compile("Stream #0:0: Video: (.+), (.+)\\((.+)\\), (\\d+)x(\\d+), (\\d+) fps, (\\d+) tbr, (\\d+) tbn");
+    private static final Pattern ffmpegImageInfo1 = Pattern.compile("Stream #0:0: Video: (.+), (.+)\\((.+)\\), (\\d+)x(\\d+), (\\d+) fps, (\\d+) tbr, (\\d+) tbn");
+    private static final Pattern ffmpegImageInfo2 = Pattern.compile("Stream #0:0: Video: (.+), (.+)\\((.+)\\), (\\d+)x(\\d+) \\[(.+)\\], (\\d+) fps, (\\d+) tbr, (\\d+) tbn");
 
     public static String getHTTPVersion(String HTTPRequest){
         Matcher matcher = HTTPVersion.matcher(HTTPRequest);
@@ -155,10 +153,18 @@ public class Function {
                 read = exec1.getErrorStream().readAllBytes();
             }
             String infoMessage = new String(read, StandardCharsets.UTF_8);
-            Matcher matcher = ffmpegImageInfo.matcher(infoMessage);
+            //System.out.println(infoMessage);
+            Matcher matcher = ffmpegImageInfo1.matcher(infoMessage);
             if (matcher.find()){
                 width = Integer.parseInt(matcher.group(4));
                 height = Integer.parseInt(matcher.group(5));
+            } else {
+                matcher = null;
+                matcher = ffmpegImageInfo2.matcher(infoMessage);
+                if (matcher.find()){
+                    width = Integer.parseInt(matcher.group(4));
+                    height = Integer.parseInt(matcher.group(5));
+                }
             }
             matcher = null;
             infoMessage = null;
@@ -177,6 +183,7 @@ public class Function {
             }
 
             final Process exec2 = Runtime.getRuntime().exec(new String[]{ffmpegPass, "-i", fileName, "-s", width+"x"+height, fileName+".png"});
+            //System.out.println(ffmpegPass + " -i " + fileName + " -s" + width+"x"+height+" " + fileName+".png");
             Thread.ofVirtual().start(()->{
                 try {
                     Thread.sleep(5000L);
@@ -197,10 +204,10 @@ public class Function {
                 stream.close();
                 stream = null;
             }
+            file1 = null;
         }
 
-        //if (ffmpegPass.isEmpty() && !imageMagickPass.isEmpty()){
-        if (!imageMagickPass.isEmpty()){
+        if (ffmpegPass.isEmpty() && !imageMagickPass.isEmpty()){
             // ImageMagick
             final Process exec1 = Runtime.getRuntime().exec(new String[]{imageMagickPass.replaceAll("(convert|magick)", "identify"), "-format", "%W,%H",fileName});
             Thread.ofVirtual().start(()->{
@@ -258,6 +265,7 @@ public class Function {
                 stream.close();
                 stream = null;
             }
+            file1 = null;
         }
 
         File delete1 = new File(fileName);
