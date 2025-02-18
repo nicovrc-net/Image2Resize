@@ -12,10 +12,11 @@
 
 ## 必要なもの
 - Java 21以降
-- ffmpegまたはImageMagic (両方ある場合はffmpegが優先されます。 ※ffmpegは6.1.1以降、ImageMagicは6.9.12-98以降なら動くと思います。)
+- ffmpegまたはImageMagic (両方ある場合はffmpegが優先されます。 ※ffmpegは4.4.2以降、ImageMagicは6.9.12-98以降なら動くと思います。)
 
 ## 動作確認済み環境
-- Ubuntu 22.04 64bit (OpenJDK 21.0.6 / ffmpeg 6.1.1-3ubuntu5 / ImageMagick 6.9.12-98)
+- Ubuntu 22.04 64bit (OpenJDK 21.0.6 / 4.4.2-0ubuntu0.22.04.1)
+- Ubuntu 24.04 64bit (OpenJDK 21.0.6 / ffmpeg 6.1.1-3ubuntu5 / ImageMagick 6.9.12-98)
 - Windows 11 24H2 (OpenJDK 22.0.1 / ffmpeg 2024-12-11-git-a518b5540d-full_build-www.gyan.dev / ImageMagic 7.1.1-43)
 
 ## 使い方
