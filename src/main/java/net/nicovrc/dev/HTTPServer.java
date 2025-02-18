@@ -43,8 +43,6 @@ public class HTTPServer extends Thread {
     private final Pattern UrlMatch = Pattern.compile("(GET|HEAD) /\\?url=(.+) HTTP");
     private final Pattern APIMatch = Pattern.compile("(GET|HEAD|POST) /api/(.+) HTTP");
 
-    //private final List<ImageResizeAPI> apiList = new ArrayList<>();
-
     private final File stop_file = new File("./stop.txt");
     private final File stop_lock_file = new File("./lock-stop");
     private final File cache_folder = new File("./cache");
@@ -58,6 +56,7 @@ public class HTTPServer extends Thread {
             .build();
 
     private final HashMap<String, ImageResizeAPI> apiList = new HashMap<>();
+    private final boolean[] temp = {true};
 
     @Override
     public void run() {
@@ -123,8 +122,10 @@ public class HTTPServer extends Thread {
                     temp.clear();
                     //System.gc();
 
-                    System.out.println("[Info] キャッシュお掃除終了 (" + Function.sdf.format(new Date()) + ")");
-                    System.out.println("[Info] キャッシュ件数が"+startCacheCount+"件から"+CacheDataList.size()+"件になりました。 (" + Function.sdf.format(new Date()) + ")");
+                    Date date1 = new Date();
+                    System.out.println("[Info] キャッシュお掃除終了 (" + Function.sdf.format(date1) + ")");
+                    System.out.println("[Info] キャッシュ件数が"+startCacheCount+"件から"+CacheDataList.size()+"件になりました。 (" + Function.sdf.format(date1) + ")");
+                    date1 = null;
                 }
             }
         }, 0L, 3600000L);
@@ -143,7 +144,6 @@ public class HTTPServer extends Thread {
             }
         }, 0L, 60000L);
 
-        final boolean[] temp = {true};
         CheckStopTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {

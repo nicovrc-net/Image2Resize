@@ -24,8 +24,7 @@ public class Function {
     private static final Pattern HTTPVersion = Pattern.compile("HTTP/(\\d+\\.\\d+)");
 
     private static final Pattern ImageMagickPass = Pattern.compile("ImageMagick-");
-    private static final Pattern ffmpegImageInfo1 = Pattern.compile("Stream #0:0: Video: (.+), (.+)\\((.+)\\), (\\d+)x(\\d+), (\\d+) fps, (\\d+) tbr, (\\d+) tbn");
-    private static final Pattern ffmpegImageInfo2 = Pattern.compile("Stream #0:0: Video: (.+), (.+)\\((.+)\\), (\\d+)x(\\d+) \\[(.+)\\], (\\d+) fps, (\\d+) tbr, (\\d+) tbn");
+    private static final Pattern ffmpegImageInfo = Pattern.compile("Stream #0:0: Video: (.+), (.+)\\((.+)\\), (\\d+)x(\\d+)");
 
     public static String getHTTPVersion(String HTTPRequest){
         Matcher matcher = HTTPVersion.matcher(HTTPRequest);
@@ -150,17 +149,10 @@ public class Function {
             }
             String infoMessage = new String(read, StandardCharsets.UTF_8);
             //System.out.println(infoMessage);
-            Matcher matcher = ffmpegImageInfo1.matcher(infoMessage);
+            Matcher matcher = ffmpegImageInfo.matcher(infoMessage);
             if (matcher.find()) {
                 width = Integer.parseInt(matcher.group(4));
                 height = Integer.parseInt(matcher.group(5));
-            } else {
-                matcher = null;
-                matcher = ffmpegImageInfo2.matcher(infoMessage);
-                if (matcher.find()) {
-                    width = Integer.parseInt(matcher.group(4));
-                    height = Integer.parseInt(matcher.group(5));
-                }
             }
             read = null;
             matcher = null;
