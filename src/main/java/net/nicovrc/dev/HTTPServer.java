@@ -42,7 +42,7 @@ public class HTTPServer extends Thread {
     private final Pattern UrlMatch = Pattern.compile("(GET|HEAD) /\\?url=(.+) HTTP");
     private final Pattern APIMatch = Pattern.compile("(GET|HEAD|POST) /api/(.+) HTTP");
 
-    private final List<ImageResizeAPI> apiList = new ArrayList<>();
+    //private final List<ImageResizeAPI> apiList = new ArrayList<>();
 
     private final File stop_file = new File("./stop.txt");
     private final File stop_lock_file = new File("./lock-stop");
@@ -54,6 +54,8 @@ public class HTTPServer extends Thread {
             .followRedirects(HttpClient.Redirect.NORMAL)
             .connectTimeout(Duration.ofSeconds(5))
             .build();
+
+    private final HashMap<String, ImageResizeAPI> apiList = new HashMap<>();
 
     @Override
     public void run() {
@@ -81,10 +83,14 @@ public class HTTPServer extends Thread {
         }
 
         // API
-        apiList.add(new GetData());
-        apiList.add(new GetCacheList());
-        apiList.add(new PostImageResize());
-        apiList.add(new Test());
+        GetData getData = new GetData();
+        GetCacheList getCacheList = new GetCacheList();
+        PostImageResize postImageResize = new PostImageResize();
+        Test test = new Test();
+        apiList.put(getData.getURI(), getData);
+        apiList.put(getCacheList.getURI(), getCacheList);
+        apiList.put(postImageResize.getURI(), postImageResize);
+        apiList.put(test.getURI(), test);
 
         CacheCheckTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -410,20 +416,20 @@ public class HTTPServer extends Thread {
 
                             final String apiUri = "/api/" + matcher.group(2);
 
-                            for (ImageResizeAPI api : apiList){
-                                if (api.getURI().equals(apiUri)){
-                                    APIResult run = api.run(CacheDataList, LogWriteCacheList, httpRequest);
+                            final ImageResizeAPI api = apiList.get(apiUri);
+                            if (api != null) {
+                                APIResult run = api.run(CacheDataList, LogWriteCacheList, httpRequest);
 
-                                    out.write(("HTTP/" + httpVersion + " "+run.getHttpResponseCode()+"\nAccess-Control-Allow-Origin: *\nContent-Type: "+run.getHttpContentType()+"\n\n").getBytes(StandardCharsets.UTF_8));
-                                    if (isGET || isPOST) {
-                                        out.write(run.getHttpContent());
-                                    }
-
-                                    in.close();
-                                    out.close();
-                                    sock.close();
-                                    return;
+                                out.write(("HTTP/" + httpVersion + " " + run.getHttpResponseCode() + "\nAccess-Control-Allow-Origin: *\nContent-Type: " + run.getHttpContentType() + "\n\n").getBytes(StandardCharsets.UTF_8));
+                                if (isGET || isPOST) {
+                                    out.write(run.getHttpContent());
                                 }
+
+                                in.close();
+                                out.close();
+                                sock.close();
+
+                                return;
                             }
 
                             out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
