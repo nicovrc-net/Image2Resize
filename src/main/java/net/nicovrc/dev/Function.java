@@ -224,7 +224,7 @@ public class Function {
             }
             String infoMessage = new String(read, StandardCharsets.UTF_8);
             //System.out.println(infoMessage);
-            String[] split = infoMessage.split(",");
+            String[] split = infoMessage.isEmpty() ? "0,0".split(",") : infoMessage.split(",");
             width = Integer.parseInt(split[0]);
             height = Integer.parseInt(split[1]);
 
