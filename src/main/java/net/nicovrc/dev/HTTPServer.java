@@ -26,6 +26,8 @@ public class HTTPServer extends Thread {
     private final int HTTPPort;
     private final HashMap<String, ImageResizeAPI> apiList = new HashMap<>();
 
+    private final Pattern NotLog;
+
     public HTTPServer(int HTTPPort){
         this.HTTPPort = HTTPPort;
 
@@ -39,6 +41,25 @@ public class HTTPServer extends Thread {
         apiList.put(postImageResize.getURI(), postImageResize);
         apiList.put(test.getURI(), test);
 
+        YamlMapping yamlMapping = null;
+        final String check_url;
+        String checkUrl1;
+        try {
+            yamlMapping = Yaml.createYamlInput(new File("./config.yml")).readYamlMapping();
+            checkUrl1 = yamlMapping.string("CheckAccessURL");
+        } catch (IOException e) {
+            yamlMapping = null;
+            checkUrl1 = "";
+            //throw new RuntimeException(e);
+        }
+        check_url = checkUrl1;
+        checkUrl1 = null;
+
+        if (check_url != null){
+            NotLog = Pattern.compile("x-image2-resize-test: " + check_url.replaceAll("\\.", "\\\\."));
+        } else {
+            NotLog = Pattern.compile("x-image2-resize-test: ");
+        }
     }
 
     private final ConcurrentHashMap<String, ImageData> CacheDataList = new ConcurrentHashMap<>();
@@ -69,28 +90,6 @@ public class HTTPServer extends Thread {
 
     @Override
     public void run() {
-
-        YamlMapping yamlMapping = null;
-        final String check_url;
-        String checkUrl1;
-        try {
-            yamlMapping = Yaml.createYamlInput(new File("./config.yml")).readYamlMapping();
-            checkUrl1 = yamlMapping.string("CheckAccessURL");
-        } catch (IOException e) {
-            yamlMapping = null;
-            checkUrl1 = "";
-            //throw new RuntimeException(e);
-        }
-        check_url = checkUrl1;
-        checkUrl1 = null;
-
-        final Pattern NotLog;
-        if (check_url != null){
-            NotLog = Pattern.compile("x-image2-resize-test: " + check_url.replaceAll("\\.", "\\\\."));
-        } else {
-            NotLog = Pattern.compile("x-image2-resize-test: ");
-        }
-
         // キャッシュ掃除
         CacheCheckTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
