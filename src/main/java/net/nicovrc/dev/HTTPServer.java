@@ -47,6 +47,8 @@ public class HTTPServer extends Thread {
     private final File stop_file = new File("./stop.txt");
     private final File stop_lock_file = new File("./lock-stop");
 
+    private final byte[] emptyBytes = new byte[0];
+
     private final HttpClient client = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_2)
             .followRedirects(HttpClient.Redirect.NORMAL)
@@ -209,7 +211,7 @@ public class HTTPServer extends Thread {
                     try {
                         Socket socket = new Socket("127.0.0.1", HTTPPort);
                         OutputStream stream = socket.getOutputStream();
-                        stream.write("".getBytes(StandardCharsets.UTF_8));
+                        stream.write(emptyBytes);
                         stream.close();
                         socket.close();
                     } catch (Exception e){
@@ -222,7 +224,7 @@ public class HTTPServer extends Thread {
                 try {
                     Socket socket = new Socket("127.0.0.1", HTTPPort);
                     OutputStream out_stream = socket.getOutputStream();
-                    out_stream.write(("").getBytes(StandardCharsets.UTF_8));
+                    out_stream.write(emptyBytes);
                     try {
                         Thread.sleep(500L);
                     } catch (Exception e){
