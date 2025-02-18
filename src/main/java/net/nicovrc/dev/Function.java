@@ -250,7 +250,10 @@ public class Function {
         }
         File delete2 = new File(convertFileName);
         if (delete2.exists()){
-            file = new FileInputStream(convertFileName).readAllBytes();
+            FileInputStream stream = new FileInputStream(convertFileName);
+            file = stream.readAllBytes();
+            stream.close();
+            stream = null;
             delete2.delete();
         }
         delete1 = null;
