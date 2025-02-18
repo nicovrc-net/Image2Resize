@@ -513,7 +513,6 @@ public class HTTPServer extends Thread {
                             }
 
                             String header = null;
-                            byte[] file;
                             try {
 
                                 HttpRequest request = HttpRequest.newBuilder()
@@ -545,8 +544,7 @@ public class HTTPServer extends Thread {
                                     //client.close();
                                     return;
                                 }
-                                file = send.body();
-
+                                data = send.body();
                                 send = null;
                                 request = null;
 
@@ -580,7 +578,7 @@ public class HTTPServer extends Thread {
                             }
                             header = null;
 
-                            if (file.length == 0){
+                            if (data.length == 0){
                                 CacheDataList.remove(url);
                                 //System.out.println("[Debug] HTTPRequest送信");
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
@@ -596,9 +594,9 @@ public class HTTPServer extends Thread {
                             }
                             //System.out.println("[Debug] 画像読み込み");
                             //System.out.println("[Debug] 画像変換");
-                            file = Function.ImageResize(file);
+                            data = Function.ImageResize(data);
 
-                            if (file == null){
+                            if (data == null){
 
                                 CacheDataList.remove(url);
                                 //System.out.println("[Debug] HTTPRequest送信");
@@ -623,7 +621,7 @@ public class HTTPServer extends Thread {
                             try (FileOutputStream fos = new FileOutputStream(filePass);
                                  BufferedOutputStream bos = new BufferedOutputStream(fos);
                                  DataOutputStream dos = new DataOutputStream(bos)) {
-                                dos.write(file, 0, file.length);
+                                dos.write(data, 0, data.length);
                             }
 
                             imageData.setFileName(filePass);
@@ -634,7 +632,7 @@ public class HTTPServer extends Thread {
                             //System.out.println("[Debug] HTTPRequest送信");
                             out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: image/png;\n\n").getBytes(StandardCharsets.UTF_8));
                             if ((isGET || isPOST) && !sock.isClosed() && !sock.isOutputShutdown()) {
-                                out.write(file);
+                                out.write(data);
                             }
                             //imageData.setFileContent(null);
                             out.flush();
@@ -642,7 +640,7 @@ public class HTTPServer extends Thread {
                             out.close();
                             sock.close();
 
-                            file = null;
+                            data = null;
 
                         } else {
                             //System.out.println("[Debug] HTTPRequest送信");
