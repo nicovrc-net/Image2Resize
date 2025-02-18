@@ -56,9 +56,16 @@ public class HTTPServer extends Thread {
     @Override
     public void run() {
 
+        YamlMapping yamlMapping = null;
+        try {
+            yamlMapping = Yaml.createYamlInput(new File("./config.yml")).readYamlMapping();
+        } catch (IOException e) {
+            yamlMapping = null;
+            //throw new RuntimeException(e);
+        }
+
         String match_url = "";
         try {
-            final YamlMapping yamlMapping = Yaml.createYamlInput(new File("./config.yml")).readYamlMapping();
             match_url = yamlMapping.string("CheckAccessURL");
         } catch (Exception e){
             match_url = "";
@@ -190,9 +197,8 @@ public class HTTPServer extends Thread {
         //死活監視追加
         final String check_url;
         try {
-            final YamlMapping yamlMapping = Yaml.createYamlInput(new File("./config.yml")).readYamlMapping();
             check_url = yamlMapping.string("CheckAccessURL");
-        } catch (Exception e){
+        } catch (Exception e) {
             return;
         }
 
