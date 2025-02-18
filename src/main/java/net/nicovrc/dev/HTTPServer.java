@@ -13,6 +13,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,6 +47,7 @@ public class HTTPServer extends Thread {
 
     private final File stop_file = new File("./stop.txt");
     private final File stop_lock_file = new File("./lock-stop");
+    private final File cache_folder = new File("./cache");
 
     private final byte[] emptyBytes = new byte[0];
 
@@ -61,23 +63,22 @@ public class HTTPServer extends Thread {
     public void run() {
 
         YamlMapping yamlMapping = null;
+        final String check_url;
+        String checkUrl1;
         try {
             yamlMapping = Yaml.createYamlInput(new File("./config.yml")).readYamlMapping();
+            checkUrl1 = yamlMapping.string("CheckAccessURL");
         } catch (IOException e) {
             yamlMapping = null;
+            checkUrl1 = "";
             //throw new RuntimeException(e);
         }
-
-        String match_url = "";
-        try {
-            match_url = yamlMapping.string("CheckAccessURL");
-        } catch (Exception e){
-            match_url = "";
-        }
+        check_url = checkUrl1;
+        checkUrl1 = null;
 
         final Pattern NotLog;
-        if (match_url != null){
-            NotLog = Pattern.compile("x-image2-resize-test: " + match_url.replaceAll("\\.", "\\\\."));
+        if (check_url != null){
+            NotLog = Pattern.compile("x-image2-resize-test: " + check_url.replaceAll("\\.", "\\\\."));
         } else {
             NotLog = Pattern.compile("x-image2-resize-test: ");
         }
@@ -203,13 +204,6 @@ public class HTTPServer extends Thread {
         System.out.println("[Info] TCP Port " + HTTPPort + "で 処理受付用HTTPサーバー待機開始");
 
         //死活監視追加
-        final String check_url;
-        try {
-            check_url = yamlMapping.string("CheckAccessURL");
-        } catch (Exception e) {
-            return;
-        }
-
         CheckAccessTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
@@ -476,9 +470,7 @@ public class HTTPServer extends Thread {
                                 if (isGET || isPOST) {
 
                                     try (DataInputStream dis = new DataInputStream(new FileInputStream("./cache/"+imageData.getFileName()))) {
-                                        byte[] readByte = dis.readAllBytes();
-                                        out.write(readByte);
-                                        readByte = null;
+                                        out.write(dis.readAllBytes());
                                     } catch (Exception e){
                                         //e.printStackTrace();
                                     }
@@ -488,10 +480,12 @@ public class HTTPServer extends Thread {
                                 in.close();
                                 out.close();
                                 sock.close();
+                                imageData = null;
 
                                 return;
 
                             }
+
                             //System.out.println("[Debug] Cache Not Found");
 
                             imageData = new ImageData();
@@ -500,6 +494,8 @@ public class HTTPServer extends Thread {
                             imageData.setFileName("temp");
                             imageData.setCacheDate(new Date().getTime());
                             CacheDataList.put(url, imageData);
+
+                            String filePass = "./cache/" + imageData.getFileId() + ".png";
 
                             if (!url.toLowerCase(Locale.ROOT).startsWith("http")) {
                                 CacheDataList.remove(url);
@@ -553,7 +549,7 @@ public class HTTPServer extends Thread {
 
                                 send = null;
                                 request = null;
-                                //client.close();
+
                             } catch (Exception e){
                                 CacheDataList.remove(url);
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
@@ -582,6 +578,7 @@ public class HTTPServer extends Thread {
 
                                 return;
                             }
+                            header = null;
 
                             if (file.length == 0){
                                 CacheDataList.remove(url);
@@ -599,10 +596,9 @@ public class HTTPServer extends Thread {
                             }
                             //System.out.println("[Debug] 画像読み込み");
                             //System.out.println("[Debug] 画像変換");
-                            final byte[] SendData = Function.ImageResize(file);
-                            file = null;
+                            file = Function.ImageResize(file);
 
-                            if (SendData == null){
+                            if (file == null){
 
                                 CacheDataList.remove(url);
                                 //System.out.println("[Debug] HTTPRequest送信");
@@ -620,30 +616,25 @@ public class HTTPServer extends Thread {
 
                             // キャッシュ保存
                             //System.out.println("[Debug] Cache Save");
-                            File cache = new File("./cache");
-                            if (!cache.exists()){
-                                cache.mkdir();
+                            if (!cache_folder.exists()){
+                                cache_folder.mkdir();
                             }
-                            cache = null;
 
-                            File save = new File("./cache/" + imageData.getFileId() + ".png");
-
-                            try (FileOutputStream fos = new FileOutputStream("./cache/" + imageData.getFileId() + ".png");
+                            try (FileOutputStream fos = new FileOutputStream(filePass);
                                  BufferedOutputStream bos = new BufferedOutputStream(fos);
                                  DataOutputStream dos = new DataOutputStream(bos)) {
-                                dos.write(SendData, 0, SendData.length);
+                                dos.write(file, 0, file.length);
                             }
 
-                            imageData.setFileName(save.getName());
+                            imageData.setFileName(filePass);
                             CacheDataList.remove(url);
                             CacheDataList.put(url, imageData);
-                            save = null;
 
                             //System.out.println("[Debug] 画像出力");
                             //System.out.println("[Debug] HTTPRequest送信");
                             out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: image/png;\n\n").getBytes(StandardCharsets.UTF_8));
                             if ((isGET || isPOST) && !sock.isClosed() && !sock.isOutputShutdown()) {
-                                out.write(SendData);
+                                out.write(file);
                             }
                             //imageData.setFileContent(null);
                             out.flush();
@@ -651,6 +642,7 @@ public class HTTPServer extends Thread {
                             out.close();
                             sock.close();
 
+                            file = null;
 
                         } else {
                             //System.out.println("[Debug] HTTPRequest送信");
@@ -663,6 +655,8 @@ public class HTTPServer extends Thread {
                             out.close();
                             sock.close();
                         }
+
+                        System.gc();
 
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -686,9 +680,8 @@ public class HTTPServer extends Thread {
         LogWriteTimer.cancel();
         Function.WriteLog(LogWriteCacheList);
         CheckAccessTimer.cancel();
-        File file = new File("./cache");
-        if (file.listFiles() != null){
-            for (File listFile : Objects.requireNonNull(file.listFiles())) {
+        if (cache_folder.listFiles() != null){
+            for (File listFile : Objects.requireNonNull(cache_folder.listFiles())) {
                 if (listFile.getName().equals(".") || listFile.getName().equals("..")){
                     continue;
                 }

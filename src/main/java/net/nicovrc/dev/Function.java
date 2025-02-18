@@ -37,10 +37,8 @@ public class Function {
     }
 
     public static byte[] ImageResize(byte[] bytes) throws Exception {
-
         final String fileName = "./temp-" + new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0] + UUID.randomUUID().toString().split("-")[1];
         final String convertFileName = fileName + ".png";
-
 
         FileOutputStream stream1 = new FileOutputStream(fileName);
         stream1.write(bytes);
@@ -79,11 +77,11 @@ public class Function {
         } else if (new File("./magick.exe").exists()){
             imageMagickPass1 = "./magick.exe";
         } else {
-            File folders = new File("C:\\Program Files\\");
+            File folders = new File("D:\\Program Files\\");
 
             if (!folders.exists()){
                 folders = null;
-                folders = new File("D:\\Program Files\\");
+                folders = new File("C:\\Program Files\\");
 
                 if (!folders.exists()){
                     imageMagickPass1 = "";
@@ -128,36 +126,38 @@ public class Function {
         int height = 0;
         byte[] file = null;
 
-        if (!ffmpegPass.isEmpty()){
+        Runtime runtime = Runtime.getRuntime();
+        byte[] read = null;
+        if (!ffmpegPass.isEmpty()) {
             // ffmpeg
-            final Process exec1 = Runtime.getRuntime().exec(new String[]{ffmpegPass, "-i", fileName});
-            Thread.ofVirtual().start(()->{
+            final Process exec1 = runtime.exec(new String[]{ffmpegPass, "-i", fileName});
+            Thread.ofVirtual().start(() -> {
                 try {
                     Thread.sleep(5000L);
-                } catch (Exception e){
+                } catch (Exception e) {
                     //e.printStackTrace();
                 }
 
-                if (exec1.isAlive()){
+                if (exec1.isAlive()) {
                     exec1.destroy();
                 }
             });
             exec1.waitFor();
 
-            byte[] read = exec1.getInputStream().readAllBytes();
-            if (read.length == 0){
+            read = exec1.getInputStream().readAllBytes();
+            if (read.length == 0) {
                 read = exec1.getErrorStream().readAllBytes();
             }
             String infoMessage = new String(read, StandardCharsets.UTF_8);
             //System.out.println(infoMessage);
             Matcher matcher = ffmpegImageInfo1.matcher(infoMessage);
-            if (matcher.find()){
+            if (matcher.find()) {
                 width = Integer.parseInt(matcher.group(4));
                 height = Integer.parseInt(matcher.group(5));
             } else {
                 matcher = null;
                 matcher = ffmpegImageInfo2.matcher(infoMessage);
-                if (matcher.find()){
+                if (matcher.find()) {
                     width = Integer.parseInt(matcher.group(4));
                     height = Integer.parseInt(matcher.group(5));
                 }
@@ -169,44 +169,35 @@ public class Function {
             // System.out.println("width " + width + " / height " + height);
             width = (width * 2) / 2;
             height = (height * 2) / 2;
-            if (width >= 1920){
-                height = (int) ((double)height * ((double)1920 / (double)width));
+            if (width >= 1920) {
+                height = (int) ((double) height * ((double) 1920 / (double) width));
                 //System.out.println(((double)height * ((double)1920 / (double)width)));
                 width = 1920;
             }
-            if (height >= 1920){
-                width = (int) ((double)width * ((double)1920 / (double)height));
+            if (height >= 1920) {
+                width = (int) ((double) width * ((double) 1920 / (double) height));
                 height = 1920;
             }
 
-            final Process exec2 = Runtime.getRuntime().exec(new String[]{ffmpegPass, "-i", fileName, "-s", width+"x"+height, fileName+".png"});
+            final Process exec2 = runtime.exec(new String[]{ffmpegPass, "-i", fileName, "-s", width + "x" + height, fileName + ".png"});
             //System.out.println(ffmpegPass + " -i " + fileName + " -s" + width+"x"+height+" " + fileName+".png");
-            Thread.ofVirtual().start(()->{
+            Thread.ofVirtual().start(() -> {
                 try {
                     Thread.sleep(5000L);
-                } catch (Exception e){
+                } catch (Exception e) {
                     //e.printStackTrace();
                 }
 
-                if (exec2.isAlive()){
+                if (exec2.isAlive()) {
                     exec2.destroy();
                 }
             });
             exec2.waitFor();
-
-            File file1 = new File(convertFileName);
-            if (file1.exists()){
-                FileInputStream stream = new FileInputStream(file1.getAbsoluteFile());
-                file = stream.readAllBytes();
-                stream.close();
-                stream = null;
-            }
-            file1 = null;
         }
 
         if (ffmpegPass.isEmpty() && !imageMagickPass.isEmpty()){
             // ImageMagick
-            final Process exec1 = imageMagickPass.endsWith("magick.exe") ? Runtime.getRuntime().exec(new String[]{imageMagickPass, "identify", "-format", "%W,%H",fileName}) : Runtime.getRuntime().exec(new String[]{imageMagickPass.replaceAll("convert", "identify"), "-format", "%W,%H",fileName});
+            final Process exec1 = imageMagickPass.endsWith("magick.exe") ? runtime.exec(new String[]{imageMagickPass, "identify", "-format", "%W,%H",fileName}) : runtime.exec(new String[]{imageMagickPass.replaceAll("convert", "identify"), "-format", "%W,%H",fileName});
             Thread.ofVirtual().start(()->{
                 try {
                     Thread.sleep(5000L);
@@ -219,7 +210,7 @@ public class Function {
                 }
             });
             exec1.waitFor();
-            byte[] read = exec1.getInputStream().readAllBytes();
+            read = exec1.getInputStream().readAllBytes();
             if (read.length == 0){
                 read = exec1.getErrorStream().readAllBytes();
             }
@@ -244,7 +235,7 @@ public class Function {
                 height = 1920;
             }
 
-            final Process exec2 = imageMagickPass.endsWith("magick.exe") ? Runtime.getRuntime().exec(new String[]{imageMagickPass, fileName, "-resize", width+"x"+height+"!", fileName+".png"}) : Runtime.getRuntime().exec(new String[]{imageMagickPass, "-resize", width+"x"+height+"!", fileName, fileName+".png"});
+            final Process exec2 = imageMagickPass.endsWith("magick.exe") ? runtime.exec(new String[]{imageMagickPass, fileName, "-resize", width+"x"+height+"!", fileName+".png"}) : runtime.exec(new String[]{imageMagickPass, "-resize", width+"x"+height+"!", fileName, fileName+".png"});
             Thread.ofVirtual().start(()->{
                 try {
                     Thread.sleep(5000L);
@@ -257,16 +248,9 @@ public class Function {
                 }
             });
             exec2.waitFor();
-
-            File file1 = new File(convertFileName);
-            if (file1.exists()){
-                FileInputStream stream = new FileInputStream(file1.getAbsoluteFile());
-                file = stream.readAllBytes();
-                stream.close();
-                stream = null;
-            }
-            file1 = null;
         }
+
+        runtime = null;
 
         File delete1 = new File(fileName);
         if (delete1.exists()){
