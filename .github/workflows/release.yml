@@ -170,7 +170,7 @@ jobs:
             - ログ書き込みキャッシュが0件の場合は何もしないように
             - 画像キャッシュが0件の場合は何もしないように
           draft: false
-          prerelease: false
+          prerelease: true
 
       - name: Upload JarFile
         env:
