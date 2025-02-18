@@ -5,6 +5,7 @@ import net.nicovrc.dev.Function;
 import net.nicovrc.dev.data.ImageData;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -23,9 +24,10 @@ public class GetCacheList implements ImageResizeAPI {
         }
 
         final HashMap<String, String> cacheList = new HashMap<>();
-
+        final Date tempDate = new Date();
         CacheDataList.forEach((url, imgData)->{
-            cacheList.put(url, imgData.getCacheDate() != null ? Function.sdf.format(imgData.getCacheDate()) : "-");
+            tempDate.setTime(imgData.getCacheDate());
+            cacheList.put(url, Function.sdf.format(tempDate));
         });
 
         String json = new Gson().toJson(cacheList);

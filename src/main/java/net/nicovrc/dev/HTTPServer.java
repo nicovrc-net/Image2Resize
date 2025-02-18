@@ -100,7 +100,7 @@ public class HTTPServer extends Thread {
                     temp.forEach((url, data)->{
 
                         //System.out.println(StartTime - data.getCacheDate().getTime());
-                        if (StartTime - data.getCacheDate().getTime() >= 3600000){
+                        if (StartTime - data.getCacheDate() >= 3600000){
 
                             CacheDataList.remove(url);
                             File file = new File("./cache/" + data.getFileName());
@@ -492,7 +492,7 @@ public class HTTPServer extends Thread {
                             imageData.setFileId(UUID.randomUUID().toString());
                             imageData.setURL(url);
                             imageData.setFileName("temp");
-                            imageData.setCacheDate(new Date());
+                            imageData.setCacheDate(new Date().getTime());
                             CacheDataList.put(url, imageData);
 
                             if (!url.toLowerCase(Locale.ROOT).startsWith("http")) {

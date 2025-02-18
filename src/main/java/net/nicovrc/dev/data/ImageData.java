@@ -1,11 +1,10 @@
 package net.nicovrc.dev.data;
 
-import java.util.Date;
 
 public class ImageData {
 
     private String FileId;
-    private Date CacheDate;
+    private long CacheDate;
     private String URL;
     private String FileName;
 
@@ -17,11 +16,11 @@ public class ImageData {
         FileId = fileId;
     }
 
-    public Date getCacheDate() {
+    public long getCacheDate() {
         return CacheDate;
     }
 
-    public void setCacheDate(Date cacheDate) {
+    public void setCacheDate(long cacheDate) {
         CacheDate = cacheDate;
     }
 
