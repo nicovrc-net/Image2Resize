@@ -28,6 +28,8 @@ public class HTTPServer extends Thread {
 
     private final Pattern NotLog;
 
+    private final String check_url;
+
     public HTTPServer(int HTTPPort){
         this.HTTPPort = HTTPPort;
 
@@ -42,7 +44,6 @@ public class HTTPServer extends Thread {
         apiList.put(test.getURI(), test);
 
         YamlMapping yamlMapping = null;
-        final String check_url;
         String checkUrl1;
         try {
             yamlMapping = Yaml.createYamlInput(new File("./config.yml")).readYamlMapping();
@@ -77,6 +78,7 @@ public class HTTPServer extends Thread {
     private final File stop_file = new File("./stop.txt");
     private final File stop_lock_file = new File("./lock-stop");
     private final File cache_folder = new File("./cache");
+    private final String localhost = "127.0.0.1";
 
     private final byte[] emptyBytes = new byte[0];
 
@@ -221,7 +223,7 @@ public class HTTPServer extends Thread {
                 }
 
                 try {
-                    Socket socket = new Socket("127.0.0.1", HTTPPort);
+                    Socket socket = new Socket(localhost, HTTPPort);
                     OutputStream out_stream = socket.getOutputStream();
                     out_stream.write(emptyBytes);
                     try {
