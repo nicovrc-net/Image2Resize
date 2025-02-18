@@ -99,15 +99,12 @@ public class HTTPServer extends Thread {
                 int startCacheCount = CacheDataList.size();
                 if (startCacheCount > 0){
                     System.out.println("[Info] キャッシュお掃除開始 (" + Function.sdf.format(new Date()) + ")");
-
-                    final Date date = new Date();
-                    final long StartTime = date.getTime();
                     final HashMap<String, ImageData> temp = new HashMap<>(CacheDataList);
 
                     temp.forEach((url, data)->{
 
                         //System.out.println(StartTime - data.getCacheDate().getTime());
-                        if (StartTime - data.getCacheDate() >= 3600000){
+                        if (new Date().getTime() - data.getCacheDate() >= 3600000){
 
                             CacheDataList.remove(url);
                             File file = new File("./cache/" + data.getFileName());
@@ -520,9 +517,10 @@ public class HTTPServer extends Thread {
                                         .headers("User-Agent", Function.UserAgent + " image2resize/"+Function.Version)
                                         .GET()
                                         .build();
-                                uri = null;
 
                                 HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                                uri = null;
+
                                 if (send.headers().firstValue("Content-Type").isPresent()){
                                     header = send.headers().firstValue("Content-Type").get();
                                 }
