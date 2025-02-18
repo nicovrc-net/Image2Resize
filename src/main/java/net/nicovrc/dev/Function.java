@@ -143,9 +143,17 @@ public class Function {
             });
             exec1.waitFor();
 
-            read = exec1.getInputStream().readAllBytes();
+            try {
+                read = exec1.getInputStream().readAllBytes();
+            } catch (Exception e){
+                read = new byte[0];
+            }
             if (read.length == 0) {
-                read = exec1.getErrorStream().readAllBytes();
+                try {
+                    read = exec1.getErrorStream().readAllBytes();
+                } catch (Exception e){
+                    read = new byte[0];
+                }
             }
             String infoMessage = new String(read, StandardCharsets.UTF_8);
             //System.out.println(infoMessage);
@@ -202,9 +210,17 @@ public class Function {
                 }
             });
             exec1.waitFor();
-            read = exec1.getInputStream().readAllBytes();
+            try {
+                read = exec1.getInputStream().readAllBytes();
+            } catch (Exception e){
+                read = new byte[0];
+            }
             if (read.length == 0){
-                read = exec1.getErrorStream().readAllBytes();
+                try {
+                    read = exec1.getErrorStream().readAllBytes();
+                } catch (Exception e){
+                    read = new byte[0];
+                }
             }
             String infoMessage = new String(read, StandardCharsets.UTF_8);
             //System.out.println(infoMessage);
