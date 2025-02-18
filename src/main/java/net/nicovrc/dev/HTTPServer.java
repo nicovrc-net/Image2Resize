@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 public class HTTPServer extends Thread {
 
     private final int HTTPPort;
@@ -45,6 +46,12 @@ public class HTTPServer extends Thread {
 
     private final File stop_file = new File("./stop.txt");
     private final File stop_lock_file = new File("./lock-stop");
+
+    private final HttpClient client = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_2)
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
 
     @Override
     public void run() {
@@ -231,11 +238,6 @@ public class HTTPServer extends Thread {
                 }
 
                 try {
-                    final HttpClient client = HttpClient.newBuilder()
-                            .version(HttpClient.Version.HTTP_2)
-                            .followRedirects(HttpClient.Redirect.NORMAL)
-                            .connectTimeout(Duration.ofSeconds(15))
-                            .build();
 
                     HttpRequest request = HttpRequest.newBuilder()
                             .uri(new URI(check_url))
@@ -249,13 +251,13 @@ public class HTTPServer extends Thread {
                     if (send.statusCode() < 200 || send.statusCode() > 399 ){
                         send = null;
                         request = null;
-                        client.close();
+                        //client.close();
                         throw new Exception("Error");
                     }
 
                     send = null;
                     request = null;
-                    client.close();
+                    //client.close();
 
                 } catch (Exception e){
                     //e.printStackTrace();
@@ -268,7 +270,6 @@ public class HTTPServer extends Thread {
                 }
             }
         }, 1000L, 1000L);
-
 
         while (temp[0]) {
             try {
@@ -504,11 +505,6 @@ public class HTTPServer extends Thread {
                             String header = null;
                             byte[] file;
                             try {
-                                final HttpClient client = HttpClient.newBuilder()
-                                        .version(HttpClient.Version.HTTP_2)
-                                        .followRedirects(HttpClient.Redirect.NORMAL)
-                                        .connectTimeout(Duration.ofSeconds(5))
-                                        .build();
 
                                 HttpRequest request = HttpRequest.newBuilder()
                                         .uri(new URI(url))
@@ -536,14 +532,14 @@ public class HTTPServer extends Thread {
 
                                     send = null;
                                     request = null;
-                                    client.close();
+                                    //client.close();
                                     return;
                                 }
                                 file = send.body();
 
                                 send = null;
                                 request = null;
-                                client.close();
+                                //client.close();
                             } catch (Exception e){
                                 CacheDataList.remove(url);
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
@@ -590,8 +586,10 @@ public class HTTPServer extends Thread {
                             //System.out.println("[Debug] 画像読み込み");
                             //System.out.println("[Debug] 画像変換");
                             final byte[] SendData = Function.ImageResize(file);
+                            file = null;
 
                             if (SendData == null){
+
                                 CacheDataList.remove(url);
                                 //System.out.println("[Debug] HTTPRequest送信");
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
@@ -608,9 +606,12 @@ public class HTTPServer extends Thread {
 
                             // キャッシュ保存
                             //System.out.println("[Debug] Cache Save");
-                            if (!new File("./cache").exists()){
-                                new File("./cache").mkdir();
+                            File cache = new File("./cache");
+                            if (!cache.exists()){
+                                cache.mkdir();
                             }
+                            cache = null;
+
                             File save = new File("./cache/" + imageData.getFileId() + ".png");
 
                             try (FileOutputStream fos = new FileOutputStream("./cache/" + imageData.getFileId() + ".png");
@@ -619,10 +620,10 @@ public class HTTPServer extends Thread {
                                 dos.write(SendData, 0, SendData.length);
                             }
 
-
                             imageData.setFileName(save.getName());
                             CacheDataList.remove(url);
                             CacheDataList.put(url, imageData);
+                            save = null;
 
                             //System.out.println("[Debug] 画像出力");
                             //System.out.println("[Debug] HTTPRequest送信");
@@ -681,6 +682,7 @@ public class HTTPServer extends Thread {
                 listFile.delete();
             }
         }
+        client.close();
         System.out.println("[Info] 終了します...");
     }
 }
