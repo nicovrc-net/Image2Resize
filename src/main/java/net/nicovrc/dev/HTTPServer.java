@@ -24,11 +24,21 @@ import java.util.regex.Pattern;
 public class HTTPServer extends Thread {
 
     private final int HTTPPort;
-    public HTTPServer(){
-        this.HTTPPort = Function.HTTPPort;
-    }
+    private final HashMap<String, ImageResizeAPI> apiList = new HashMap<>();
+
     public HTTPServer(int HTTPPort){
         this.HTTPPort = HTTPPort;
+
+        // API
+        GetData getData = new GetData();
+        GetCacheList getCacheList = new GetCacheList();
+        PostImageResize postImageResize = new PostImageResize();
+        Test test = new Test();
+        apiList.put(getData.getURI(), getData);
+        apiList.put(getCacheList.getURI(), getCacheList);
+        apiList.put(postImageResize.getURI(), postImageResize);
+        apiList.put(test.getURI(), test);
+
     }
 
     private final ConcurrentHashMap<String, ImageData> CacheDataList = new ConcurrentHashMap<>();
@@ -55,7 +65,6 @@ public class HTTPServer extends Thread {
             .connectTimeout(Duration.ofSeconds(5))
             .build();
 
-    private final HashMap<String, ImageResizeAPI> apiList = new HashMap<>();
     private final boolean[] temp = {true};
 
     @Override
@@ -82,16 +91,7 @@ public class HTTPServer extends Thread {
             NotLog = Pattern.compile("x-image2-resize-test: ");
         }
 
-        // API
-        GetData getData = new GetData();
-        GetCacheList getCacheList = new GetCacheList();
-        PostImageResize postImageResize = new PostImageResize();
-        Test test = new Test();
-        apiList.put(getData.getURI(), getData);
-        apiList.put(getCacheList.getURI(), getCacheList);
-        apiList.put(postImageResize.getURI(), postImageResize);
-        apiList.put(test.getURI(), test);
-
+        // キャッシュ掃除
         CacheCheckTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
@@ -283,8 +283,7 @@ public class HTTPServer extends Thread {
             try {
                 //System.gc();
                 //System.out.println("[Debug] HTTPRequest待機");
-                Socket sock = svSock.accept();
-
+                final Socket sock = svSock.accept();
                 Thread.ofVirtual().start(() -> {
                     try {
                         final InputStream in = sock.getInputStream();
@@ -667,6 +666,7 @@ public class HTTPServer extends Thread {
                     }
                     //System.out.println("[Debug] HTTPRequest処理終了");
                 });
+
             } catch (Exception e) {
                 //e.printStackTrace();
                 temp[0] = false;
