@@ -514,12 +514,13 @@ public class HTTPServer extends Thread {
 
                             String header = null;
                             try {
-
+                                URI uri = new URI(url);
                                 HttpRequest request = HttpRequest.newBuilder()
-                                        .uri(new URI(url))
+                                        .uri(uri)
                                         .headers("User-Agent", Function.UserAgent + " image2resize/"+Function.Version)
                                         .GET()
                                         .build();
+                                uri = null;
 
                                 HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
                                 if (send.headers().firstValue("Content-Type").isPresent()){
