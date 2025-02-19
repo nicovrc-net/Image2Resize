@@ -44,7 +44,7 @@ public class Function {
             byte[] sha3_256_result = sha3_256.digest((url+cacheTime).getBytes(StandardCharsets.UTF_8));
             String str = new String(Base64.getEncoder().encode(sha3_256_result), StandardCharsets.UTF_8);
 
-            cacheFilename = str.substring(0, 15) + ".png";
+            cacheFilename = str.substring(0, 15).replaceAll("\\\\",".") + ".png";
             sha3_256_result = null;
             sha3_256 = null;
         } catch (Exception e) {
