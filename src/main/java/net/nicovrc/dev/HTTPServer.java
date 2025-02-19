@@ -455,7 +455,7 @@ public class HTTPServer extends Thread {
                             String cacheFilename = Function.getFileName(url, cacheTime != null ? cacheTime : nowTime);
 
 
-                            System.out.println(cacheTime + " / " + cacheFilename);
+                            //System.out.println(cacheTime + " / " + cacheFilename);
 
                             if (cacheTime != null){
                                 // あればキャッシュから
@@ -463,7 +463,7 @@ public class HTTPServer extends Thread {
                                 //System.out.println("[Debug] HTTPRequest送信");
 
                                 boolean isTemp = cacheTime <= -1L;
-                                System.out.println(cacheTime + " : " + isTemp);
+                                //System.out.println(cacheTime + " : " + isTemp);
                                 while (isTemp){
                                     if (cacheTime == null){
                                         continue;
