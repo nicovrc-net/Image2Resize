@@ -424,7 +424,8 @@ public class HTTPServer extends Thread {
                         final String URI = matcher.group(2);
                         //System.out.println(URI);
                         boolean ApiMatchFlag = URI.startsWith("/api/");
-                        boolean UrlMatchFlag = URI.startsWith("?url=");
+                        boolean UrlMatchFlag = URI.startsWith("/?url=");
+                        //System.out.println(" " + ApiMatchFlag + " / " + UrlMatchFlag);
 
                         if (ApiMatchFlag){
 
@@ -456,7 +457,7 @@ public class HTTPServer extends Thread {
                         }
 
                         if (UrlMatchFlag) {
-                            final String url = matcher.group(2);
+                            final String url = matcher.group(2).replaceAll("^(/\\?url=)", "");
                             final long nowTime = new Date().getTime();
                             //System.out.println(url);
 
