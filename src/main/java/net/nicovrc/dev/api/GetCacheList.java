@@ -2,7 +2,6 @@ package net.nicovrc.dev.api;
 
 import com.google.gson.Gson;
 import net.nicovrc.dev.Function;
-import net.nicovrc.dev.data.ImageData;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
@@ -18,15 +17,15 @@ public class GetCacheList implements ImageResizeAPI {
     }
 
     @Override
-    public APIResult run(ConcurrentHashMap<String, ImageData> CacheDataList, ConcurrentHashMap<String, String> LogWriteCacheList) {
+    public APIResult run(ConcurrentHashMap<String, Long> CacheDataList, ConcurrentHashMap<String, String> LogWriteCacheList) {
         if (CacheDataList == null){
             return null;
         }
 
         final HashMap<String, String> cacheList = new HashMap<>();
         final Date tempDate = new Date();
-        CacheDataList.forEach((url, imgData)->{
-            tempDate.setTime(imgData.getCacheDate());
+        CacheDataList.forEach((url, cacheTime)->{
+            tempDate.setTime(cacheTime);
             cacheList.put(url, Function.sdf.format(tempDate));
         });
 
@@ -38,7 +37,7 @@ public class GetCacheList implements ImageResizeAPI {
 
     @Override
     @Deprecated
-    public APIResult run(ConcurrentHashMap<String, ImageData> CacheDataList, ConcurrentHashMap<String, String> LogWriteCacheList, String httpRequest) {
+    public APIResult run(ConcurrentHashMap<String, Long> CacheDataList, ConcurrentHashMap<String, String> LogWriteCacheList, String httpRequest) {
         return run(CacheDataList, LogWriteCacheList);
     }
 

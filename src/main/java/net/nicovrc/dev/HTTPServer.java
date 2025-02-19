@@ -3,7 +3,6 @@ package net.nicovrc.dev;
 import com.amihaiemil.eoyaml.Yaml;
 import com.amihaiemil.eoyaml.YamlMapping;
 import net.nicovrc.dev.api.*;
-import net.nicovrc.dev.data.ImageData;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -13,7 +12,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -63,7 +62,7 @@ public class HTTPServer extends Thread {
         }
     }
 
-    private final ConcurrentHashMap<String, ImageData> CacheDataList = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Long> CacheDataList = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> LogWriteCacheList = new ConcurrentHashMap<>();
     private final Timer CacheCheckTimer = new Timer();
     private final Timer LogWriteTimer = new Timer();
@@ -99,19 +98,29 @@ public class HTTPServer extends Thread {
                 int startCacheCount = CacheDataList.size();
                 if (startCacheCount > 0){
                     System.out.println("[Info] キャッシュお掃除開始 (" + Function.sdf.format(new Date()) + ")");
-                    final HashMap<String, ImageData> temp = new HashMap<>(CacheDataList);
+                    final HashMap<String, Long> temp = new HashMap<>(CacheDataList);
 
-                    temp.forEach((url, data)->{
+                    temp.forEach((url, cacheTime)->{
 
                         //System.out.println(StartTime - data.getCacheDate().getTime());
-                        if (new Date().getTime() - data.getCacheDate() >= 3600000){
+                        if (new Date().getTime() - cacheTime >= 3600000){
 
                             CacheDataList.remove(url);
-                            File file = new File("./cache/" + data.getFileName());
-                            if (file.exists()){
-                                file.delete();
+
+                            try {
+                                MessageDigest sha3_256 = MessageDigest.getInstance("SHA3-256");
+                                byte[] sha3_256_result = sha3_256.digest((url+cacheTime).getBytes(StandardCharsets.UTF_8));
+
+                                File file = new File("./cache/" + Base64.getEncoder().encode(sha3_256_result).toString() + ".png");
+                                if (file.exists()){
+                                    file.delete();
+                                }
+                                file = null;
+                                sha3_256_result = null;
+                                sha3_256 = null;
+                            } catch (Exception e) {
+                                //e.printStackTrace();
                             }
-                            file = null;
 
                         }
 
@@ -442,20 +451,37 @@ public class HTTPServer extends Thread {
                             //System.out.println(url);
 
                             // キャッシュを見に行く
-                            ImageData imageData = CacheDataList.get(url);
+                            Long cacheTime = CacheDataList.get(url);
+                            String cacheFilename = null;
 
-                            if (imageData != null){
+                            try {
+                                MessageDigest sha3_256 = MessageDigest.getInstance("SHA3-256");
+                                byte[] sha3_256_result = sha3_256.digest((url+cacheTime).getBytes(StandardCharsets.UTF_8));
+
+                                cacheFilename = Base64.getEncoder().encode(sha3_256_result).toString().substring(0, 15) + ".png";
+                                sha3_256_result = null;
+                                sha3_256 = null;
+                            } catch (Exception e) {
+                                //e.printStackTrace();
+                            }
+
+                            if (cacheTime != null){
                                 // あればキャッシュから
                                 //System.out.println("[Debug] CacheFound");
                                 //System.out.println("[Debug] HTTPRequest送信");
 
-                                boolean isTemp = imageData.getFileName().equals("temp");
+                                boolean isTemp = cacheTime != -1;
                                 while (isTemp){
+                                    if (CacheDataList.get(url) == -2L){
+                                        break;
+                                    }
+
                                     if (CacheDataList.get(url) == null){
                                         continue;
                                     }
 
-                                    isTemp = imageData.getFileName().equals("temp");
+                                    cacheTime = CacheDataList.get(url);
+                                    isTemp = cacheTime != -1;
                                     try {
                                         Thread.sleep(100L);
                                     } catch (Exception e){
@@ -463,21 +489,35 @@ public class HTTPServer extends Thread {
                                     }
                                 }
 
-                                out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: image/png;\n\n").getBytes(StandardCharsets.UTF_8));
-                                if (isGET || isPOST) {
+                                if (cacheTime != -2L){
 
-                                    try (DataInputStream dis = new DataInputStream(new FileInputStream("./cache/"+imageData.getFileName()))) {
-                                        out.write(dis.readAllBytes());
-                                    } catch (Exception e){
-                                        //e.printStackTrace();
+                                    out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: image/png;\n\n").getBytes(StandardCharsets.UTF_8));
+                                    if (isGET || isPOST) {
+
+                                        try (DataInputStream dis = new DataInputStream(new FileInputStream("./cache/"+cacheFilename))) {
+                                            out.write(dis.readAllBytes());
+                                        } catch (Exception e){
+                                            //e.printStackTrace();
+                                        }
+
+                                    }
+
+                                    CacheDataList.remove(url);
+
+                                } else {
+
+                                    out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                    if (isGET || isPOST) {
+                                        out.write(("Not Image").getBytes(StandardCharsets.UTF_8));
                                     }
 
                                 }
+
                                 out.flush();
                                 in.close();
                                 out.close();
                                 sock.close();
-                                imageData = null;
+                                cacheTime = null;
 
                                 return;
 
@@ -485,14 +525,11 @@ public class HTTPServer extends Thread {
 
                             //System.out.println("[Debug] Cache Not Found");
 
-                            imageData = new ImageData();
-                            imageData.setFileId(UUID.randomUUID().toString());
-                            imageData.setURL(url);
-                            imageData.setFileName("temp");
-                            imageData.setCacheDate(new Date().getTime());
-                            CacheDataList.put(url, imageData);
+                            cacheTime = new Date().getTime();
+                            CacheDataList.put(url, -1L);
 
-                            String filePass = "./cache/" + imageData.getFileId() + ".png";
+
+                            String filePass = "./cache/" + cacheFilename;
 
                             if (!url.toLowerCase(Locale.ROOT).startsWith("http")) {
                                 CacheDataList.remove(url);
@@ -528,7 +565,7 @@ public class HTTPServer extends Thread {
                                     header = send.headers().firstValue("content-type").get();
                                 }
                                 if (send.statusCode() < 200 || send.statusCode() > 399){
-                                    CacheDataList.remove(url);
+                                    CacheDataList.put(url, -2L);
                                     out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                     if (isGET || isPOST) {
                                         out.write(("URL Not Found").getBytes(StandardCharsets.UTF_8));
@@ -548,7 +585,7 @@ public class HTTPServer extends Thread {
                                 request = null;
 
                             } catch (Exception e){
-                                CacheDataList.remove(url);
+                                CacheDataList.put(url, -2L);
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET || isPOST) {
                                     out.write(("URL Not Found").getBytes(StandardCharsets.UTF_8));
@@ -562,7 +599,7 @@ public class HTTPServer extends Thread {
                             }
 
                             if (header != null && !header.toLowerCase(Locale.ROOT).startsWith("image")) {
-                                CacheDataList.remove(url);
+                                CacheDataList.put(url, -2L);
                                 //System.out.println("[Debug] HTTPRequest送信");
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET || isPOST) {
@@ -578,7 +615,7 @@ public class HTTPServer extends Thread {
                             header = null;
 
                             if (data.length == 0){
-                                CacheDataList.remove(url);
+                                CacheDataList.put(url, -2L);
                                 //System.out.println("[Debug] HTTPRequest送信");
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET || isPOST) {
@@ -597,7 +634,7 @@ public class HTTPServer extends Thread {
 
                             if (data == null){
 
-                                CacheDataList.remove(url);
+                                CacheDataList.put(url, -2L);
                                 //System.out.println("[Debug] HTTPRequest送信");
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET || isPOST) {
@@ -623,9 +660,8 @@ public class HTTPServer extends Thread {
                                 dos.write(data, 0, data.length);
                             }
 
-                            imageData.setFileName(filePass);
                             CacheDataList.remove(url);
-                            CacheDataList.put(url, imageData);
+                            CacheDataList.put(url, cacheTime);
 
                             //System.out.println("[Debug] 画像出力");
                             //System.out.println("[Debug] HTTPRequest送信");

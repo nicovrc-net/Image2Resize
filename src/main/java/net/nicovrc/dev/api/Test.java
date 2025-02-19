@@ -1,7 +1,5 @@
 package net.nicovrc.dev.api;
 
-import net.nicovrc.dev.data.ImageData;
-
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -12,12 +10,12 @@ public class Test implements ImageResizeAPI{
     }
 
     @Override
-    public APIResult run(ConcurrentHashMap<String, ImageData> CacheDataList, ConcurrentHashMap<String, String> LogWriteCacheList) {
+    public APIResult run(ConcurrentHashMap<String, Long> CacheDataList, ConcurrentHashMap<String, String> LogWriteCacheList) {
         return run();
     }
 
     @Override
-    public APIResult run(ConcurrentHashMap<String, ImageData> CacheDataList, ConcurrentHashMap<String, String> LogWriteCacheList, String httpRequest) {
+    public APIResult run(ConcurrentHashMap<String, Long> CacheDataList, ConcurrentHashMap<String, String> LogWriteCacheList, String httpRequest) {
         return run();
     }
 
