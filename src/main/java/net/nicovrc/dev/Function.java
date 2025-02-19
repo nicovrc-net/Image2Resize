@@ -8,6 +8,7 @@ import redis.clients.jedis.JedisPool;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,6 +34,23 @@ public class Function {
         }
 
         return null;
+    }
+
+    public static String getFileName(String url, long cacheTime) {
+        String cacheFilename = null;
+
+        try {
+            MessageDigest sha3_256 = MessageDigest.getInstance("SHA3-256");
+            byte[] sha3_256_result = sha3_256.digest((url+cacheTime).getBytes(StandardCharsets.UTF_8));
+            String str = new String(Base64.getEncoder().encode(sha3_256_result), StandardCharsets.UTF_8);
+
+            cacheFilename = str.substring(0, 15) + ".png";
+            sha3_256_result = null;
+            sha3_256 = null;
+        } catch (Exception e) {
+            return null;
+        }
+        return cacheFilename;
     }
 
     public static byte[] ImageResize(byte[] bytes) throws Exception {

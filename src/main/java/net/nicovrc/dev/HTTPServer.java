@@ -108,16 +108,13 @@ public class HTTPServer extends Thread {
                             CacheDataList.remove(url);
 
                             try {
-                                MessageDigest sha3_256 = MessageDigest.getInstance("SHA3-256");
-                                byte[] sha3_256_result = sha3_256.digest((url+cacheTime).getBytes(StandardCharsets.UTF_8));
 
-                                File file = new File("./cache/" + Base64.getEncoder().encode(sha3_256_result).toString() + ".png");
+                                File file = new File("./cache/" + Function.getFileName(url, cacheTime));
                                 if (file.exists()){
                                     file.delete();
                                 }
                                 file = null;
-                                sha3_256_result = null;
-                                sha3_256 = null;
+
                             } catch (Exception e) {
                                 //e.printStackTrace();
                             }
@@ -448,29 +445,22 @@ public class HTTPServer extends Thread {
 
                         if (UrlMatchFlag) {
                             final String url = matcher.group(2);
+                            final long nowTime = new Date().getTime();
                             //System.out.println(url);
 
                             // キャッシュを見に行く
                             Long cacheTime = CacheDataList.get(url);
-                            String cacheFilename = null;
+                            String cacheFilename = Function.getFileName(url, cacheTime != null ? cacheTime : nowTime);
 
-                            try {
-                                MessageDigest sha3_256 = MessageDigest.getInstance("SHA3-256");
-                                byte[] sha3_256_result = sha3_256.digest((url+cacheTime).getBytes(StandardCharsets.UTF_8));
 
-                                cacheFilename = Base64.getEncoder().encode(sha3_256_result).toString().substring(0, 15) + ".png";
-                                sha3_256_result = null;
-                                sha3_256 = null;
-                            } catch (Exception e) {
-                                //e.printStackTrace();
-                            }
+                            //System.out.println(cacheTime + " / " + cacheFilename);
 
                             if (cacheTime != null){
                                 // あればキャッシュから
                                 //System.out.println("[Debug] CacheFound");
                                 //System.out.println("[Debug] HTTPRequest送信");
 
-                                boolean isTemp = cacheTime != -1;
+                                boolean isTemp = cacheTime == -1L;
                                 while (isTemp){
                                     if (CacheDataList.get(url) == -2L){
                                         break;
@@ -481,7 +471,7 @@ public class HTTPServer extends Thread {
                                     }
 
                                     cacheTime = CacheDataList.get(url);
-                                    isTemp = cacheTime != -1;
+                                    isTemp = cacheTime == -1L;
                                     try {
                                         Thread.sleep(100L);
                                     } catch (Exception e){
@@ -525,11 +515,11 @@ public class HTTPServer extends Thread {
 
                             //System.out.println("[Debug] Cache Not Found");
 
-                            cacheTime = new Date().getTime();
+                            cacheTime = nowTime;
                             CacheDataList.put(url, -1L);
 
 
-                            String filePass = "./cache/" + cacheFilename;
+                            final String filePass = "./cache/" + cacheFilename;
 
                             if (!url.toLowerCase(Locale.ROOT).startsWith("http")) {
                                 CacheDataList.remove(url);
