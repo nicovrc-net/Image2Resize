@@ -8,6 +8,7 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -26,7 +27,10 @@ public class HTTPServer extends Thread {
 
     private final Pattern NotLog;
 
-    private final String check_url;
+    private final URI check_url;
+
+    private final String userAgent1 = Function.UserAgent + " image2resize-access-check/"+Function.Version;
+    private final String userAgent2 = Function.UserAgent + " image2resize/"+Function.Version;
 
     public HTTPServer(int HTTPPort){
         this.HTTPPort = HTTPPort;
@@ -42,23 +46,34 @@ public class HTTPServer extends Thread {
         apiList.put(test.getURI(), test);
 
         YamlMapping yamlMapping = null;
-        String checkUrl1;
+        String checkUrl1 = null;
         try {
             yamlMapping = Yaml.createYamlInput(new File("./config.yml")).readYamlMapping();
             checkUrl1 = yamlMapping.string("CheckAccessURL");
         } catch (IOException e) {
             yamlMapping = null;
-            checkUrl1 = "";
+            checkUrl1 = null;
             //throw new RuntimeException(e);
         }
-        check_url = checkUrl1;
-        checkUrl1 = null;
 
-        if (check_url != null){
-            NotLog = Pattern.compile("x-image2-resize-test: " + check_url.replaceAll("\\.", "\\\\."));
+
+        if (checkUrl1 != null){
+            URI uri = null;
+            try {
+                uri = new URI(checkUrl1);
+            } catch (URISyntaxException e) {
+                //e.printStackTrace();
+            }
+
+            check_url = uri;
+            NotLog = Pattern.compile("x-image2-resize-test: " + checkUrl1.replaceAll("\\.", "\\\\."));
         } else {
+            check_url = null;
             NotLog = Pattern.compile("x-image2-resize-test: ");
         }
+        checkUrl1 = null;
+
+
     }
 
     private final ConcurrentHashMap<String, Long> CacheDataList = new ConcurrentHashMap<>();
@@ -214,7 +229,7 @@ public class HTTPServer extends Thread {
             public void run() {
                 if (!temp[0]){
                     try {
-                        Socket socket = new Socket("127.0.0.1", HTTPPort);
+                        Socket socket = new Socket(localhost, HTTPPort);
                         OutputStream stream = socket.getOutputStream();
                         stream.write(emptyBytes);
                         stream.close();
@@ -246,22 +261,22 @@ public class HTTPServer extends Thread {
                     }
                 }
 
-                if (check_url == null || check_url.isEmpty()){
+                if (check_url == null){
                     return;
                 }
 
                 try {
 
                     HttpRequest request = HttpRequest.newBuilder()
-                            .uri(new URI(check_url))
-                            .headers("User-Agent", Function.UserAgent + " image2resize-access-check/"+Function.Version)
-                            .headers("x-image2-resize-test", check_url)
+                            .uri(check_url)
+                            .headers("User-Agent", userAgent1)
+                            .headers("x-image2-resize-test", check_url.toString())
                             .GET()
                             .build();
 
                     HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
                     //System.out.println(send.statusCode());
-                    if (send.statusCode() < 200 || send.statusCode() > 399 ){
+                    if (send.statusCode() < 200 || send.statusCode() > 399){
                         send = null;
                         request = null;
                         //client.close();
@@ -550,7 +565,7 @@ public class HTTPServer extends Thread {
                                 URI uri = new URI(url);
                                 HttpRequest request = HttpRequest.newBuilder()
                                         .uri(uri)
-                                        .headers("User-Agent", Function.UserAgent + " image2resize/"+Function.Version)
+                                        .headers("User-Agent", userAgent2)
                                         .GET()
                                         .build();
 
