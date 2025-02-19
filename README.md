@@ -22,7 +22,7 @@
 ## 使い方
 - 画像を変換する
 ```
-http://(Host)/?url=(URL)
+http://(Host):(Port)/?url=(URL)
 ```
 
 ## APIもどき
