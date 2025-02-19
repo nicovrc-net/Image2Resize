@@ -466,6 +466,7 @@ public class HTTPServer extends Thread {
                                 //System.out.println(cacheTime + " : " + isTemp);
                                 while (isTemp){
                                     if (cacheTime == null){
+                                        cacheTime = CacheDataList.get(url);
                                         continue;
                                     }
 
@@ -474,6 +475,7 @@ public class HTTPServer extends Thread {
                                     }
 
                                     if (cacheTime == -1L){
+                                        cacheTime = CacheDataList.get(url);
                                         continue;
                                     }
 
