@@ -475,9 +475,20 @@ public class HTTPServer extends Thread {
 
                                 boolean isTemp = cacheTime <= -1L;
                                 //System.out.println(cacheTime + " : " + isTemp);
+                                int[] count = {0,0};
                                 while (isTemp){
                                     if (cacheTime == null){
                                         cacheTime = CacheDataList.get(url);
+                                        if (count[0] >= 15){
+                                            cacheTime = -2L;
+                                            break;
+                                        }
+                                        try {
+                                            Thread.sleep(100L);
+                                        } catch (Exception e){
+                                            //e.printStackTrace();
+                                        }
+                                        count[0]++;
                                         continue;
                                     }
 
@@ -487,7 +498,16 @@ public class HTTPServer extends Thread {
 
                                     if (cacheTime == -1L){
                                         cacheTime = CacheDataList.get(url);
-
+                                        if (count[1] >= 50){
+                                            cacheTime = -2L;
+                                            break;
+                                        }
+                                        try {
+                                            Thread.sleep(100L);
+                                        } catch (Exception e){
+                                            //e.printStackTrace();
+                                        }
+                                        count[1]++;
                                         continue;
                                     }
 
