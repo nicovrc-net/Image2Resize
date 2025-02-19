@@ -207,8 +207,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - 正式リリース
-            - メモリ使用量の大幅改善
+            - 一定時間過ぎてもキャッシュ状況が変わらない場合は404とする
           draft: false
           prerelease: false
 
