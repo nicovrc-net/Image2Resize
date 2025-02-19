@@ -166,6 +166,6 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - 連続で別の画像アクセスが来たときにエラーになるのを修正
+            - メモリ使用量の改善
           draft: false
           prerelease: true
