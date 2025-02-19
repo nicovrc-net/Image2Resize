@@ -166,7 +166,12 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - まだ処理途中の画像にアクセスされた際に応答が帰ってこなくなるのを修正
-            - 処理途中の画像にアクセスした際壊れた画像になってしまうのを修正
+            - 正式リリース
+            - メモリ使用量の大幅改善
           draft: false
-          prerelease: true
+          prerelease: false
+
+      - name: Upload JarFile
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload v${{ github.ref }} ./build/libs/Image2Resize-1.0-SNAPSHOT-all.jar
