@@ -172,6 +172,11 @@ jobs:
           prerelease: false
 
       - name: Upload JarFile
+        uses: actions/upload-release-asset@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload v${{ github.ref }} ./build/libs/Image2Resize-1.0-SNAPSHOT-all.jar
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+            upload_url: ${{ steps.create_release.outputs.upload_url }}
+            asset_path: ./build/libs/Image2Resize-1.0-SNAPSHOT-all.jar
+            asset_name: Image2Resize-1.0-SNAPSHOT-all.jar
+            asset_content_type: application/java-archive
