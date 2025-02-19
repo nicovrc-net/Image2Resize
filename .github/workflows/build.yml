@@ -209,7 +209,7 @@ jobs:
           body: |
             - 一定時間過ぎてもキャッシュ状況が変わらない場合は404とする
           draft: false
-          prerelease: false
+          prerelease: true
 
       - name: Upload JarFile
         if: startsWith(github.ref, 'refs/tags/')
