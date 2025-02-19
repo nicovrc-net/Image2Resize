@@ -476,6 +476,7 @@ public class HTTPServer extends Thread {
 
                                     if (cacheTime == -1L){
                                         cacheTime = CacheDataList.get(url);
+
                                         continue;
                                     }
 
@@ -489,6 +490,7 @@ public class HTTPServer extends Thread {
                                 }
 
                                 if (cacheTime != -2L){
+                                    cacheFilename = Function.getFileName(url, cacheTime);
 
                                     out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: image/png;\n\n").getBytes(StandardCharsets.UTF_8));
                                     if (isGET || isPOST) {
@@ -502,7 +504,6 @@ public class HTTPServer extends Thread {
                                     }
 
                                 } else {
-
                                     out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                     if (isGET || isPOST) {
                                         out.write(("Not Image").getBytes(StandardCharsets.UTF_8));
