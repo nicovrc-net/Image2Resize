@@ -166,6 +166,6 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - キャッシュリストに追加されないバグを修正
+            - まだ処理途中のものがアクセスされた際に応答が帰ってこなくなるのを修正
           draft: false
           prerelease: true
