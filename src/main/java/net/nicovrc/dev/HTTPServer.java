@@ -92,12 +92,6 @@ public class HTTPServer extends Thread {
 
     private final byte[] emptyBytes = new byte[0];
 
-    private final HttpClient client = HttpClient.newBuilder()
-            .version(HttpClient.Version.HTTP_2)
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .connectTimeout(Duration.ofSeconds(5))
-            .build();
-
     private final boolean[] temp = {true};
 
     @Override
@@ -266,6 +260,12 @@ public class HTTPServer extends Thread {
 
                 try {
 
+                    HttpClient client = HttpClient.newBuilder()
+                            .version(HttpClient.Version.HTTP_2)
+                            .followRedirects(HttpClient.Redirect.NORMAL)
+                            .connectTimeout(Duration.ofSeconds(5))
+                            .build();
+
                     HttpRequest request = HttpRequest.newBuilder()
                             .uri(check_url)
                             .headers("User-Agent", userAgent1)
@@ -278,13 +278,15 @@ public class HTTPServer extends Thread {
                     if (send.statusCode() < 200 || send.statusCode() > 399){
                         send = null;
                         request = null;
-                        //client.close();
+                        client.close();
+                        client = null;
                         throw new Exception("Error");
                     }
 
                     send = null;
                     request = null;
-                    //client.close();
+                    client.close();
+                    client = null;
 
                 } catch (Exception e){
                     //e.printStackTrace();
@@ -556,6 +558,12 @@ public class HTTPServer extends Thread {
 
                             String header = null;
                             try {
+                                HttpClient client = HttpClient.newBuilder()
+                                        .version(HttpClient.Version.HTTP_2)
+                                        .followRedirects(HttpClient.Redirect.NORMAL)
+                                        .connectTimeout(Duration.ofSeconds(5))
+                                        .build();
+
                                 URI uri = new URI(url);
                                 HttpRequest request = HttpRequest.newBuilder()
                                         .uri(uri)
@@ -585,12 +593,15 @@ public class HTTPServer extends Thread {
 
                                     send = null;
                                     request = null;
-                                    //client.close();
+                                    client.close();
+                                    client = null;
                                     return;
                                 }
                                 data = send.body();
                                 send = null;
                                 request = null;
+                                client.close();
+                                client = null;
 
                             } catch (Exception e){
                                 CacheDataList.put(url, -2L);
@@ -731,7 +742,6 @@ public class HTTPServer extends Thread {
                 listFile.delete();
             }
         }
-        client.close();
         System.out.println("[Info] 終了します...");
     }
 }
