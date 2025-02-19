@@ -651,7 +651,7 @@ public class HTTPServer extends Thread {
                             }
 
                             CacheDataList.remove(url);
-                            CacheDataList.put(url, cacheTime);
+                            CacheDataList.put(url, nowTime);
 
                             //System.out.println("[Debug] 画像出力");
                             //System.out.println("[Debug] HTTPRequest送信");
