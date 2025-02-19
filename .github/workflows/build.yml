@@ -10,6 +10,7 @@ name: Java CI with Gradle
 on:
   push:
     branches: [ "master", "v1" ]
+    tags: ['*']
   pull_request:
     branches: [ "master", "v1" ]
 
@@ -26,15 +27,22 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # Configure Gradle for optimal use in GiHub Actions, including caching of downloaded dependencies.
-      # See: https://github.com/gradle/actions/blob/main/setup-gradle/README.md
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3.5.0
+
       - name: Make gradlew executable
         run: chmod +x ./gradlew
+
       - name: Build with Gradle Wrapper
         run: ./gradlew shadowJar
-  autotest_commit:
+
+      - name: Upload JarFile
+        uses: actions/upload-artifact@v4
+        with:
+          name: jar
+          path: ./build/libs/Image2Resize-1.0-SNAPSHOT-all.jar
+  autotest:
+    needs: build-21
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -48,26 +56,20 @@ jobs:
 
       - name: Install ffmpeg
         run: |
-          wget https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz
-          tar -Jxvf ./ffmpeg-master-latest-linux64-gpl.tar.xz
+          wget https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz > null
+          tar -Jxvf ./ffmpeg-master-latest-linux64-gpl.tar.xz > null
           cp ./ffmpeg-master-latest-linux64-gpl/bin/* ./
           rm ./ffmpeg-master-latest-linux64-gpl.tar.xz
           rm ./ffmpeg-master-latest-linux64-gpl -fr
         shell: bash
 
-      # Configure Gradle for optimal use in GiHub Actions, including caching of downloaded dependencies.
-      # See: https://github.com/gradle/actions/blob/main/setup-gradle/README.md
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
-
-      - name: Build with Gradle Wrapper
-        run: ./gradlew shadowJar
+      - name: Download JarFile
+        uses: actions/download-artifact@v4
+        with:
+          name: jar
 
       - name: Run the application 1
-        run: java -jar build/libs/Image2Resize-1.0-SNAPSHOT-all.jar &
+        run: java -jar ./Image2Resize-1.0-SNAPSHOT-all.jar &
         shell: bash
 
       - name: Wait for the application to start
@@ -83,7 +85,7 @@ jobs:
         shell: bash
 
       - name: Run the application 2
-        run: java -jar build/libs/Image2Resize-1.0-SNAPSHOT-all.jar &
+        run: java -jar ./Image2Resize-1.0-SNAPSHOT-all.jar &
         shell: bash
 
       - name: Wait for the application to start
@@ -184,3 +186,38 @@ jobs:
         run: |
           rm -fr ./log
         shell: bash
+  release:
+    needs: autotest
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download JarFile
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/download-artifact@v4
+        with:
+          name: jar
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: v${{ github.ref }}
+          body: |
+            - 正式リリース
+            - メモリ使用量の大幅改善
+          draft: false
+          prerelease: false
+
+      - name: Upload JarFile
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./Image2Resize-1.0-SNAPSHOT-all.jar
+          asset_name: Image2Resize-1.0-SNAPSHOT-all.jar
+          asset_content_type: application/java-archive
