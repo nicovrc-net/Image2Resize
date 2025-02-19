@@ -150,6 +150,7 @@ public class HTTPServer extends Thread {
             }
         }, 0L, 3600000L);
 
+        // ログ書き出し
         LogWriteTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
@@ -164,6 +165,7 @@ public class HTTPServer extends Thread {
             }
         }, 0L, 60000L);
 
+        // 終了監視
         CheckStopTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
