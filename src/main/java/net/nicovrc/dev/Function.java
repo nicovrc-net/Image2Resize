@@ -37,20 +37,21 @@ public class Function {
     }
 
     public static String getFileName(String url, long cacheTime) {
-        String cacheFilename = null;
+        final StringBuilder cacheFilename = new StringBuilder();
 
         try {
             MessageDigest sha3_256 = MessageDigest.getInstance("SHA3-256");
             byte[] sha3_256_result = sha3_256.digest((url+cacheTime).getBytes(StandardCharsets.UTF_8));
             String str = new String(Base64.getEncoder().encode(sha3_256_result), StandardCharsets.UTF_8);
 
-            cacheFilename = str.substring(0, 15).replaceAll("\\\\",".") + ".png";
+            cacheFilename.append(str).append(".png");
             sha3_256_result = null;
             sha3_256 = null;
+            str = null;
         } catch (Exception e) {
             return null;
         }
-        return cacheFilename;
+        return cacheFilename.substring(0, 15).replaceAll("\\\\","").replaceAll("\\+","").replaceAll("/","");
     }
 
     public static byte[] ImageResize(byte[] bytes) throws Exception {
