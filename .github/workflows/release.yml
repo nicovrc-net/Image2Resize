@@ -166,6 +166,6 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - メモリ使用量の改善
+            - キャッシュリストに追加されないバグを修正
           draft: false
           prerelease: true
