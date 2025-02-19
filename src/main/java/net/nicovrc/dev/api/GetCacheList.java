@@ -25,8 +25,10 @@ public class GetCacheList implements ImageResizeAPI {
         final HashMap<String, String> cacheList = new HashMap<>();
         final Date tempDate = new Date();
         CacheDataList.forEach((url, cacheTime)->{
-            tempDate.setTime(cacheTime);
-            cacheList.put(url, Function.sdf.format(tempDate));
+            if (cacheTime > 0){
+                tempDate.setTime(cacheTime);
+                cacheList.put(url, Function.sdf.format(tempDate));
+            }
         });
 
         String json = new Gson().toJson(cacheList);

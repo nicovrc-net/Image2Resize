@@ -102,23 +102,25 @@ public class HTTPServer extends Thread {
 
                     temp.forEach((url, cacheTime)->{
 
-                        //System.out.println(StartTime - data.getCacheDate().getTime());
-                        if (new Date().getTime() - cacheTime >= 3600000){
+                        if (cacheTime >= 0L){
+                            //System.out.println(StartTime - data.getCacheDate().getTime());
+                            if (new Date().getTime() - cacheTime >= 3600000){
 
-                            CacheDataList.remove(url);
+                                CacheDataList.remove(url);
 
-                            try {
+                                try {
 
-                                File file = new File("./cache/" + Function.getFileName(url, cacheTime));
-                                if (file.exists()){
-                                    file.delete();
+                                    File file = new File("./cache/" + Function.getFileName(url, cacheTime));
+                                    if (file.exists()){
+                                        file.delete();
+                                    }
+                                    file = null;
+
+                                } catch (Exception e) {
+                                    //e.printStackTrace();
                                 }
-                                file = null;
 
-                            } catch (Exception e) {
-                                //e.printStackTrace();
                             }
-
                         }
 
                     });
@@ -453,25 +455,30 @@ public class HTTPServer extends Thread {
                             String cacheFilename = Function.getFileName(url, cacheTime != null ? cacheTime : nowTime);
 
 
-                            //System.out.println(cacheTime + " / " + cacheFilename);
+                            System.out.println(cacheTime + " / " + cacheFilename);
 
                             if (cacheTime != null){
                                 // あればキャッシュから
                                 //System.out.println("[Debug] CacheFound");
                                 //System.out.println("[Debug] HTTPRequest送信");
 
-                                boolean isTemp = cacheTime == -1L;
+                                boolean isTemp = cacheTime <= -1L;
+                                System.out.println(cacheTime + " : " + isTemp);
                                 while (isTemp){
-                                    if (CacheDataList.get(url) == -2L){
+                                    if (cacheTime == null){
+                                        continue;
+                                    }
+
+                                    if (cacheTime == -2L){
                                         break;
                                     }
 
-                                    if (CacheDataList.get(url) == null){
+                                    if (cacheTime == -1L){
                                         continue;
                                     }
 
                                     cacheTime = CacheDataList.get(url);
-                                    isTemp = cacheTime == -1L;
+                                    isTemp = cacheTime <= -1L;
                                     try {
                                         Thread.sleep(100L);
                                     } catch (Exception e){
@@ -492,14 +499,14 @@ public class HTTPServer extends Thread {
 
                                     }
 
-                                    CacheDataList.remove(url);
-
                                 } else {
 
                                     out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                     if (isGET || isPOST) {
                                         out.write(("Not Image").getBytes(StandardCharsets.UTF_8));
                                     }
+
+                                    CacheDataList.remove(url);
 
                                 }
 
@@ -515,7 +522,7 @@ public class HTTPServer extends Thread {
 
                             //System.out.println("[Debug] Cache Not Found");
 
-                            cacheTime = nowTime;
+                            cacheTime = null;
                             CacheDataList.put(url, -1L);
 
 
