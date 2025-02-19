@@ -8,11 +8,11 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,8 +26,10 @@ public class HTTPServer extends Thread {
     private final HashMap<String, ImageResizeAPI> apiList = new HashMap<>();
 
     private final Pattern NotLog;
+    private final URI check_url;
 
-    private final String check_url;
+    private final String userAgent1 = Function.UserAgent + " image2resize-access-check/"+Function.Version;
+    private final String userAgent2 = Function.UserAgent + " image2resize/"+Function.Version;
 
     public HTTPServer(int HTTPPort){
         this.HTTPPort = HTTPPort;
@@ -43,23 +45,34 @@ public class HTTPServer extends Thread {
         apiList.put(test.getURI(), test);
 
         YamlMapping yamlMapping = null;
-        String checkUrl1;
+        String checkUrl1 = null;
         try {
             yamlMapping = Yaml.createYamlInput(new File("./config.yml")).readYamlMapping();
             checkUrl1 = yamlMapping.string("CheckAccessURL");
         } catch (IOException e) {
             yamlMapping = null;
-            checkUrl1 = "";
+            checkUrl1 = null;
             //throw new RuntimeException(e);
         }
-        check_url = checkUrl1;
-        checkUrl1 = null;
 
-        if (check_url != null){
-            NotLog = Pattern.compile("x-image2-resize-test: " + check_url.replaceAll("\\.", "\\\\."));
+
+        if (checkUrl1 != null){
+            URI uri = null;
+            try {
+                uri = new URI(checkUrl1);
+            } catch (URISyntaxException e) {
+                //e.printStackTrace();
+            }
+
+            check_url = uri;
+            NotLog = Pattern.compile("x-image2-resize-test: " + checkUrl1.replaceAll("\\.", "\\\\."));
         } else {
+            check_url = null;
             NotLog = Pattern.compile("x-image2-resize-test: ");
         }
+        checkUrl1 = null;
+
+
     }
 
     private final ConcurrentHashMap<String, Long> CacheDataList = new ConcurrentHashMap<>();
@@ -71,8 +84,6 @@ public class HTTPServer extends Thread {
 
     private final Pattern Length = Pattern.compile("[C|c]ontent-[L|l]ength: (\\d+)");
     private final Pattern HTTPURI = Pattern.compile("(GET|HEAD|POST) (.+) HTTP/");
-    private final Pattern UrlMatch = Pattern.compile("(GET|HEAD) /\\?url=(.+) HTTP");
-    private final Pattern APIMatch = Pattern.compile("(GET|HEAD|POST) /api/(.+) HTTP");
 
     private final File stop_file = new File("./stop.txt");
     private final File stop_lock_file = new File("./lock-stop");
@@ -80,12 +91,6 @@ public class HTTPServer extends Thread {
     private final String localhost = "127.0.0.1";
 
     private final byte[] emptyBytes = new byte[0];
-
-    private final HttpClient client = HttpClient.newBuilder()
-            .version(HttpClient.Version.HTTP_2)
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .connectTimeout(Duration.ofSeconds(5))
-            .build();
 
     private final boolean[] temp = {true};
 
@@ -136,6 +141,7 @@ public class HTTPServer extends Thread {
             }
         }, 0L, 3600000L);
 
+        // ログ書き出し
         LogWriteTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
@@ -150,6 +156,7 @@ public class HTTPServer extends Thread {
             }
         }, 0L, 60000L);
 
+        // 終了監視
         CheckStopTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
@@ -215,7 +222,7 @@ public class HTTPServer extends Thread {
             public void run() {
                 if (!temp[0]){
                     try {
-                        Socket socket = new Socket("127.0.0.1", HTTPPort);
+                        Socket socket = new Socket(localhost, HTTPPort);
                         OutputStream stream = socket.getOutputStream();
                         stream.write(emptyBytes);
                         stream.close();
@@ -247,31 +254,39 @@ public class HTTPServer extends Thread {
                     }
                 }
 
-                if (check_url == null || check_url.isEmpty()){
+                if (check_url == null){
                     return;
                 }
 
                 try {
 
+                    HttpClient client = HttpClient.newBuilder()
+                            .version(HttpClient.Version.HTTP_2)
+                            .followRedirects(HttpClient.Redirect.NORMAL)
+                            .connectTimeout(Duration.ofSeconds(5))
+                            .build();
+
                     HttpRequest request = HttpRequest.newBuilder()
-                            .uri(new URI(check_url))
-                            .headers("User-Agent", Function.UserAgent + " image2resize-access-check/"+Function.Version)
-                            .headers("x-image2-resize-test", check_url)
+                            .uri(check_url)
+                            .headers("User-Agent", userAgent1)
+                            .headers("x-image2-resize-test", check_url.toString())
                             .GET()
                             .build();
 
                     HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
                     //System.out.println(send.statusCode());
-                    if (send.statusCode() < 200 || send.statusCode() > 399 ){
+                    if (send.statusCode() < 200 || send.statusCode() > 399){
                         send = null;
                         request = null;
-                        //client.close();
+                        client.close();
+                        client = null;
                         throw new Exception("Error");
                     }
 
                     send = null;
                     request = null;
-                    //client.close();
+                    client.close();
+                    client = null;
 
                 } catch (Exception e){
                     //e.printStackTrace();
@@ -406,16 +421,14 @@ public class HTTPServer extends Thread {
 
                             return;
                         }
-                        //final String URIText = matcher.group(2);
-                        //System.out.println(URIText);
-                        matcher = APIMatch.matcher(httpRequest);
-                        boolean ApiMatchFlag = matcher.find();
+                        final String URI = matcher.group(2);
+                        //System.out.println(URI);
+                        boolean ApiMatchFlag = URI.startsWith("/api/");
+                        boolean UrlMatchFlag = URI.startsWith("?url=");
 
                         if (ApiMatchFlag){
 
-                            final String apiUri = "/api/" + matcher.group(2);
-
-                            final ImageResizeAPI api = apiList.get(apiUri);
+                            final ImageResizeAPI api = apiList.get(URI);
                             if (api != null) {
                                 APIResult run = api.run(CacheDataList, LogWriteCacheList, httpRequest);
 
@@ -441,9 +454,6 @@ public class HTTPServer extends Thread {
                             sock.close();
                             return;
                         }
-
-                        matcher = UrlMatch.matcher(httpRequest);
-                        boolean UrlMatchFlag = matcher.find();
 
                         if (UrlMatchFlag) {
                             final String url = matcher.group(2);
@@ -548,10 +558,16 @@ public class HTTPServer extends Thread {
 
                             String header = null;
                             try {
+                                HttpClient client = HttpClient.newBuilder()
+                                        .version(HttpClient.Version.HTTP_2)
+                                        .followRedirects(HttpClient.Redirect.NORMAL)
+                                        .connectTimeout(Duration.ofSeconds(5))
+                                        .build();
+
                                 URI uri = new URI(url);
                                 HttpRequest request = HttpRequest.newBuilder()
                                         .uri(uri)
-                                        .headers("User-Agent", Function.UserAgent + " image2resize/"+Function.Version)
+                                        .headers("User-Agent", userAgent2)
                                         .GET()
                                         .build();
 
@@ -577,12 +593,15 @@ public class HTTPServer extends Thread {
 
                                     send = null;
                                     request = null;
-                                    //client.close();
+                                    client.close();
+                                    client = null;
                                     return;
                                 }
                                 data = send.body();
                                 send = null;
                                 request = null;
+                                client.close();
+                                client = null;
 
                             } catch (Exception e){
                                 CacheDataList.put(url, -2L);
@@ -723,7 +742,6 @@ public class HTTPServer extends Thread {
                 listFile.delete();
             }
         }
-        client.close();
         System.out.println("[Info] 終了します...");
     }
 }
