@@ -26,7 +26,6 @@ public class HTTPServer extends Thread {
     private final HashMap<String, ImageResizeAPI> apiList = new HashMap<>();
 
     private final Pattern NotLog;
-
     private final URI check_url;
 
     private final String userAgent1 = Function.UserAgent + " image2resize-access-check/"+Function.Version;
@@ -85,8 +84,6 @@ public class HTTPServer extends Thread {
 
     private final Pattern Length = Pattern.compile("[C|c]ontent-[L|l]ength: (\\d+)");
     private final Pattern HTTPURI = Pattern.compile("(GET|HEAD|POST) (.+) HTTP/");
-    private final Pattern UrlMatch = Pattern.compile("(GET|HEAD) /\\?url=(.+) HTTP");
-    private final Pattern APIMatch = Pattern.compile("(GET|HEAD|POST) /api/(.+) HTTP");
 
     private final File stop_file = new File("./stop.txt");
     private final File stop_lock_file = new File("./lock-stop");
@@ -422,16 +419,14 @@ public class HTTPServer extends Thread {
 
                             return;
                         }
-                        //final String URIText = matcher.group(2);
-                        //System.out.println(URIText);
-                        matcher = APIMatch.matcher(httpRequest);
-                        boolean ApiMatchFlag = matcher.find();
+                        final String URI = matcher.group(2);
+                        //System.out.println(URI);
+                        boolean ApiMatchFlag = URI.startsWith("/api/");
+                        boolean UrlMatchFlag = URI.startsWith("?url=");
 
                         if (ApiMatchFlag){
 
-                            final String apiUri = "/api/" + matcher.group(2);
-
-                            final ImageResizeAPI api = apiList.get(apiUri);
+                            final ImageResizeAPI api = apiList.get(URI);
                             if (api != null) {
                                 APIResult run = api.run(CacheDataList, LogWriteCacheList, httpRequest);
 
@@ -457,9 +452,6 @@ public class HTTPServer extends Thread {
                             sock.close();
                             return;
                         }
-
-                        matcher = UrlMatch.matcher(httpRequest);
-                        boolean UrlMatchFlag = matcher.find();
 
                         if (UrlMatchFlag) {
                             final String url = matcher.group(2);
