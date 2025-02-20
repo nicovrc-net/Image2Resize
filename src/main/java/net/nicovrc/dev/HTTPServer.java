@@ -86,7 +86,8 @@ public class HTTPServer extends Thread {
 
     private final Pattern Length = Pattern.compile("[C|c]ontent-[L|l]ength: (\\d+)");
     private final Pattern HTTPURI = Pattern.compile("(GET|HEAD|POST) (.+) HTTP/");
-    private final Pattern ogt_image = Pattern.compile("<meta property=\"og:image\" content=\"(.+)\">");
+    private final Pattern ogp_image_nicovideo = Pattern.compile("<meta data-server=\"1\" property=\"og:image\" content=\"(.+)\" />");
+    private final Pattern ogp_image_web = Pattern.compile("<meta property=\"og:image\" content=\"(.+)\">");
 
     private final File stop_file = new File("./stop.txt");
     private final File stop_lock_file = new File("./lock-stop");
@@ -674,7 +675,7 @@ public class HTTPServer extends Thread {
 
                             if (header != null && header.toLowerCase(Locale.ROOT).startsWith("text/html")){
                                 String html = new String(data, StandardCharsets.UTF_8);
-                                matcher = ogt_image.matcher(html);
+                                matcher = ogp_image_web.matcher(html);
                                 if (matcher.find()){
                                     //System.out.println(html);
                                     HttpClient client = HttpClient.newBuilder()
@@ -683,10 +684,12 @@ public class HTTPServer extends Thread {
                                             .connectTimeout(Duration.ofSeconds(5))
                                             .build();
 
-                                    URI uri = new URI(matcher.group(1));
+                                    URI uri = new URI(matcher.group(1).split("\"")[0]);
                                     HttpRequest request = HttpRequest.newBuilder()
                                             .uri(uri)
                                             .headers("User-Agent", userAgent2)
+                                            .headers("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                                            .headers("Accept-Language", "ja,en;q=0.7,en-US;q=0.3")
                                             .GET()
                                             .build();
 
@@ -724,19 +727,76 @@ public class HTTPServer extends Thread {
                                     client.close();
                                     client = null;
                                 } else {
-                                    html = null;
-                                    CacheDataList.put(url, -2L);
-                                    ErrorURLList.put(url, "Not Image");
-                                    out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                                    if (isGET || isPOST) {
-                                        out.write(("Not Image").getBytes(StandardCharsets.UTF_8));
-                                    }
-                                    out.flush();
-                                    in.close();
-                                    out.close();
-                                    sock.close();
+                                    matcher = ogp_image_nicovideo.matcher(html);
+                                    if (matcher.find()){
+                                        //System.out.println(html);
+                                        HttpClient client = HttpClient.newBuilder()
+                                                .version(HttpClient.Version.HTTP_2)
+                                                .followRedirects(HttpClient.Redirect.NORMAL)
+                                                .connectTimeout(Duration.ofSeconds(5))
+                                                .build();
 
-                                    return;
+                                        //System.out.println(matcher.group(1));
+                                        URI uri = new URI(matcher.group(1).split("\"")[0]);
+                                        HttpRequest request = HttpRequest.newBuilder()
+                                                .uri(uri)
+                                                .headers("User-Agent", userAgent2)
+                                                .headers("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                                                .headers("Accept-Language", "ja,en;q=0.7,en-US;q=0.3")
+                                                .GET()
+                                                .build();
+
+                                        HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+
+                                        if (send.headers().firstValue("Content-Type").isPresent()){
+                                            header = send.headers().firstValue("Content-Type").get();
+                                        }
+                                        if (send.headers().firstValue("content-type").isPresent()){
+                                            header = send.headers().firstValue("content-type").get();
+                                        }
+                                        //System.out.println(header);
+
+                                        if (send.statusCode() < 200 || send.statusCode() > 399){
+                                            CacheDataList.put(url, -2L);
+                                            ErrorURLList.put(url, "URL Not Found");
+                                            out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                            if (isGET || isPOST) {
+                                                out.write(("URL Not Found").getBytes(StandardCharsets.UTF_8));
+                                            }
+                                            out.flush();
+                                            in.close();
+                                            out.close();
+                                            sock.close();
+
+                                            send = null;
+                                            request = null;
+                                            client.close();
+                                            client = null;
+                                            return;
+                                        }
+                                        data = send.body();
+                                        send = null;
+                                        request = null;
+                                        client.close();
+                                        client = null;
+                                    } else {
+
+                                        html = null;
+                                        CacheDataList.put(url, -2L);
+                                        ErrorURLList.put(url, "Not Image");
+                                        out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                        if (isGET || isPOST) {
+                                            out.write(("Not Image").getBytes(StandardCharsets.UTF_8));
+                                        }
+                                        out.flush();
+                                        in.close();
+                                        out.close();
+                                        sock.close();
+
+                                        return;
+
+                                    }
+
                                 }
                                 html = null;
 
