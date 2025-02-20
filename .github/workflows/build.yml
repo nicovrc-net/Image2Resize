@@ -131,7 +131,7 @@ jobs:
         shell: bash
 
   autotest3:
-    needs: [build-21, ffmpeg]
+    needs: [build-21, download_ffmpeg]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -170,7 +170,7 @@ jobs:
         shell: bash
 
   autotest4:
-    needs: [build-21, ffmpeg]
+    needs: [build-21, download_ffmpeg]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -209,7 +209,7 @@ jobs:
         shell: bash
 
   autotest5:
-    needs: [build-21, ffmpeg]
+    needs: [build-21, download_ffmpeg]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -248,7 +248,7 @@ jobs:
         shell: bash
 
   autotest6:
-    needs: [build-21, ffmpeg]
+    needs: [build-21, download_ffmpeg]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -384,7 +384,7 @@ jobs:
         shell: bash
 
   autotest9:
-    needs: [build-21, ffmpeg]
+    needs: [build-21, download_ffmpeg]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -472,3 +472,10 @@ jobs:
           asset_path: ./Image2Resize-1.0-SNAPSHOT-all.jar
           asset_name: Image2Resize-1.0-SNAPSHOT-all.jar
           asset_content_type: application/java-archive
+
+      - name: Delete File
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: |
+            jar
+            ffmpeg
