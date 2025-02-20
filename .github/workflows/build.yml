@@ -606,7 +606,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - HTMLのog:imageがある場合その画像をもってくるようにした
+            -
           draft: false
           prerelease: true
 
