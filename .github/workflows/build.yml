@@ -492,49 +492,6 @@ jobs:
 
       - name: Site OGPTag Check Test 1
         run: |
-          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:25555/?url=https://www.youtube.com/watch?v=YStWB55rXbs)
-          if [ "$HTTP_STATUS" -ne 200 ]; then
-            exit 1
-          else
-            echo "OK"
-          fi
-        shell: bash
-
-  autotest11:
-    needs: [build-21, download_ffmpeg]
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-
-      - name: Download JarFile
-        uses: actions/download-artifact@v4
-        with:
-          name: jar
-
-      - name: Download ffmpeg
-        uses: actions/download-artifact@v4
-        with:
-          name: ffmpeg
-
-      - name: Make ffmpeg executable
-        run: chmod +x ./ffmpeg
-
-      - name: Run the application
-        run: java -jar ./Image2Resize-1.0-SNAPSHOT-all.jar --default-config-mode &
-        shell: bash
-
-      - name: Wait for the application to start
-        run: sleep 1
-
-      - name: Site OGPTag Check Test 2
-        run: |
           HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:25555/?url=https://www.nicovideo.jp/watch/sm500873)
           if [ "$HTTP_STATUS" -ne 200 ]; then
             exit 1
@@ -543,7 +500,7 @@ jobs:
           fi
         shell: bash
 
-  autotest12:
+  autotest11:
     needs: [build-21, download_ffmpeg]
     runs-on: ubuntu-24.04
     permissions:
@@ -586,7 +543,7 @@ jobs:
           fi
         shell: bash
 
-  autotest13:
+  autotest12:
     needs: [build-21, download_ffmpeg]
     runs-on: ubuntu-24.04
     permissions:
@@ -629,7 +586,7 @@ jobs:
           fi
         shell: bash
   release:
-    needs: [autotest1, autotest2, autotest3, autotest4, autotest5, autotest6, autotest7, autotest8, autotest9, autotest10, autotest11, autotest12, autotest13]
+    needs: [autotest1, autotest2, autotest3, autotest4, autotest5, autotest6, autotest7, autotest8, autotest9, autotest10, autotest11, autotest12]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
