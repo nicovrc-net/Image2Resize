@@ -86,6 +86,7 @@ public class HTTPServer extends Thread {
 
     private final Pattern Length = Pattern.compile("[C|c]ontent-[L|l]ength: (\\d+)");
     private final Pattern HTTPURI = Pattern.compile("(GET|HEAD|POST) (.+) HTTP/");
+    private final Pattern ogt_image = Pattern.compile("<meta property=\"og:image\" content=\"(.+)\">");
 
     private final File stop_file = new File("./stop.txt");
     private final File stop_lock_file = new File("./lock-stop");
@@ -669,6 +670,76 @@ public class HTTPServer extends Thread {
                                 sock.close();
 
                                 return;
+                            }
+
+                            if (header != null && header.toLowerCase(Locale.ROOT).startsWith("text/html")){
+                                String html = new String(data, StandardCharsets.UTF_8);
+                                matcher = ogt_image.matcher(html);
+                                if (matcher.find()){
+                                    //System.out.println(html);
+                                    HttpClient client = HttpClient.newBuilder()
+                                            .version(HttpClient.Version.HTTP_2)
+                                            .followRedirects(HttpClient.Redirect.NORMAL)
+                                            .connectTimeout(Duration.ofSeconds(5))
+                                            .build();
+
+                                    URI uri = new URI(matcher.group(1));
+                                    HttpRequest request = HttpRequest.newBuilder()
+                                            .uri(uri)
+                                            .headers("User-Agent", userAgent2)
+                                            .GET()
+                                            .build();
+
+                                    HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+
+                                    if (send.headers().firstValue("Content-Type").isPresent()){
+                                        header = send.headers().firstValue("Content-Type").get();
+                                    }
+                                    if (send.headers().firstValue("content-type").isPresent()){
+                                        header = send.headers().firstValue("content-type").get();
+                                    }
+                                    //System.out.println(header);
+
+                                    if (send.statusCode() < 200 || send.statusCode() > 399){
+                                        CacheDataList.put(url, -2L);
+                                        ErrorURLList.put(url, "URL Not Found");
+                                        out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                        if (isGET || isPOST) {
+                                            out.write(("URL Not Found").getBytes(StandardCharsets.UTF_8));
+                                        }
+                                        out.flush();
+                                        in.close();
+                                        out.close();
+                                        sock.close();
+
+                                        send = null;
+                                        request = null;
+                                        client.close();
+                                        client = null;
+                                        return;
+                                    }
+                                    data = send.body();
+                                    send = null;
+                                    request = null;
+                                    client.close();
+                                    client = null;
+                                } else {
+                                    html = null;
+                                    CacheDataList.put(url, -2L);
+                                    ErrorURLList.put(url, "URL Not Found");
+                                    out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                    if (isGET || isPOST) {
+                                        out.write(("URL Not Found").getBytes(StandardCharsets.UTF_8));
+                                    }
+                                    out.flush();
+                                    in.close();
+                                    out.close();
+                                    sock.close();
+
+                                    return;
+                                }
+                                html = null;
+
                             }
 
                             if (header != null && !header.toLowerCase(Locale.ROOT).startsWith("image")) {
