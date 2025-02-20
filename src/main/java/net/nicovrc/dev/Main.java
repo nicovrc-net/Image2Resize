@@ -62,8 +62,12 @@ RedisPass: ""
                 pw.close();
                 file.close();
 
-                System.out.println("[Info] config.ymlを設定してください");
-                return;
+                if (args[0].equals("--default-config-mode")){
+                    System.out.println("[Info] config.ymlをデフォルト設定で保存し起動します。");
+                } else {
+                    System.out.println("[Info] config.ymlを設定してください");
+                    return;
+                }
             }
 
             if (!new File(FolderPass).exists()){
