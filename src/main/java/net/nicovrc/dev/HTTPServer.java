@@ -344,7 +344,7 @@ public class HTTPServer extends Thread {
                             if (byteCount > 0){
                                 data = new byte[byteCount];
                                 readSize = in.read(data);
-                                System.out.println(readSize);
+                                //System.out.println(readSize);
 
                                 if (readSize >= 0){
                                     data = Arrays.copyOf(data, readSize);
@@ -471,6 +471,27 @@ public class HTTPServer extends Thread {
                             final long nowTime = new Date().getTime();
                             //System.out.println(url);
 
+                            // すでにエラーになっているURLは再度アクセスしにいかない
+                            String error = ErrorURLList.get(url);
+                            //System.out.println(url + " : " + error);
+                            if (error != null){
+                                CacheDataList.remove(url);
+                                CacheDataList.put(url, -2L);
+                                //System.out.println(error);
+                                out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                if (isGET || isPOST) {
+                                    out.write(error.getBytes(StandardCharsets.UTF_8));
+                                }
+                                out.flush();
+                                in.close();
+                                out.close();
+                                sock.close();
+
+                                //error = null;
+
+                                return;
+                            }
+
                             // キャッシュを見に行く
                             Long cacheTime = CacheDataList.get(url);
                             String cacheFilename = Function.getFileName(url, cacheTime != null ? cacheTime : nowTime);
@@ -568,23 +589,6 @@ public class HTTPServer extends Thread {
 
                             cacheTime = null;
                             CacheDataList.put(url, -1L);
-
-                            // すでにエラーになっているURLは再度アクセスしにいかない
-                            String error = ErrorURLList.get(url);
-                            if (error != null){
-                                out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                                if (isGET || isPOST) {
-                                    out.write(error.getBytes(StandardCharsets.UTF_8));
-                                }
-                                out.flush();
-                                in.close();
-                                out.close();
-                                sock.close();
-
-                                error = null;
-
-                                return;
-                            }
 
                             final String filePass = "./cache/" + cacheFilename;
 
