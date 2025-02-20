@@ -77,10 +77,12 @@ public class HTTPServer extends Thread {
 
     private final ConcurrentHashMap<String, Long> CacheDataList = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> LogWriteCacheList = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, String> ErrorURLList = new ConcurrentHashMap<>();
     private final Timer CacheCheckTimer = new Timer();
     private final Timer LogWriteTimer = new Timer();
     private final Timer CheckStopTimer = new Timer();
     private final Timer CheckAccessTimer = new Timer();
+    private final Timer CheckErrorCacheTimer = new Timer();
 
     private final Pattern Length = Pattern.compile("[C|c]ontent-[L|l]ength: (\\d+)");
     private final Pattern HTTPURI = Pattern.compile("(GET|HEAD|POST) (.+) HTTP/");
@@ -214,7 +216,6 @@ public class HTTPServer extends Thread {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        System.out.println("[Info] TCP Port " + HTTPPort + "で 処理受付用HTTPサーバー待機開始");
 
         //死活監視追加
         CheckAccessTimer.scheduleAtFixedRate(new TimerTask() {
@@ -300,6 +301,15 @@ public class HTTPServer extends Thread {
             }
         }, 1000L, 1000L);
 
+        // エラーリスト掃除
+        CheckErrorCacheTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                ErrorURLList.clear();
+            }
+        }, 0L, 10000L);
+
+        System.out.println("[Info] TCP Port " + HTTPPort + "で 処理受付用HTTPサーバー待機開始");
         while (temp[0]) {
             try {
                 //System.gc();
@@ -559,11 +569,28 @@ public class HTTPServer extends Thread {
                             cacheTime = null;
                             CacheDataList.put(url, -1L);
 
+                            // すでにエラーになっているURLは再度アクセスしにいかない
+                            String error = ErrorURLList.get(url);
+                            if (error != null){
+                                out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
+                                if (isGET || isPOST) {
+                                    out.write(error.getBytes(StandardCharsets.UTF_8));
+                                }
+                                out.flush();
+                                in.close();
+                                out.close();
+                                sock.close();
+
+                                error = null;
+
+                                return;
+                            }
 
                             final String filePass = "./cache/" + cacheFilename;
 
                             if (!url.toLowerCase(Locale.ROOT).startsWith("http")) {
                                 CacheDataList.remove(url);
+                                ErrorURLList.put(url, "URL Not Found");
                                 //System.out.println("[Debug] HTTPRequest送信");
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET || isPOST) {
@@ -603,6 +630,7 @@ public class HTTPServer extends Thread {
                                 }
                                 if (send.statusCode() < 200 || send.statusCode() > 399){
                                     CacheDataList.put(url, -2L);
+                                    ErrorURLList.put(url, "URL Not Found");
                                     out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                     if (isGET || isPOST) {
                                         out.write(("URL Not Found").getBytes(StandardCharsets.UTF_8));
@@ -626,6 +654,7 @@ public class HTTPServer extends Thread {
 
                             } catch (Exception e){
                                 CacheDataList.put(url, -2L);
+                                ErrorURLList.put(url, "URL Not Found");
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET || isPOST) {
                                     out.write(("URL Not Found").getBytes(StandardCharsets.UTF_8));
@@ -640,6 +669,7 @@ public class HTTPServer extends Thread {
 
                             if (header != null && !header.toLowerCase(Locale.ROOT).startsWith("image")) {
                                 CacheDataList.put(url, -2L);
+                                ErrorURLList.put(url, "Not Image");
                                 //System.out.println("[Debug] HTTPRequest送信");
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET || isPOST) {
@@ -656,6 +686,7 @@ public class HTTPServer extends Thread {
 
                             if (data.length == 0){
                                 CacheDataList.put(url, -2L);
+                                ErrorURLList.put(url, "File Not Found");
                                 //System.out.println("[Debug] HTTPRequest送信");
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET || isPOST) {
@@ -675,6 +706,7 @@ public class HTTPServer extends Thread {
                             if (data == null){
 
                                 CacheDataList.put(url, -2L);
+                                ErrorURLList.put(url, "File Not Support");
                                 //System.out.println("[Debug] HTTPRequest送信");
                                 out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                 if (isGET || isPOST) {
