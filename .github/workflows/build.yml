@@ -606,7 +606,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - 画像以外やエラーになった取得先を一時的にキャッシュするようにする
+            - HTMLのog:imageがある場合その画像をもってくるようにした
           draft: false
           prerelease: true
 
