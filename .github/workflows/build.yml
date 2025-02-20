@@ -207,7 +207,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - 一定時間過ぎてもキャッシュ状況が変わらない場合は404とする
+            - 画像以外やエラーになった取得先を一時的にキャッシュするようにする
           draft: false
           prerelease: true
 
