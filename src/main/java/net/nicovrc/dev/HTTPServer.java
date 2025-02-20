@@ -726,10 +726,10 @@ public class HTTPServer extends Thread {
                                 } else {
                                     html = null;
                                     CacheDataList.put(url, -2L);
-                                    ErrorURLList.put(url, "URL Not Found");
+                                    ErrorURLList.put(url, "Not Image");
                                     out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
                                     if (isGET || isPOST) {
-                                        out.write(("URL Not Found").getBytes(StandardCharsets.UTF_8));
+                                        out.write(("Not Image").getBytes(StandardCharsets.UTF_8));
                                     }
                                     out.flush();
                                     in.close();
