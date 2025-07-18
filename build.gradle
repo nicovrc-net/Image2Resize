@@ -14,11 +14,11 @@ repositories {
 }
 
 dependencies {
-    testImplementation(platform("org.junit:junit-bom:5.11.4"))
+    testImplementation(platform("org.junit:junit-bom:5.12.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
 
     implementation 'com.amihaiemil.web:eo-yaml:8.0.6'
-    implementation 'redis.clients:jedis:5.2.0'
+    implementation 'redis.clients:jedis:6.0.0'
 }
 
 tasks.test {
