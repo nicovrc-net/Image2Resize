@@ -3,8 +3,7 @@ package net.nicovrc.dev;
 import com.amihaiemil.eoyaml.Yaml;
 import com.amihaiemil.eoyaml.YamlMapping;
 import com.google.gson.GsonBuilder;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.*;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -304,6 +303,7 @@ public class Function {
         String tempRedisServer;
         int tempRedisPort;
         String tempRedisPass;
+        boolean redisTLS = false;
 
 
         try {
@@ -313,6 +313,12 @@ public class Function {
             tempRedisServer = yamlMapping.string("RedisServer");
             tempRedisPort = yamlMapping.integer("RedisPort");
             tempRedisPass = yamlMapping.string("RedisPass");
+            try {
+                redisTLS = yamlMapping.string("RedisSSL").equals("true");
+            } catch (Exception e){
+                //e.printStackTrace();
+            }
+
         } catch (Exception e){
             // e.printStackTrace();
             tempPass = "./log";
@@ -327,35 +333,36 @@ public class Function {
         final int RedisServerPort = tempRedisPort;
         final String RedisServerPass = tempRedisPass;
 
+
         HashMap<String, String> temp = new HashMap<>(LogWriteCacheList);
         LogWriteCacheList.clear();
         if (isWriteRedis){
 
-            JedisPool jedisPool = new JedisPool(RedisServer, RedisServerPort);
-            Jedis jedis = jedisPool.getResource();
-            if (!RedisServerPass.isEmpty()){
-                jedis.auth(RedisServerPass);
-            }
+            JedisClientConfig config = RedisServerPass.isEmpty() ? DefaultJedisClientConfig.builder()
+                    .ssl(redisTLS)
+                    .build() : DefaultJedisClientConfig.builder()
+                    .ssl(redisTLS)
+                    .password(RedisServerPass)
+                    .build();
 
-            temp.forEach((id, httpRequest)->{
+            try (JedisPooled jedis = new JedisPooled(new HostAndPort(RedisServer, RedisServerPort), config)){
+                temp.forEach((id, httpRequest)->{
 
-                boolean isFound = jedis.get(id) != null;
-                while (isFound){
-                    id = new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0];
-                    isFound = jedis.get(id) != null;
-                    try {
-                        Thread.sleep(500L);
-                    } catch (Exception e){
-                        isFound = false;
+                    boolean isFound = jedis.get(id) != null;
+                    while (isFound){
+                        id = new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0];
+                        isFound = jedis.get(id) != null;
+                        try {
+                            Thread.sleep(500L);
+                        } catch (Exception e){
+                            isFound = false;
+                        }
                     }
-                }
 
-                jedis.set("image2resize:log:"+id, new GsonBuilder().serializeNulls().setPrettyPrinting().create().toJson(httpRequest));
+                    jedis.set("image2resize:log:"+id, new GsonBuilder().serializeNulls().setPrettyPrinting().create().toJson(httpRequest));
 
-            });
-
-            jedis.close();
-            jedisPool.close();
+                });
+            }
 
         } else {
             temp.forEach((id, httpRequest)->{

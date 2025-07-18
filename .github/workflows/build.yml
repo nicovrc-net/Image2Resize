@@ -606,9 +606,9 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            -
+            - Redisの接続にSSL使うかどうか選択できるように
           draft: false
-          prerelease: true
+          prerelease: false
 
       - name: Upload JarFile
         if: startsWith(github.ref, 'refs/tags/')

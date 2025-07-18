@@ -54,6 +54,8 @@ RedisPort: 6379
 # Redis AUTHパスワード
 # パスワードがない場合は以下の通りに設定してください
 RedisPass: ""
+# SSL接続するか
+RedisSSL: false
                     """;
 
                 FileWriter file = new FileWriter("./config.yml");
@@ -62,7 +64,7 @@ RedisPass: ""
                 pw.close();
                 file.close();
 
-                if (args[0].equals("--default-config-mode")){
+                if (args.length >= 1 && args[0].equals("--default-config-mode")){
                     System.out.println("[Info] config.ymlをデフォルト設定で保存し起動します。");
                 } else {
                     System.out.println("[Info] config.ymlを設定してください");
