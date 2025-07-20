@@ -201,6 +201,7 @@ public class HTTPServer extends Thread {
                             }
 
                             CheckStopTimer.cancel();
+                            CheckErrorCacheTimer.cancel();
                             System.out.println("[Info] 終了準備処理完了");
                             stop_lock_file.deleteOnExit();
                         }
@@ -234,6 +235,7 @@ public class HTTPServer extends Thread {
                         //e.printStackTrace();
                     }
                     CheckAccessTimer.cancel();
+                    CheckErrorCacheTimer.cancel();
                     return;
                 }
 
@@ -250,6 +252,7 @@ public class HTTPServer extends Thread {
                 } catch (Exception e){
                     //e.printStackTrace();
                     CheckAccessTimer.cancel();
+                    CheckErrorCacheTimer.cancel();
                     try {
                         boolean newFile = stop_file.createNewFile();
                     } catch (IOException ex) {
@@ -294,6 +297,7 @@ public class HTTPServer extends Thread {
                 } catch (Exception e){
                     //e.printStackTrace();
                     CheckAccessTimer.cancel();
+                    CheckErrorCacheTimer.cancel();
                     try {
                         boolean newFile = stop_file.createNewFile();
                     } catch (IOException ex) {
@@ -921,6 +925,7 @@ public class HTTPServer extends Thread {
         LogWriteTimer.cancel();
         Function.WriteLog(LogWriteCacheList);
         CheckAccessTimer.cancel();
+        CheckErrorCacheTimer.cancel();
         if (cache_folder.listFiles() != null){
             for (File listFile : Objects.requireNonNull(cache_folder.listFiles())) {
                 if (listFile.getName().equals(".") || listFile.getName().equals("..")){
