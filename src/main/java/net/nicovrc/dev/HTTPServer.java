@@ -327,7 +327,7 @@ public class HTTPServer extends Thread {
                         final OutputStream out = sock.getOutputStream();
 
                         StringBuffer sb = new StringBuffer();
-                        byte[] data = new byte[1024];
+                        byte[] data = new byte[2048];
                         int readSize = in.read(data);
 
                         if (readSize <= 0) {
@@ -344,7 +344,7 @@ public class HTTPServer extends Thread {
                         final boolean isHead = sb.substring(0, 4).toUpperCase(Locale.ROOT).equals("HEAD");
 
                         Matcher matcher1 = Length.matcher(sb.toString());
-                        if (matcher1.find() && readSize == 1024){
+                        if (matcher1.find() && readSize == 2048){
                             int byteCount = Integer.parseInt(matcher1.group(1));
 
                             if (byteCount > 0){
@@ -357,8 +357,8 @@ public class HTTPServer extends Thread {
                                     sb.append(new String(data, StandardCharsets.UTF_8));
                                 }
                             }
-                        } else if (readSize == 1024){
-                            data = new byte[1024];
+                        } else if (readSize == 2048){
+                            data = new byte[2048];
                             readSize = in.read(data);
                             boolean isLoop = true;
                             while (readSize >= 0){
@@ -368,7 +368,7 @@ public class HTTPServer extends Thread {
 
                                 data = null;
 
-                                if (readSize < 1024){
+                                if (readSize < 2048){
                                     isLoop = false;
                                 }
 
@@ -376,9 +376,9 @@ public class HTTPServer extends Thread {
                                     break;
                                 }
 
-                                data = new byte[1024];
+                                data = new byte[2048];
                                 readSize = in.read(data);
-                                if (readSize < 1024){
+                                if (readSize < 2048){
                                     isLoop = false;
                                 }
                             }
