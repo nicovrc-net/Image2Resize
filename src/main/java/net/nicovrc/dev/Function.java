@@ -433,6 +433,10 @@ public class Function {
     }
 
     public static String getHTTPVersion(String HTTPRequest){
+        if (HTTPRequest == null){
+            return null;
+        }
+
         Matcher matcher = HTTPVersion.matcher(HTTPRequest);
 
         if (matcher.find()){
@@ -446,6 +450,10 @@ public class Function {
     }
 
     public static String getMethod(String HTTPRequest){
+        if (HTTPRequest == null){
+            return null;
+        }
+
         Matcher matcher = HTTP.matcher(HTTPRequest);
         if (matcher.find()){
             return matcher.group(1);
