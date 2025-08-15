@@ -31,7 +31,6 @@ public class HTTPServer extends Thread {
     private final String userAgent1 = Function.UserAgent + " image2resize-access-check/"+Function.Version;
     private final String userAgent2 = Function.UserAgent + " image2resize/"+Function.Version;
 
-
     private final ConcurrentHashMap<String, Long> CacheDataList = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> LogWriteCacheList = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> ErrorURLList = new ConcurrentHashMap<>();
@@ -41,8 +40,6 @@ public class HTTPServer extends Thread {
     private final Timer CheckAccessTimer = new Timer();
     private final Timer CheckErrorCacheTimer = new Timer();
 
-    private final Pattern Length = Pattern.compile("[C|c]ontent-[L|l]ength: (\\d+)");
-    private final Pattern HTTPURI = Pattern.compile("(GET|HEAD|POST) (.+) HTTP/");
     private final Pattern ogp_image_nicovideo = Pattern.compile("<meta data-server=\"1\" property=\"og:image\" content=\"(.+)\" />");
     private final Pattern ogp_image_web = Pattern.compile("<meta property=\"og:image\" content=\"(.+)\">");
 
@@ -373,19 +370,20 @@ public class HTTPServer extends Thread {
 
                             return;
                         }
-                        Matcher matcher = HTTPURI.matcher(httpRequest);
 
-                        if (!matcher.find()) {
+                        final String URI = Function.getURI(httpRequest);
+
+                        if (URI == null){
                             //System.out.println("[Debug] HTTPRequest送信");
                             Function.sendHTTPRequest(sock, httpVersion, 502, contentType_text, "*", contentBadGateway, isHead);
                             sock.close();
 
                             return;
                         }
-                        final String URI = matcher.group(2);
+
                         //System.out.println(URI);
-                        boolean ApiMatchFlag = URI.startsWith("/api/");
-                        boolean UrlMatchFlag = URI.startsWith("/?url=");
+                        final boolean ApiMatchFlag = URI.startsWith("/api/");
+                        final boolean UrlMatchFlag = URI.startsWith("/?url=");
                         //System.out.println(" " + ApiMatchFlag + " / " + UrlMatchFlag);
 
                         if (ApiMatchFlag){
@@ -405,7 +403,7 @@ public class HTTPServer extends Thread {
                         }
 
                         if (UrlMatchFlag) {
-                            final String url = matcher.group(2).replaceAll("^(/\\?url=)", "");
+                            final String url = URI.replaceAll("^(/\\?url=)", "");
                             final long nowTime = new Date().getTime();
                             //System.out.println(url);
 
@@ -575,7 +573,7 @@ public class HTTPServer extends Thread {
 
                             if (header != null && header.toLowerCase(Locale.ROOT).startsWith("text/html")){
                                 String html = new String(data, StandardCharsets.UTF_8);
-                                matcher = ogp_image_web.matcher(html);
+                                Matcher matcher = ogp_image_web.matcher(html);
                                 if (matcher.find()){
                                     //System.out.println(html);
                                     HttpClient client = HttpClient.newBuilder()

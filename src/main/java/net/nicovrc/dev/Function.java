@@ -512,4 +512,18 @@ public class Function {
         //System.gc();
         return httpRequest;
     }
+
+    public static String getURI(String HTTPRequest){
+        String uri = null;
+        Matcher matcher = HTTP.matcher(HTTPRequest);
+
+        if (!matcher.find()){
+            matcher = null;
+        } else {
+            uri = matcher.group(2);
+            matcher = null;
+        }
+
+        return uri;
+    }
 }
