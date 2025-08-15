@@ -334,8 +334,8 @@ public class HTTPServer extends Thread {
                     try {
 
                         final String httpRequest = Function.getHTTPRequest(sock);
-                        final String httpVersion = Function.getHTTPVersion(httpRequest);
-                        final String httpMethod = Function.getMethod(httpRequest);
+                        final String httpVersion = Function.getHTTPVersion(httpRequest != null ? httpRequest : "");
+                        final String httpMethod = Function.getMethod(httpRequest != null ? httpRequest : "");
 
                         final boolean isGET = httpMethod != null && httpMethod.equals("GET");
                         final boolean isPOST = httpMethod != null && httpMethod.equals("POST");
