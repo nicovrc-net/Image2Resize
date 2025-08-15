@@ -2,7 +2,8 @@ package net.nicovrc.dev;
 
 import com.amihaiemil.eoyaml.Yaml;
 import com.amihaiemil.eoyaml.YamlMapping;
-import net.nicovrc.dev.api.*;
+import net.nicovrc.dev.Service.APICall;
+import net.nicovrc.dev.Service.ImageCall;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -15,33 +16,24 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
 public class HTTPServer extends Thread {
 
     private final int HTTPPort;
-    private final HashMap<String, ImageResizeAPI> apiList = new HashMap<>();
 
     private final Pattern NotLog;
     private final URI check_url;
 
     private final String userAgent1 = Function.UserAgent + " image2resize-access-check/"+Function.Version;
-    private final String userAgent2 = Function.UserAgent + " image2resize/"+Function.Version;
 
-    private final ConcurrentHashMap<String, Long> CacheDataList = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, String> LogWriteCacheList = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, String> ErrorURLList = new ConcurrentHashMap<>();
     private final Timer CacheCheckTimer = new Timer();
     private final Timer LogWriteTimer = new Timer();
     private final Timer CheckStopTimer = new Timer();
     private final Timer CheckAccessTimer = new Timer();
     private final Timer CheckErrorCacheTimer = new Timer();
 
-    private final Pattern ogp_image_nicovideo = Pattern.compile("<meta data-server=\"1\" property=\"og:image\" content=\"(.+)\" />");
-    private final Pattern ogp_image_web = Pattern.compile("<meta property=\"og:image\" content=\"(.+)\">");
 
     private final File stop_file = new File("./stop.txt");
     private final File stop_lock_file = new File("./lock-stop");
@@ -52,29 +44,11 @@ public class HTTPServer extends Thread {
 
     private final boolean[] temp = {true};
 
-    private final String contentType_text = "text/plain; charset=utf-8";
-    private final String contentType_png = "image/png";
-
-    private final byte[] contentBadGateway = "Bad Gateway".getBytes(StandardCharsets.UTF_8);
-    private final byte[] contentNotFound = "Not Found".getBytes(StandardCharsets.UTF_8);
-    private final byte[] contentNotFound2 = "URL Not Found".getBytes(StandardCharsets.UTF_8);
-    private final byte[] contentMethodNotAllowed = "Method Not Allowed".getBytes(StandardCharsets.UTF_8);
-    private final byte[] contentNotImage = "Not Image".getBytes(StandardCharsets.UTF_8);
-    private final byte[] contentFileNotFound = "File Not Found".getBytes(StandardCharsets.UTF_8);
-    private final byte[] contentFileNotSupport = "File Not Support".getBytes(StandardCharsets.UTF_8);
+    private final APICall api_call = new APICall();
+    private final ImageCall image_call = new ImageCall();
 
     public HTTPServer(int HTTPPort){
         this.HTTPPort = HTTPPort;
-
-        // API
-        GetData getData = new GetData();
-        GetCacheList getCacheList = new GetCacheList();
-        PostImageResize postImageResize = new PostImageResize();
-        Test test = new Test();
-        apiList.put(getData.getURI(), getData);
-        apiList.put(getCacheList.getURI(), getCacheList);
-        apiList.put(postImageResize.getURI(), postImageResize);
-        apiList.put(test.getURI(), test);
 
         YamlMapping yamlMapping = null;
         String checkUrl1 = null;
@@ -104,7 +78,6 @@ public class HTTPServer extends Thread {
         }
         checkUrl1 = null;
 
-
     }
 
     @Override
@@ -113,10 +86,10 @@ public class HTTPServer extends Thread {
         CacheCheckTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                int startCacheCount = CacheDataList.size();
+                int startCacheCount = Function.CacheDataList.size();
                 if (startCacheCount > 0){
                     System.out.println("[Info] キャッシュお掃除開始 (" + Function.sdf.format(new Date()) + ")");
-                    final HashMap<String, Long> temp = new HashMap<>(CacheDataList);
+                    final HashMap<String, Long> temp = new HashMap<>(Function.CacheDataList);
 
                     temp.forEach((url, cacheTime)->{
 
@@ -124,7 +97,7 @@ public class HTTPServer extends Thread {
                             //System.out.println(StartTime - data.getCacheDate().getTime());
                             if (new Date().getTime() - cacheTime >= 3600000){
 
-                                CacheDataList.remove(url);
+                                Function.CacheDataList.remove(url);
 
                                 try {
 
@@ -148,7 +121,7 @@ public class HTTPServer extends Thread {
 
                     Date date1 = new Date();
                     System.out.println("[Info] キャッシュお掃除終了 (" + Function.sdf.format(date1) + ")");
-                    System.out.println("[Info] キャッシュ件数が"+startCacheCount+"件から"+CacheDataList.size()+"件になりました。 (" + Function.sdf.format(date1) + ")");
+                    System.out.println("[Info] キャッシュ件数が"+startCacheCount+"件から"+Function.CacheDataList.size()+"件になりました。 (" + Function.sdf.format(date1) + ")");
                     date1 = null;
                 }
             }
@@ -159,9 +132,9 @@ public class HTTPServer extends Thread {
             @Override
             public void run() {
                 new Thread(()->{
-                    if (!LogWriteCacheList.isEmpty()){
+                    if (!Function.LogWriteCacheList.isEmpty()){
                         System.out.println("[Info] ログ書き込み開始 (" + Function.sdf.format(new Date()) + ")");
-                        long writeCount = Function.WriteLog(LogWriteCacheList);
+                        long writeCount = Function.WriteLog(Function.LogWriteCacheList);
                         System.out.println("[Info] ログ書き込み終了("+writeCount+"件) (" + Function.sdf.format(new Date()) + ")");
                     }
                     System.gc();
@@ -196,15 +169,15 @@ public class HTTPServer extends Thread {
 
                         boolean newFile = stop_lock_file.createNewFile();
                         if (newFile){
-                            long count = Function.WriteLog(LogWriteCacheList);
+                            long count = Function.WriteLog(Function.LogWriteCacheList);
                             if (count == 0){
                                 System.out.println("[Info] (終了準備処理)ログ書き出し完了");
                             } else {
                                 while (count > 0){
-                                    if (LogWriteCacheList.isEmpty()){
+                                    if (Function.LogWriteCacheList.isEmpty()){
                                         count = 0;
                                     } else {
-                                        count = Function.WriteLog(LogWriteCacheList);
+                                        count = Function.WriteLog(Function.LogWriteCacheList);
                                     }
                                 }
                             }
@@ -320,7 +293,7 @@ public class HTTPServer extends Thread {
         CheckErrorCacheTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                ErrorURLList.clear();
+                Function.ErrorURLList.clear();
             }
         }, 0L, 10000L);
 
@@ -350,14 +323,15 @@ public class HTTPServer extends Thread {
                         // ログ保存は時間がかかるのでキャッシュする
                         // しかし死活管理からのアクセスは邪魔なのでログには記録しない
                         if (!NotLog.matcher(httpRequest).find()){
-                            System.out.println(httpRequest);
-
-                            LogWriteCacheList.put(new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0], httpRequest);
+                            Thread.ofVirtual().start(()->{
+                                System.out.println(httpRequest);
+                                Function.LogWriteCacheList.put(new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0], httpRequest);
+                            });
                         }
 
                         if (httpVersion == null) {
                             //System.out.println("[Debug] HTTPRequest送信");
-                            Function.sendHTTPRequest(sock, "1.1", 502, contentType_text, "*", contentBadGateway, isHead);
+                            Function.sendHTTPRequest(sock, "1.1", 502, Function.contentType_text, "*", Function.contentBadGateway, isHead);
                             sock.close();
 
                             return;
@@ -365,7 +339,7 @@ public class HTTPServer extends Thread {
 
                         if (!isGET && !isPOST && !isHead) {
                             //System.out.println("[Debug] HTTPRequest送信");
-                            Function.sendHTTPRequest(sock, httpVersion, 405, contentType_text, "*", contentMethodNotAllowed, isHead);
+                            Function.sendHTTPRequest(sock, httpVersion, 405, Function.contentType_text, "*", Function.contentMethodNotAllowed, isHead);
                             sock.close();
 
                             return;
@@ -375,7 +349,7 @@ public class HTTPServer extends Thread {
 
                         if (URI == null){
                             //System.out.println("[Debug] HTTPRequest送信");
-                            Function.sendHTTPRequest(sock, httpVersion, 502, contentType_text, "*", contentBadGateway, isHead);
+                            Function.sendHTTPRequest(sock, httpVersion, 502, Function.contentType_text, "*", Function.contentBadGateway, isHead);
                             sock.close();
 
                             return;
@@ -387,365 +361,19 @@ public class HTTPServer extends Thread {
                         //System.out.println(" " + ApiMatchFlag + " / " + UrlMatchFlag);
 
                         if (ApiMatchFlag){
-
-                            final ImageResizeAPI api = apiList.get(URI);
-                            if (api != null) {
-                                APIResult run = api.run(CacheDataList, LogWriteCacheList, httpRequest);
-                                Function.sendHTTPRequest(sock, httpVersion, Integer.parseInt(run.getHttpResponseCode()), run.getHttpContentType(), "*", run.getHttpContent(), isHead);
-                                sock.close();
-
-                                return;
-                            }
-
-                            Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentNotFound, isHead);
-                            sock.close();
+                            api_call.set(sock, httpRequest);
+                            api_call.run();
                             return;
                         }
 
                         if (UrlMatchFlag) {
-                            final String url = URI.replaceAll("^(/\\?url=)", "");
-                            final long nowTime = new Date().getTime();
-                            //System.out.println(url);
-
-                            // すでにエラーになっているURLは再度アクセスしにいかない
-                            String error = ErrorURLList.get(url);
-                            //System.out.println(url + " : " + error);
-                            if (error != null){
-                                CacheDataList.remove(url);
-                                CacheDataList.put(url, -2L);
-                                //System.out.println(error);
-                                Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", error.getBytes(StandardCharsets.UTF_8), isHead);
-                                sock.close();
-
-                                //error = null;
-
-                                return;
-                            }
-
-                            // キャッシュを見に行く
-                            Long cacheTime = CacheDataList.get(url);
-                            String cacheFilename = Function.getFileName(url, cacheTime != null ? cacheTime : nowTime);
-
-
-                            //System.out.println(cacheTime + " / " + cacheFilename);
-
-                            if (cacheTime != null){
-                                // あればキャッシュから
-                                //System.out.println("[Debug] CacheFound");
-                                //System.out.println("[Debug] HTTPRequest送信");
-
-                                boolean isTemp = cacheTime <= -1L;
-                                //System.out.println(cacheTime + " : " + isTemp);
-                                int[] count = {0,0};
-                                while (isTemp){
-                                    if (cacheTime == null){
-                                        cacheTime = CacheDataList.get(url);
-                                        if (count[0] >= 15){
-                                            cacheTime = -2L;
-                                            break;
-                                        }
-                                        try {
-                                            Thread.sleep(100L);
-                                        } catch (Exception e){
-                                            //e.printStackTrace();
-                                        }
-                                        count[0]++;
-                                        continue;
-                                    }
-
-                                    if (cacheTime == -2L){
-                                        break;
-                                    }
-
-                                    if (cacheTime == -1L){
-                                        cacheTime = CacheDataList.get(url);
-                                        if (count[1] >= 50){
-                                            cacheTime = -2L;
-                                            break;
-                                        }
-                                        try {
-                                            Thread.sleep(100L);
-                                        } catch (Exception e){
-                                            //e.printStackTrace();
-                                        }
-                                        count[1]++;
-                                        continue;
-                                    }
-
-                                    cacheTime = CacheDataList.get(url);
-                                    isTemp = cacheTime <= -1L;
-                                    try {
-                                        Thread.sleep(100L);
-                                    } catch (Exception e){
-                                        //e.printStackTrace();
-                                    }
-                                }
-
-                                if (cacheTime != -2L){
-                                    cacheFilename = Function.getFileName(url, cacheTime);
-
-                                    try (DataInputStream dis = new DataInputStream(new FileInputStream("./cache/"+cacheFilename))) {
-                                        //out.write(dis.readAllBytes());
-                                        Function.sendHTTPRequest(sock, httpVersion, 200, contentType_png, "*", dis.readAllBytes(), isHead);
-                                    } catch (Exception e){
-                                        //e.printStackTrace();
-                                    }
-
-                                } else {
-                                    Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentFileNotFound, isHead);
-                                    CacheDataList.remove(url);
-                                }
-                                sock.close();
-                                cacheTime = null;
-
-                                return;
-
-                            }
-
-                            //System.out.println("[Debug] Cache Not Found");
-
-                            cacheTime = null;
-                            CacheDataList.put(url, -1L);
-
-                            final String filePass = "./cache/" + cacheFilename;
-
-                            if (!url.toLowerCase(Locale.ROOT).startsWith("http")) {
-                                CacheDataList.remove(url);
-                                ErrorURLList.put(url, "URL Not Found");
-                                //System.out.println("[Debug] HTTPRequest送信");
-                                Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentNotFound2, isHead);
-                                sock.close();
-
-                                return;
-                            }
-
-                            String header = null;
-                            byte[] data = null;
-                            try {
-                                HttpClient client = HttpClient.newBuilder()
-                                        .version(HttpClient.Version.HTTP_2)
-                                        .followRedirects(HttpClient.Redirect.NORMAL)
-                                        .connectTimeout(Duration.ofSeconds(5))
-                                        .build();
-
-                                URI uri = new URI(url);
-                                HttpRequest request = HttpRequest.newBuilder()
-                                        .uri(uri)
-                                        .headers("User-Agent", userAgent2)
-                                        .GET()
-                                        .build();
-
-                                HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-                                uri = null;
-
-                                if (send.headers().firstValue("Content-Type").isPresent()){
-                                    header = send.headers().firstValue("Content-Type").get();
-                                }
-                                if (send.headers().firstValue("content-type").isPresent()){
-                                    header = send.headers().firstValue("content-type").get();
-                                }
-                                if (send.statusCode() < 200 || send.statusCode() > 399){
-                                    CacheDataList.put(url, -2L);
-                                    ErrorURLList.put(url, "URL Not Found");
-                                    Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentNotFound2, isHead);
-                                    sock.close();
-
-                                    send = null;
-                                    request = null;
-                                    client.close();
-                                    client = null;
-                                    return;
-                                }
-                                data = send.body();
-                                send = null;
-                                request = null;
-                                client.close();
-                                client = null;
-
-                            } catch (Exception e){
-                                CacheDataList.put(url, -2L);
-                                ErrorURLList.put(url, "URL Not Found");
-                                Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentNotFound2, isHead);
-                                sock.close();
-
-                                return;
-                            }
-
-                            if (header != null && header.toLowerCase(Locale.ROOT).startsWith("text/html")){
-                                String html = new String(data, StandardCharsets.UTF_8);
-                                Matcher matcher = ogp_image_web.matcher(html);
-                                if (matcher.find()){
-                                    //System.out.println(html);
-                                    HttpClient client = HttpClient.newBuilder()
-                                            .version(HttpClient.Version.HTTP_2)
-                                            .followRedirects(HttpClient.Redirect.NORMAL)
-                                            .connectTimeout(Duration.ofSeconds(5))
-                                            .build();
-
-                                    URI uri = new URI(matcher.group(1).split("\"")[0]);
-                                    HttpRequest request = HttpRequest.newBuilder()
-                                            .uri(uri)
-                                            .headers("User-Agent", userAgent2)
-                                            .headers("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-                                            .headers("Accept-Language", "ja,en;q=0.7,en-US;q=0.3")
-                                            .GET()
-                                            .build();
-
-                                    HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-
-                                    if (send.headers().firstValue("Content-Type").isPresent()){
-                                        header = send.headers().firstValue("Content-Type").get();
-                                    }
-                                    if (send.headers().firstValue("content-type").isPresent()){
-                                        header = send.headers().firstValue("content-type").get();
-                                    }
-                                    //System.out.println(header);
-
-                                    if (send.statusCode() < 200 || send.statusCode() > 399){
-                                        CacheDataList.put(url, -2L);
-                                        Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentNotFound2, isHead);
-                                        sock.close();
-
-                                        send = null;
-                                        request = null;
-                                        client.close();
-                                        client = null;
-                                        return;
-                                    }
-                                    data = send.body();
-                                    send = null;
-                                    request = null;
-                                    client.close();
-                                    client = null;
-                                } else {
-                                    matcher = ogp_image_nicovideo.matcher(html);
-                                    if (matcher.find()){
-                                        //System.out.println(html);
-                                        HttpClient client = HttpClient.newBuilder()
-                                                .version(HttpClient.Version.HTTP_2)
-                                                .followRedirects(HttpClient.Redirect.NORMAL)
-                                                .connectTimeout(Duration.ofSeconds(5))
-                                                .build();
-
-                                        //System.out.println(matcher.group(1));
-                                        URI uri = new URI(matcher.group(1).split("\"")[0]);
-                                        HttpRequest request = HttpRequest.newBuilder()
-                                                .uri(uri)
-                                                .headers("User-Agent", userAgent2)
-                                                .headers("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-                                                .headers("Accept-Language", "ja,en;q=0.7,en-US;q=0.3")
-                                                .GET()
-                                                .build();
-
-                                        HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-
-                                        if (send.headers().firstValue("Content-Type").isPresent()){
-                                            header = send.headers().firstValue("Content-Type").get();
-                                        }
-                                        if (send.headers().firstValue("content-type").isPresent()){
-                                            header = send.headers().firstValue("content-type").get();
-                                        }
-                                        //System.out.println(header);
-
-                                        if (send.statusCode() < 200 || send.statusCode() > 399){
-                                            CacheDataList.put(url, -2L);
-                                            ErrorURLList.put(url, "URL Not Found");
-                                            Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentNotFound2, isHead);
-                                            sock.close();
-
-                                            send = null;
-                                            request = null;
-                                            client.close();
-                                            client = null;
-                                            return;
-                                        }
-                                        data = send.body();
-                                        send = null;
-                                        request = null;
-                                        client.close();
-                                        client = null;
-                                    } else {
-
-                                        html = null;
-                                        CacheDataList.put(url, -2L);
-                                        ErrorURLList.put(url, "Not Image");
-                                        Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentNotImage, isHead);
-                                        sock.close();
-
-                                        return;
-
-                                    }
-
-                                }
-                                html = null;
-
-                            }
-
-                            if (header != null && !header.toLowerCase(Locale.ROOT).startsWith("image")) {
-                                CacheDataList.put(url, -2L);
-                                ErrorURLList.put(url, "Not Image");
-                                //System.out.println("[Debug] HTTPRequest送信");
-                                Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentNotImage, isHead);
-                                sock.close();
-
-                                return;
-                            }
-                            header = null;
-
-                            if (data.length == 0){
-                                CacheDataList.put(url, -2L);
-                                ErrorURLList.put(url, "File Not Found");
-                                //System.out.println("[Debug] HTTPRequest送信");
-                                Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentFileNotFound, isHead);
-                                sock.close();
-
-                                return;
-                            }
-                            //System.out.println("[Debug] 画像読み込み");
-                            //System.out.println("[Debug] 画像変換");
-                            data = Function.ImageResize(data);
-
-                            if (data == null){
-
-                                CacheDataList.put(url, -2L);
-                                ErrorURLList.put(url, "File Not Support");
-                                //System.out.println("[Debug] HTTPRequest送信");
-                                Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentFileNotSupport, isHead);
-                                sock.close();
-
-                                return;
-                            }
-
-                            // キャッシュ保存
-                            //System.out.println("[Debug] Cache Save");
-                            if (!cache_folder.exists()){
-                                cache_folder.mkdir();
-                            }
-
-                            try (FileOutputStream fos = new FileOutputStream(filePass);
-                                 BufferedOutputStream bos = new BufferedOutputStream(fos);
-                                 DataOutputStream dos = new DataOutputStream(bos)) {
-                                dos.write(data, 0, data.length);
-                            }
-
-                            CacheDataList.remove(url);
-                            CacheDataList.put(url, nowTime);
-
-                            //System.out.println("[Debug] 画像出力");
-                            //System.out.println("[Debug] HTTPRequest送信");
-                            Function.sendHTTPRequest(sock, httpVersion, 200, contentType_png, "*", data, isHead);
-                            //imageData.setFileContent(null);
-                            sock.close();
-
-                            data = null;
-
+                            image_call.set(sock, httpRequest);
+                            image_call.run();
                         } else {
                             //System.out.println("[Debug] HTTPRequest送信");
-                            Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentNotFound, isHead);
+                            Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentNotFound, isHead);
                             sock.close();
                         }
-
-                        System.gc();
 
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -768,7 +396,7 @@ public class HTTPServer extends Thread {
         CheckStopTimer.cancel();
         CacheCheckTimer.cancel();
         LogWriteTimer.cancel();
-        Function.WriteLog(LogWriteCacheList);
+        Function.WriteLog(Function.LogWriteCacheList);
         CheckAccessTimer.cancel();
         CheckErrorCacheTimer.cancel();
         if (cache_folder.listFiles() != null){

@@ -28,6 +28,21 @@ public class Function {
     private static final Pattern ImageMagickPass = Pattern.compile("ImageMagick-");
     private static final Pattern ffmpegImageInfo = Pattern.compile("Stream #0:0: Video: (.+), (.+)\\((.+)\\), (\\d+)x(\\d+)");
 
+    public static final ConcurrentHashMap<String, Long> CacheDataList = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<String, String> LogWriteCacheList = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<String, String> ErrorURLList = new ConcurrentHashMap<>();
+
+    public static final String contentType_text = "text/plain; charset=utf-8";
+    public static final String contentType_png = "image/png";
+
+    public static final byte[] contentBadGateway = "Bad Gateway".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] contentNotFound = "Not Found".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] contentNotFound2 = "URL Not Found".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] contentMethodNotAllowed = "Method Not Allowed".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] contentNotImage = "Not Image".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] contentFileNotFound = "File Not Found".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] contentFileNotSupport = "File Not Support".getBytes(StandardCharsets.UTF_8);
+
     public static String getFileName(String url, long cacheTime) {
         final StringBuilder cacheFilename = new StringBuilder();
 
