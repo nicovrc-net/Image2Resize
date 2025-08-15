@@ -19,7 +19,7 @@ public class Function {
 
     public static final int HTTPPort = 25555;
     public static final String UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0";
-    public static final String Version = "1.2.0-beta.1";
+    public static final String Version = "1.2.0-beta.2";
     public static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     private static final Pattern HTTPVersion = Pattern.compile("HTTP/(\\d+\\.\\d+)");
