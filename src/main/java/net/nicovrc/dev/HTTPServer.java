@@ -322,18 +322,18 @@ public class HTTPServer extends Thread {
                         //System.out.println("[Debug] HTTPRequest受信");
                         // ログ保存は時間がかかるのでキャッシュする
                         // しかし死活管理からのアクセスは邪魔なのでログには記録しない
-                        if (!NotLog.matcher(httpRequest).find()){
-                            Thread.ofVirtual().start(()->{
+
+                        Thread.ofVirtual().start(()->{
+                            if (!NotLog.matcher(httpRequest).find()){
                                 System.out.println(httpRequest);
                                 Function.LogWriteCacheList.put(new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0], httpRequest);
-                            });
-                        }
+                            }
+                        });
 
                         if (httpVersion == null) {
                             //System.out.println("[Debug] HTTPRequest送信");
                             Function.sendHTTPRequest(sock, "1.1", 502, Function.contentType_text, "*", Function.contentBadGateway, isHead);
                             sock.close();
-
                             return;
                         }
 
@@ -369,11 +369,11 @@ public class HTTPServer extends Thread {
                         if (UrlMatchFlag) {
                             image_call.set(sock, httpRequest);
                             image_call.run();
-                        } else {
-                            //System.out.println("[Debug] HTTPRequest送信");
-                            Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentNotFound, isHead);
-                            sock.close();
+                            return;
                         }
+
+                        Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentNotFound, isHead);
+                        sock.close();
 
                     } catch (Exception e) {
                         e.printStackTrace();
