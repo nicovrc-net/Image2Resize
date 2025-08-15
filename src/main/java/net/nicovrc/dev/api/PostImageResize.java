@@ -43,13 +43,13 @@ public class PostImageResize implements ImageResizeAPI {
             }
 
             if (!json.isJsonObject() || !json.getAsJsonObject().has("filename") || !json.getAsJsonObject().has("content")){
-                return new APIResult("404 Not Found", "{\"message\": \"Not Support Request\"}".getBytes(StandardCharsets.UTF_8));
+                return new APIResult("404", "{\"message\": \"Not Support Request\"}".getBytes(StandardCharsets.UTF_8));
             }
 
             final String base64 = json.getAsJsonObject().has("content") ? json.getAsJsonObject().get("content").getAsString() : "";
             final byte[] bytes = Base64.getDecoder().decode(base64);
             if (bytes == null || bytes.length == 0){
-                return new APIResult("404 Not Found", "{\"message\": \"Not Found Image\"}".getBytes(StandardCharsets.UTF_8));
+                return new APIResult("404", "{\"message\": \"Not Found Image\"}".getBytes(StandardCharsets.UTF_8));
             } else {
                 //System.out.println("debug 1-2");
                 byte[] resize = null;
@@ -57,14 +57,14 @@ public class PostImageResize implements ImageResizeAPI {
                     resize = Function.ImageResize(bytes);
                 } catch (Exception e) {
                     //e.printStackTrace();
-                    return new APIResult("404 Not Found", "{\"message\": \"Not Support Image\"}".getBytes(StandardCharsets.UTF_8));
+                    return new APIResult("404", "{\"message\": \"Not Support Image\"}".getBytes(StandardCharsets.UTF_8));
                 }
                 //System.out.println(resize != null);
-                return new APIResult(resize != null ? "200 OK" : "404 Not Found", resize != null ? "image/png" : "application/json; charset=utf-8", resize != null ? resize : "{\"message\": \"Not Support Image\"}".getBytes(StandardCharsets.UTF_8));
+                return new APIResult(resize != null ? "200" : "404", resize != null ? "image/png" : "application/json; charset=utf-8", resize != null ? resize : "{\"message\": \"Not Support Image\"}".getBytes(StandardCharsets.UTF_8));
             }
         } else {
             //System.out.println("debug 2");
-            return new APIResult("403 Forbidden", "{\"message\": \"Not Support Request\"}".getBytes(StandardCharsets.UTF_8));
+            return new APIResult("403", "{\"message\": \"Not Support Request\"}".getBytes(StandardCharsets.UTF_8));
         }
     }
 

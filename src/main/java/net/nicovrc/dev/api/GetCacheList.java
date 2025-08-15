@@ -34,7 +34,7 @@ public class GetCacheList implements ImageResizeAPI {
         String json = new Gson().toJson(cacheList);
         cacheList.clear();
 
-        return new APIResult("200 OK", json.getBytes(StandardCharsets.UTF_8));
+        return new APIResult("200", json.getBytes(StandardCharsets.UTF_8));
     }
 
     @Override

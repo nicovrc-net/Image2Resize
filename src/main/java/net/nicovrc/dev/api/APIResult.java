@@ -9,7 +9,7 @@ public class APIResult {
     private byte[] httpContent;
 
     public APIResult(){
-        this.httpResponseCode = "200 OK";
+        this.httpResponseCode = "200";
         this.httpContent = "Test Data".getBytes(StandardCharsets.UTF_8);
     }
 

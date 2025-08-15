@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Test implements ImageResizeAPI{
     @Override
     public APIResult run() {
-        return new APIResult("200 OK", "{\"message\": \"ok\"}".getBytes(StandardCharsets.UTF_8));
+        return new APIResult("200", "{\"message\": \"ok\"}".getBytes(StandardCharsets.UTF_8));
     }
 
     @Override
