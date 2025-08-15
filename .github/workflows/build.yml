@@ -66,7 +66,7 @@ jobs:
       - name: Upload JarFile
         uses: actions/upload-artifact@v4
         with:
-          name: jar
+          name: jar24
           path: ./build/libs/Image2Resize-1.0-SNAPSHOT-all.jar
 
   download_ffmpeg:
