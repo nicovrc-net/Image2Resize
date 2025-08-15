@@ -28,6 +28,12 @@ public class ImageCall implements ServiceInterface {
     private final Pattern ogp_image_nicovideo = Pattern.compile("<meta data-server=\"1\" property=\"og:image\" content=\"(.+)\" />");
     private final Pattern ogp_image_web = Pattern.compile("<meta property=\"og:image\" content=\"(.+)\">");
 
+    public ImageCall(){
+        if (!cache_folder.exists()){
+            cache_folder.mkdir();
+        }
+    }
+
     public void set(Socket sock, String httpRequest){
         this.sock = sock;
         final String method = Function.getMethod(httpRequest);
@@ -42,7 +48,7 @@ public class ImageCall implements ServiceInterface {
         //System.out.println(url);
 
         // すでにエラーになっているURLは再度アクセスしにいかない
-        String error = Function.ErrorURLList.get(url);
+        final String error = Function.ErrorURLList.get(url);
         //System.out.println(url + " : " + error);
         if (error != null){
             Function.CacheDataList.remove(url);
@@ -153,14 +159,14 @@ public class ImageCall implements ServiceInterface {
             return;
         }
 
-        String header = null;
+        String contentType = null;
         byte[] data = null;
-        try {
-            HttpClient client = HttpClient.newBuilder()
-                    .version(HttpClient.Version.HTTP_2)
-                    .followRedirects(HttpClient.Redirect.NORMAL)
-                    .connectTimeout(Duration.ofSeconds(5))
-                    .build();
+
+        try (HttpClient client = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_2)
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .connectTimeout(Duration.ofSeconds(5))
+                .build()){
 
             URI uri = new URI(url);
             HttpRequest request = HttpRequest.newBuilder()
@@ -173,10 +179,10 @@ public class ImageCall implements ServiceInterface {
             uri = null;
 
             if (send.headers().firstValue("Content-Type").isPresent()){
-                header = send.headers().firstValue("Content-Type").get();
+                contentType = send.headers().firstValue("Content-Type").get();
             }
             if (send.headers().firstValue("content-type").isPresent()){
-                header = send.headers().firstValue("content-type").get();
+                contentType = send.headers().firstValue("content-type").get();
             }
             if (send.statusCode() < 200 || send.statusCode() > 399){
                 Function.CacheDataList.put(url, -2L);
@@ -187,15 +193,100 @@ public class ImageCall implements ServiceInterface {
                 send = null;
                 request = null;
                 client.close();
-                client = null;
                 return;
             }
             data = send.body();
             send = null;
             request = null;
-            client.close();
-            client = null;
 
+            if (contentType != null && contentType.toLowerCase(Locale.ROOT).startsWith("text/html")){
+                String html = new String(data, StandardCharsets.UTF_8);
+                Matcher matcher = ogp_image_web.matcher(html);
+                if (matcher.find()){
+                    //System.out.println(html);
+                    uri = new URI(matcher.group(1).split("\"")[0]);
+                    request = HttpRequest.newBuilder()
+                            .uri(uri)
+                            .headers("User-Agent", getImage_UserAgent)
+                            .headers("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                            .headers("Accept-Language", "ja,en;q=0.7,en-US;q=0.3")
+                            .GET()
+                            .build();
+
+                    send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+
+                    if (send.headers().firstValue("Content-Type").isPresent()){
+                        contentType = send.headers().firstValue("Content-Type").get();
+                    }
+                    if (send.headers().firstValue("content-type").isPresent()){
+                        contentType = send.headers().firstValue("content-type").get();
+                    }
+                    //System.out.println(header);
+
+                    if (send.statusCode() < 200 || send.statusCode() > 399){
+                        Function.CacheDataList.put(url, -2L);
+                        Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentNotFound2, isHead);
+                        sock.close();
+
+                        send = null;
+                        request = null;
+                        return;
+                    }
+
+                    data = send.body();
+                    send = null;
+                    request = null;
+                } else {
+                    matcher = ogp_image_nicovideo.matcher(html);
+                    if (matcher.find()) {
+                        //System.out.println(html);
+                        //System.out.println(matcher.group(1));
+                        uri = new URI(matcher.group(1).split("\"")[0]);
+                        request = HttpRequest.newBuilder()
+                                .uri(uri)
+                                .headers("User-Agent", getImage_UserAgent)
+                                .headers("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                                .headers("Accept-Language", "ja,en;q=0.7,en-US;q=0.3")
+                                .GET()
+                                .build();
+
+                        send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+
+                        if (send.headers().firstValue("Content-Type").isPresent()) {
+                            contentType = send.headers().firstValue("Content-Type").get();
+                        }
+                        if (send.headers().firstValue("content-type").isPresent()) {
+                            contentType = send.headers().firstValue("content-type").get();
+                        }
+                        //System.out.println(header);
+
+                        if (send.statusCode() < 200 || send.statusCode() > 399) {
+                            Function.CacheDataList.put(url, -2L);
+                            Function.ErrorURLList.put(url, "URL Not Found");
+                            Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentNotFound2, isHead);
+                            sock.close();
+
+                            send = null;
+                            request = null;
+                            return;
+                        }
+                        data = send.body();
+                        send = null;
+                        request = null;
+                    } else {
+
+                        html = null;
+                        Function.CacheDataList.put(url, -2L);
+                        Function.ErrorURLList.put(url, "Not Image");
+                        Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentNotImage, isHead);
+                        sock.close();
+
+                        return;
+
+                    }
+                }
+                html = null;
+            }
         } catch (Exception e){
             Function.CacheDataList.put(url, -2L);
             Function.ErrorURLList.put(url, "URL Not Found");
@@ -205,117 +296,7 @@ public class ImageCall implements ServiceInterface {
             return;
         }
 
-        if (header != null && header.toLowerCase(Locale.ROOT).startsWith("text/html")){
-            String html = new String(data, StandardCharsets.UTF_8);
-            Matcher matcher = ogp_image_web.matcher(html);
-            if (matcher.find()){
-                //System.out.println(html);
-                HttpClient client = HttpClient.newBuilder()
-                        .version(HttpClient.Version.HTTP_2)
-                        .followRedirects(HttpClient.Redirect.NORMAL)
-                        .connectTimeout(Duration.ofSeconds(5))
-                        .build();
-
-                URI uri = new URI(matcher.group(1).split("\"")[0]);
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(uri)
-                        .headers("User-Agent", getImage_UserAgent)
-                        .headers("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-                        .headers("Accept-Language", "ja,en;q=0.7,en-US;q=0.3")
-                        .GET()
-                        .build();
-
-                HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-
-                if (send.headers().firstValue("Content-Type").isPresent()){
-                    header = send.headers().firstValue("Content-Type").get();
-                }
-                if (send.headers().firstValue("content-type").isPresent()){
-                    header = send.headers().firstValue("content-type").get();
-                }
-                //System.out.println(header);
-
-                if (send.statusCode() < 200 || send.statusCode() > 399){
-                    Function.CacheDataList.put(url, -2L);
-                    Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentNotFound2, isHead);
-                    sock.close();
-
-                    send = null;
-                    request = null;
-                    client.close();
-                    client = null;
-                    return;
-                }
-                data = send.body();
-                send = null;
-                request = null;
-                client.close();
-                client = null;
-            } else {
-                matcher = ogp_image_nicovideo.matcher(html);
-                if (matcher.find()){
-                    //System.out.println(html);
-                    HttpClient client = HttpClient.newBuilder()
-                            .version(HttpClient.Version.HTTP_2)
-                            .followRedirects(HttpClient.Redirect.NORMAL)
-                            .connectTimeout(Duration.ofSeconds(5))
-                            .build();
-
-                    //System.out.println(matcher.group(1));
-                    URI uri = new URI(matcher.group(1).split("\"")[0]);
-                    HttpRequest request = HttpRequest.newBuilder()
-                            .uri(uri)
-                            .headers("User-Agent", getImage_UserAgent)
-                            .headers("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-                            .headers("Accept-Language", "ja,en;q=0.7,en-US;q=0.3")
-                            .GET()
-                            .build();
-
-                    HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-
-                    if (send.headers().firstValue("Content-Type").isPresent()){
-                        header = send.headers().firstValue("Content-Type").get();
-                    }
-                    if (send.headers().firstValue("content-type").isPresent()){
-                        header = send.headers().firstValue("content-type").get();
-                    }
-                    //System.out.println(header);
-
-                    if (send.statusCode() < 200 || send.statusCode() > 399){
-                        Function.CacheDataList.put(url, -2L);
-                        Function.ErrorURLList.put(url, "URL Not Found");
-                        Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentNotFound2, isHead);
-                        sock.close();
-
-                        send = null;
-                        request = null;
-                        client.close();
-                        client = null;
-                        return;
-                    }
-                    data = send.body();
-                    send = null;
-                    request = null;
-                    client.close();
-                    client = null;
-                } else {
-
-                    html = null;
-                    Function.CacheDataList.put(url, -2L);
-                    Function.ErrorURLList.put(url, "Not Image");
-                    Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentNotImage, isHead);
-                    sock.close();
-
-                    return;
-
-                }
-
-            }
-            html = null;
-
-        }
-
-        if (header != null && !header.toLowerCase(Locale.ROOT).startsWith("image")) {
+        if (contentType != null && !contentType.toLowerCase(Locale.ROOT).startsWith("image")) {
             Function.CacheDataList.put(url, -2L);
             Function.ErrorURLList.put(url, "Not Image");
             //System.out.println("[Debug] HTTPRequest送信");
@@ -324,7 +305,7 @@ public class ImageCall implements ServiceInterface {
 
             return;
         }
-        header = null;
+        contentType = null;
 
         if (data.length == 0){
             Function.CacheDataList.put(url, -2L);
@@ -352,18 +333,19 @@ public class ImageCall implements ServiceInterface {
 
         // キャッシュ保存
         //System.out.println("[Debug] Cache Save");
-        if (!cache_folder.exists()){
-            cache_folder.mkdir();
-        }
+        final byte[] content = data;
+        Thread.ofVirtual().start(()->{
+            try (FileOutputStream fos = new FileOutputStream(filePass);
+                 BufferedOutputStream bos = new BufferedOutputStream(fos);
+                 DataOutputStream dos = new DataOutputStream(bos)) {
+                dos.write(content, 0, content.length);
+            } catch (Exception e){
+                // e.printStackTrace();
+            }
 
-        try (FileOutputStream fos = new FileOutputStream(filePass);
-             BufferedOutputStream bos = new BufferedOutputStream(fos);
-             DataOutputStream dos = new DataOutputStream(bos)) {
-            dos.write(data, 0, data.length);
-        }
-
-        Function.CacheDataList.remove(url);
-        Function.CacheDataList.put(url, nowTime);
+            Function.CacheDataList.remove(url);
+            Function.CacheDataList.put(url, nowTime);
+        });
 
         //System.out.println("[Debug] 画像出力");
         //System.out.println("[Debug] HTTPRequest送信");
