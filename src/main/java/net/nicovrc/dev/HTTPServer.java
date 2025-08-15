@@ -31,6 +31,41 @@ public class HTTPServer extends Thread {
     private final String userAgent1 = Function.UserAgent + " image2resize-access-check/"+Function.Version;
     private final String userAgent2 = Function.UserAgent + " image2resize/"+Function.Version;
 
+
+    private final ConcurrentHashMap<String, Long> CacheDataList = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, String> LogWriteCacheList = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, String> ErrorURLList = new ConcurrentHashMap<>();
+    private final Timer CacheCheckTimer = new Timer();
+    private final Timer LogWriteTimer = new Timer();
+    private final Timer CheckStopTimer = new Timer();
+    private final Timer CheckAccessTimer = new Timer();
+    private final Timer CheckErrorCacheTimer = new Timer();
+
+    private final Pattern Length = Pattern.compile("[C|c]ontent-[L|l]ength: (\\d+)");
+    private final Pattern HTTPURI = Pattern.compile("(GET|HEAD|POST) (.+) HTTP/");
+    private final Pattern ogp_image_nicovideo = Pattern.compile("<meta data-server=\"1\" property=\"og:image\" content=\"(.+)\" />");
+    private final Pattern ogp_image_web = Pattern.compile("<meta property=\"og:image\" content=\"(.+)\">");
+
+    private final File stop_file = new File("./stop.txt");
+    private final File stop_lock_file = new File("./lock-stop");
+    private final File cache_folder = new File("./cache");
+    private final String localhost = "127.0.0.1";
+
+    private final byte[] emptyBytes = new byte[0];
+
+    private final boolean[] temp = {true};
+
+    private final String contentType_text = "text/plain; charset=utf-8";
+    private final String contentType_png = "image/png";
+
+    private final byte[] contentBadGateway = "Bad Gateway".getBytes(StandardCharsets.UTF_8);
+    private final byte[] contentNotFound = "Not Found".getBytes(StandardCharsets.UTF_8);
+    private final byte[] contentNotFound2 = "URL Not Found".getBytes(StandardCharsets.UTF_8);
+    private final byte[] contentMethodNotAllowed = "Method Not Allowed".getBytes(StandardCharsets.UTF_8);
+    private final byte[] contentNotImage = "Not Image".getBytes(StandardCharsets.UTF_8);
+    private final byte[] contentFileNotFound = "File Not Found".getBytes(StandardCharsets.UTF_8);
+    private final byte[] contentFileNotSupport = "File Not Support".getBytes(StandardCharsets.UTF_8);
+
     public HTTPServer(int HTTPPort){
         this.HTTPPort = HTTPPort;
 
@@ -74,29 +109,6 @@ public class HTTPServer extends Thread {
 
 
     }
-
-    private final ConcurrentHashMap<String, Long> CacheDataList = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, String> LogWriteCacheList = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, String> ErrorURLList = new ConcurrentHashMap<>();
-    private final Timer CacheCheckTimer = new Timer();
-    private final Timer LogWriteTimer = new Timer();
-    private final Timer CheckStopTimer = new Timer();
-    private final Timer CheckAccessTimer = new Timer();
-    private final Timer CheckErrorCacheTimer = new Timer();
-
-    private final Pattern Length = Pattern.compile("[C|c]ontent-[L|l]ength: (\\d+)");
-    private final Pattern HTTPURI = Pattern.compile("(GET|HEAD|POST) (.+) HTTP/");
-    private final Pattern ogp_image_nicovideo = Pattern.compile("<meta data-server=\"1\" property=\"og:image\" content=\"(.+)\" />");
-    private final Pattern ogp_image_web = Pattern.compile("<meta property=\"og:image\" content=\"(.+)\">");
-
-    private final File stop_file = new File("./stop.txt");
-    private final File stop_lock_file = new File("./lock-stop");
-    private final File cache_folder = new File("./cache");
-    private final String localhost = "127.0.0.1";
-
-    private final byte[] emptyBytes = new byte[0];
-
-    private final boolean[] temp = {true};
 
     @Override
     public void run() {
@@ -323,74 +335,19 @@ public class HTTPServer extends Thread {
                 final Socket sock = svSock.accept();
                 Thread.ofVirtual().start(() -> {
                     try {
-                        final InputStream in = sock.getInputStream();
-                        final OutputStream out = sock.getOutputStream();
 
-                        StringBuffer sb = new StringBuffer();
-                        byte[] data = new byte[2048];
-                        int readSize = in.read(data);
+                        final String httpRequest = Function.getHTTPRequest(sock);
+                        final String httpVersion = Function.getHTTPVersion(httpRequest);
+                        final String httpMethod = Function.getMethod(httpRequest);
 
-                        if (readSize <= 0) {
-                            in.close();
-                            out.close();
+                        final boolean isGET = httpMethod != null && httpMethod.equals("GET");
+                        final boolean isPOST = httpMethod != null && httpMethod.equals("POST");
+                        final boolean isHead = httpMethod != null && httpMethod.equals("HEAD");
+
+                        if (httpRequest == null){
                             sock.close();
                             return;
                         }
-                        data = Arrays.copyOf(data, readSize);
-                        sb.append(new String(data, StandardCharsets.UTF_8));
-
-                        final boolean isGET = sb.substring(0, 3).toUpperCase(Locale.ROOT).equals("GET");
-                        final boolean isPOST = sb.substring(0, 4).toUpperCase(Locale.ROOT).equals("POST");
-                        final boolean isHead = sb.substring(0, 4).toUpperCase(Locale.ROOT).equals("HEAD");
-
-                        Matcher matcher1 = Length.matcher(sb.toString());
-                        if (matcher1.find() && readSize == 2048){
-                            int byteCount = Integer.parseInt(matcher1.group(1));
-
-                            if (byteCount > 0){
-                                data = new byte[byteCount];
-                                readSize = in.read(data);
-                                //System.out.println(readSize);
-
-                                if (readSize >= 0){
-                                    data = Arrays.copyOf(data, readSize);
-                                    sb.append(new String(data, StandardCharsets.UTF_8));
-                                }
-                            }
-                        } else if (readSize == 2048){
-                            data = new byte[2048];
-                            readSize = in.read(data);
-                            boolean isLoop = true;
-                            while (readSize >= 0){
-                                //System.out.println(readSize);
-                                data = Arrays.copyOf(data, readSize);
-                                sb.append(new String(data, StandardCharsets.UTF_8));
-
-                                data = null;
-
-                                if (readSize < 2048){
-                                    isLoop = false;
-                                }
-
-                                if (!isLoop){
-                                    break;
-                                }
-
-                                data = new byte[2048];
-                                readSize = in.read(data);
-                                if (readSize < 2048){
-                                    isLoop = false;
-                                }
-                            }
-                        }
-
-                        data = null;
-
-                        final String httpRequest = sb.toString();
-                        final String httpVersion = Function.getHTTPVersion(httpRequest);
-
-                        sb.setLength(0);
-                        sb = null;
 
                         //System.out.println("[Debug] HTTPRequest受信");
                         // ログ保存は時間がかかるのでキャッシュする
@@ -403,10 +360,7 @@ public class HTTPServer extends Thread {
 
                         if (httpVersion == null) {
                             //System.out.println("[Debug] HTTPRequest送信");
-                            out.write("HTTP/1.1 502 Bad Gateway\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\nbad gateway".getBytes(StandardCharsets.UTF_8));
-                            out.flush();
-                            in.close();
-                            out.close();
+                            Function.sendHTTPRequest(sock, "1.1", 502, contentType_text, "*", contentBadGateway, isHead);
                             sock.close();
 
                             return;
@@ -414,10 +368,7 @@ public class HTTPServer extends Thread {
 
                         if (!isGET && !isPOST && !isHead) {
                             //System.out.println("[Debug] HTTPRequest送信");
-                            out.write(("HTTP/" + httpVersion + " 405 Method Not Allowed\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n405").getBytes(StandardCharsets.UTF_8));
-                            out.flush();
-                            in.close();
-                            out.close();
+                            Function.sendHTTPRequest(sock, httpVersion, 405, contentType_text, "*", contentMethodNotAllowed, isHead);
                             sock.close();
 
                             return;
@@ -426,13 +377,7 @@ public class HTTPServer extends Thread {
 
                         if (!matcher.find()) {
                             //System.out.println("[Debug] HTTPRequest送信");
-                            out.write(("HTTP/" + httpVersion + " 502 Bad Gateway\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                            if (isGET || isPOST) {
-                                out.write(("bad gateway").getBytes(StandardCharsets.UTF_8));
-                            }
-                            out.flush();
-                            in.close();
-                            out.close();
+                            Function.sendHTTPRequest(sock, httpVersion, 502, contentType_text, "*", contentBadGateway, isHead);
                             sock.close();
 
                             return;
@@ -448,26 +393,13 @@ public class HTTPServer extends Thread {
                             final ImageResizeAPI api = apiList.get(URI);
                             if (api != null) {
                                 APIResult run = api.run(CacheDataList, LogWriteCacheList, httpRequest);
-
-                                out.write(("HTTP/" + httpVersion + " " + run.getHttpResponseCode() + "\nAccess-Control-Allow-Origin: *\nContent-Type: " + run.getHttpContentType() + "\n\n").getBytes(StandardCharsets.UTF_8));
-                                if (isGET || isPOST) {
-                                    out.write(run.getHttpContent());
-                                }
-
-                                in.close();
-                                out.close();
+                                Function.sendHTTPRequest(sock, httpVersion, Integer.parseInt(run.getHttpResponseCode()), run.getHttpContentType(), "*", run.getHttpContent(), isHead);
                                 sock.close();
 
                                 return;
                             }
 
-                            out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                            if (isGET || isPOST) {
-                                out.write(("404 not found").getBytes(StandardCharsets.UTF_8));
-                            }
-                            out.flush();
-                            in.close();
-                            out.close();
+                            Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentNotFound, isHead);
                             sock.close();
                             return;
                         }
@@ -484,13 +416,7 @@ public class HTTPServer extends Thread {
                                 CacheDataList.remove(url);
                                 CacheDataList.put(url, -2L);
                                 //System.out.println(error);
-                                out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                                if (isGET || isPOST) {
-                                    out.write(error.getBytes(StandardCharsets.UTF_8));
-                                }
-                                out.flush();
-                                in.close();
-                                out.close();
+                                Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", error.getBytes(StandardCharsets.UTF_8), isHead);
                                 sock.close();
 
                                 //error = null;
@@ -560,30 +486,17 @@ public class HTTPServer extends Thread {
                                 if (cacheTime != -2L){
                                     cacheFilename = Function.getFileName(url, cacheTime);
 
-                                    out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: image/png;\n\n").getBytes(StandardCharsets.UTF_8));
-                                    if (isGET || isPOST) {
-
-                                        try (DataInputStream dis = new DataInputStream(new FileInputStream("./cache/"+cacheFilename))) {
-                                            out.write(dis.readAllBytes());
-                                        } catch (Exception e){
-                                            //e.printStackTrace();
-                                        }
-
+                                    try (DataInputStream dis = new DataInputStream(new FileInputStream("./cache/"+cacheFilename))) {
+                                        //out.write(dis.readAllBytes());
+                                        Function.sendHTTPRequest(sock, httpVersion, 200, contentType_png, "*", dis.readAllBytes(), isHead);
+                                    } catch (Exception e){
+                                        //e.printStackTrace();
                                     }
 
                                 } else {
-                                    out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                                    if (isGET || isPOST) {
-                                        out.write(("Not Image").getBytes(StandardCharsets.UTF_8));
-                                    }
-
+                                    Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentFileNotFound, isHead);
                                     CacheDataList.remove(url);
-
                                 }
-
-                                out.flush();
-                                in.close();
-                                out.close();
                                 sock.close();
                                 cacheTime = null;
 
@@ -602,19 +515,14 @@ public class HTTPServer extends Thread {
                                 CacheDataList.remove(url);
                                 ErrorURLList.put(url, "URL Not Found");
                                 //System.out.println("[Debug] HTTPRequest送信");
-                                out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                                if (isGET || isPOST) {
-                                    out.write(("URL Not Found").getBytes(StandardCharsets.UTF_8));
-                                }
-                                out.flush();
-                                in.close();
-                                out.close();
+                                Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentNotFound2, isHead);
                                 sock.close();
 
                                 return;
                             }
 
                             String header = null;
+                            byte[] data = null;
                             try {
                                 HttpClient client = HttpClient.newBuilder()
                                         .version(HttpClient.Version.HTTP_2)
@@ -641,13 +549,7 @@ public class HTTPServer extends Thread {
                                 if (send.statusCode() < 200 || send.statusCode() > 399){
                                     CacheDataList.put(url, -2L);
                                     ErrorURLList.put(url, "URL Not Found");
-                                    out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                                    if (isGET || isPOST) {
-                                        out.write(("URL Not Found").getBytes(StandardCharsets.UTF_8));
-                                    }
-                                    out.flush();
-                                    in.close();
-                                    out.close();
+                                    Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentNotFound2, isHead);
                                     sock.close();
 
                                     send = null;
@@ -665,13 +567,7 @@ public class HTTPServer extends Thread {
                             } catch (Exception e){
                                 CacheDataList.put(url, -2L);
                                 ErrorURLList.put(url, "URL Not Found");
-                                out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                                if (isGET || isPOST) {
-                                    out.write(("URL Not Found").getBytes(StandardCharsets.UTF_8));
-                                }
-                                out.flush();
-                                in.close();
-                                out.close();
+                                Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentNotFound2, isHead);
                                 sock.close();
 
                                 return;
@@ -709,14 +605,7 @@ public class HTTPServer extends Thread {
 
                                     if (send.statusCode() < 200 || send.statusCode() > 399){
                                         CacheDataList.put(url, -2L);
-                                        ErrorURLList.put(url, "URL Not Found");
-                                        out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                                        if (isGET || isPOST) {
-                                            out.write(("URL Not Found").getBytes(StandardCharsets.UTF_8));
-                                        }
-                                        out.flush();
-                                        in.close();
-                                        out.close();
+                                        Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentNotFound2, isHead);
                                         sock.close();
 
                                         send = null;
@@ -763,13 +652,7 @@ public class HTTPServer extends Thread {
                                         if (send.statusCode() < 200 || send.statusCode() > 399){
                                             CacheDataList.put(url, -2L);
                                             ErrorURLList.put(url, "URL Not Found");
-                                            out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                                            if (isGET || isPOST) {
-                                                out.write(("URL Not Found").getBytes(StandardCharsets.UTF_8));
-                                            }
-                                            out.flush();
-                                            in.close();
-                                            out.close();
+                                            Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentNotFound2, isHead);
                                             sock.close();
 
                                             send = null;
@@ -788,13 +671,7 @@ public class HTTPServer extends Thread {
                                         html = null;
                                         CacheDataList.put(url, -2L);
                                         ErrorURLList.put(url, "Not Image");
-                                        out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                                        if (isGET || isPOST) {
-                                            out.write(("Not Image").getBytes(StandardCharsets.UTF_8));
-                                        }
-                                        out.flush();
-                                        in.close();
-                                        out.close();
+                                        Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentNotImage, isHead);
                                         sock.close();
 
                                         return;
@@ -810,13 +687,7 @@ public class HTTPServer extends Thread {
                                 CacheDataList.put(url, -2L);
                                 ErrorURLList.put(url, "Not Image");
                                 //System.out.println("[Debug] HTTPRequest送信");
-                                out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                                if (isGET || isPOST) {
-                                    out.write(("Not Image").getBytes(StandardCharsets.UTF_8));
-                                }
-                                out.flush();
-                                in.close();
-                                out.close();
+                                Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentNotImage, isHead);
                                 sock.close();
 
                                 return;
@@ -827,13 +698,7 @@ public class HTTPServer extends Thread {
                                 CacheDataList.put(url, -2L);
                                 ErrorURLList.put(url, "File Not Found");
                                 //System.out.println("[Debug] HTTPRequest送信");
-                                out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                                if (isGET || isPOST) {
-                                    out.write(("File Not Found").getBytes(StandardCharsets.UTF_8));
-                                }
-                                out.flush();
-                                in.close();
-                                out.close();
+                                Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentFileNotFound, isHead);
                                 sock.close();
 
                                 return;
@@ -847,13 +712,7 @@ public class HTTPServer extends Thread {
                                 CacheDataList.put(url, -2L);
                                 ErrorURLList.put(url, "File Not Support");
                                 //System.out.println("[Debug] HTTPRequest送信");
-                                out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                                if (isGET || isPOST) {
-                                    out.write(("File Not Support").getBytes(StandardCharsets.UTF_8));
-                                }
-                                out.flush();
-                                in.close();
-                                out.close();
+                                Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentFileNotSupport, isHead);
                                 sock.close();
 
                                 return;
@@ -876,27 +735,15 @@ public class HTTPServer extends Thread {
 
                             //System.out.println("[Debug] 画像出力");
                             //System.out.println("[Debug] HTTPRequest送信");
-                            out.write(("HTTP/" + httpVersion + " 200 OK\nAccess-Control-Allow-Origin: *\nContent-Type: image/png;\n\n").getBytes(StandardCharsets.UTF_8));
-                            if ((isGET || isPOST) && !sock.isClosed() && !sock.isOutputShutdown()) {
-                                out.write(data);
-                            }
+                            Function.sendHTTPRequest(sock, httpVersion, 200, contentType_png, "*", data, isHead);
                             //imageData.setFileContent(null);
-                            out.flush();
-                            in.close();
-                            out.close();
                             sock.close();
 
                             data = null;
 
                         } else {
                             //System.out.println("[Debug] HTTPRequest送信");
-                            out.write(("HTTP/" + httpVersion + " 404 Not Found\nAccess-Control-Allow-Origin: *\nContent-Type: text/plain; charset=utf-8\n\n").getBytes(StandardCharsets.UTF_8));
-                            if (isGET || isPOST) {
-                                out.write(("Not Found").getBytes(StandardCharsets.UTF_8));
-                            }
-                            out.flush();
-                            in.close();
-                            out.close();
+                            Function.sendHTTPRequest(sock, httpVersion, 404, contentType_text, "*", contentNotFound, isHead);
                             sock.close();
                         }
 
