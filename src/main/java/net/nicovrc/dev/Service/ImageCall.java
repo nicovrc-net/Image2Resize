@@ -156,6 +156,9 @@ public class ImageCall implements ServiceInterface {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(uri)
                     .headers("User-Agent", getImage_UserAgent)
+                    .headers("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                    .headers("Accept-Language", "ja,en;q=0.7,en-US;q=0.3")
+                    .headers("Accept-Encoding", "gzip")
                     .GET()
                     .build();
 
@@ -193,6 +196,7 @@ public class ImageCall implements ServiceInterface {
                             .headers("User-Agent", getImage_UserAgent)
                             .headers("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                             .headers("Accept-Language", "ja,en;q=0.7,en-US;q=0.3")
+                            .headers("Accept-Encoding", "gzip")
                             .GET()
                             .build();
 
@@ -230,6 +234,7 @@ public class ImageCall implements ServiceInterface {
                                 .headers("User-Agent", getImage_UserAgent)
                                 .headers("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                                 .headers("Accept-Language", "ja,en;q=0.7,en-US;q=0.3")
+                                .headers("Accept-Encoding", "gzip")
                                 .GET()
                                 .build();
 
