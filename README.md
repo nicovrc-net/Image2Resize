@@ -13,6 +13,7 @@
 ## 必要なもの
 - Java 21以降
 - ffmpegまたはImageMagic (両方ある場合はffmpegが優先されます。 ※ffmpegは4.4.2以降、ImageMagicは6.9.12-98以降なら動くと思います。)
+- brotli
 
 ## 動作確認済み環境
 - Ubuntu 22.04 64bit (OpenJDK 21.0.6 / ffmpeg 4.4.2-0ubuntu0.22.04.1)
