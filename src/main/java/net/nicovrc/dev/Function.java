@@ -14,12 +14,14 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public class Function {
 
     public static final int HTTPPort = 25555;
-    public static final String UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0";
-    public static final String Version = "1.2.0-beta.2";
+    public static final String UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0";
+    public static final String Version = "1.2.0-beta.3";
     public static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     private static final Pattern HTTPVersion = Pattern.compile("HTTP/(\\d+\\.\\d+)");
@@ -42,6 +44,9 @@ public class Function {
     public static final byte[] contentNotImage = "Not Image".getBytes(StandardCharsets.UTF_8);
     public static final byte[] contentFileNotFound = "File Not Found".getBytes(StandardCharsets.UTF_8);
     public static final byte[] contentFileNotSupport = "File Not Support".getBytes(StandardCharsets.UTF_8);
+
+
+    private static final Pattern matcher_contentEncoding = Pattern.compile("([aA])ccept-([eE])ncoding: (.+)");
 
     public static String getFileName(String url, long cacheTime) {
         final StringBuilder cacheFilename = new StringBuilder();
@@ -408,73 +413,18 @@ public class Function {
         return count;
     }
 
-    public static void sendHTTPRequest(Socket sock, String httpVersion, int code, String contentType, String AccessControlAllowOrigin, byte[] body, boolean isHEAD) throws Exception {
-        OutputStream out = sock.getOutputStream();
-        StringBuilder sb_header = new StringBuilder();
+    public static String getBrotliPath(){
 
-        sb_header.append("HTTP/").append(httpVersion == null ? "1.1" : httpVersion);
-        sb_header.append(" ").append(code).append(" ");
-        switch (code) {
-            case 200 -> sb_header.append("OK");
-            case 302 -> sb_header.append("Found");
-            case 400 -> sb_header.append("Bad Request");
-            case 403 -> sb_header.append("Forbidden");
-            case 404 -> sb_header.append("Not Found");
-            case 405 -> sb_header.append("Method Not Allowed");
-            case 502 -> sb_header.append("Bad Gateway");
-        }
-        sb_header.append("\r\n");
-        if (AccessControlAllowOrigin != null){
-            sb_header.append("Access-Control-Allow-Origin: ").append(AccessControlAllowOrigin).append("\r\n");
-        }
-        sb_header.append("Content-Length: ").append(body.length).append("\r\n");
-        sb_header.append("Content-Type: ").append(contentType).append("\r\n");
-
-        sb_header.append("Date: ").append(new Date()).append("\r\n");
-
-        sb_header.append("\r\n");
-
-        //System.out.println(sb_header);
-        out.write(sb_header.toString().getBytes(StandardCharsets.UTF_8));
-        if (!isHEAD){
-            out.write(body);
-        }
-        out.flush();
-
-        out = null;
-        sb_header.setLength(0);
-        sb_header = null;
-
-    }
-
-    public static String getHTTPVersion(String HTTPRequest){
-        if (HTTPRequest == null){
-            return null;
+        if (new File("./brotli.exe").exists()){
+            return "./brotli.exe";
         }
 
-        Matcher matcher = HTTPVersion.matcher(HTTPRequest);
-
-        if (matcher.find()){
-            String group = matcher.group(1);
-            matcher = null;
-            return group;
-        }
-        matcher = null;
-        return null;
-
-    }
-
-    public static String getMethod(String HTTPRequest){
-        if (HTTPRequest == null){
-            return null;
+        if (new File("./brotli").exists()){
+            return "./brotli";
         }
 
-        Matcher matcher = HTTP.matcher(HTTPRequest);
-        if (matcher.find()){
-            return matcher.group(1);
-        }
+        return "";
 
-        return null;
     }
 
     public static String getHTTPRequest(Socket sock) throws Exception{
@@ -536,6 +486,77 @@ public class Function {
         return httpRequest;
     }
 
+    public static String getHTTPVersion(String HTTPRequest){
+        if (HTTPRequest == null){
+            return null;
+        }
+
+        Matcher matcher = HTTPVersion.matcher(HTTPRequest);
+
+        if (matcher.find()){
+            String group = matcher.group(1);
+            matcher = null;
+            return group;
+        }
+        matcher = null;
+        return null;
+
+    }
+
+    public static String getMethod(String HTTPRequest){
+        if (HTTPRequest == null){
+            return null;
+        }
+
+        Matcher matcher = HTTP.matcher(HTTPRequest);
+        if (matcher.find()){
+            return matcher.group(1);
+        }
+
+        return null;
+    }
+
+    public static void sendHTTPRequest(Socket sock, String httpVersion, int code, String contentType, String contentEncoding, String AccessControlAllowOrigin, byte[] body, boolean isHEAD) throws Exception {
+        OutputStream out = sock.getOutputStream();
+        StringBuilder sb_header = new StringBuilder();
+
+        sb_header.append("HTTP/").append(httpVersion == null ? "1.1" : httpVersion);
+        sb_header.append(" ").append(code).append(" ");
+        switch (code) {
+            case 200 -> sb_header.append("OK");
+            case 302 -> sb_header.append("Found");
+            case 400 -> sb_header.append("Bad Request");
+            case 403 -> sb_header.append("Forbidden");
+            case 404 -> sb_header.append("Not Found");
+            case 405 -> sb_header.append("Method Not Allowed");
+        }
+        sb_header.append("\r\n");
+        if (AccessControlAllowOrigin != null){
+            sb_header.append("Access-Control-Allow-Origin: ").append(AccessControlAllowOrigin).append("\r\n");
+        }
+        sb_header.append("Content-Length: ").append(body.length).append("\r\n");
+        if (contentEncoding != null && !contentEncoding.isEmpty()) {
+            sb_header.append("Content-Encoding: ").append(contentEncoding).append("\r\n");
+        }
+        sb_header.append("Content-Type: ").append(contentType).append("\r\n");
+
+        sb_header.append("Date: ").append(new Date()).append("\r\n");
+
+        sb_header.append("\r\n");
+
+        //System.out.println(sb_header);
+        out.write(sb_header.toString().getBytes(StandardCharsets.UTF_8));
+        if (!isHEAD){
+            out.write(body);
+        }
+        out.flush();
+
+        out = null;
+        sb_header.setLength(0);
+        sb_header = null;
+
+    }
+
     public static String getURI(String HTTPRequest){
         String uri = null;
         Matcher matcher = HTTP.matcher(HTTPRequest);
@@ -548,5 +569,122 @@ public class Function {
         }
 
         return uri;
+    }
+
+    public static byte[] decompressByte(byte[] content, String compressType) throws Exception {
+        byte[] body = content;
+
+        if (compressType == null || compressType.isEmpty()){
+            return body;
+        }
+
+        if (compressType.toLowerCase(Locale.ROOT).equals("gzip")){
+
+            ByteArrayInputStream stream = new ByteArrayInputStream(content);
+            GZIPInputStream gis = new GZIPInputStream(stream);
+            body = gis.readAllBytes();
+            gis.close();
+            stream.close();
+
+        } else if (compressType.toLowerCase(Locale.ROOT).equals("br")){
+
+            String brotliPath = Function.getBrotliPath();
+            String d_file = "./text_d_"+ UUID.randomUUID().toString()+"_"+new Date().getTime()+".txt";
+            String o_file = "./text_d_"+ UUID.randomUUID().toString()+"_"+new Date().getTime()+".txt.br";
+
+            Runtime runtime = Runtime.getRuntime();
+            if (!brotliPath.isEmpty()){
+
+                FileOutputStream outputStream = new FileOutputStream(o_file);
+                outputStream.write(content);
+                outputStream.close();
+
+                //final Process exec0 = runtime.exec(new String[]{brotliPath, "-9", "-o", "text.br2", "text.txt"});
+                final Process exec0 = runtime.exec(new String[]{brotliPath, "-o" , d_file, "-d" , o_file});
+                Thread.ofVirtual().start(() -> {
+                    try {
+                        Thread.sleep(5000L);
+                    } catch (Exception e) {
+                        //e.printStackTrace();
+                    }
+
+                    if (exec0.isAlive()) {
+                        exec0.destroy();
+                    }
+                });
+                exec0.waitFor();
+
+                FileInputStream inputStream = new FileInputStream(d_file);
+                body = inputStream.readAllBytes();
+                inputStream.close();
+
+                new File(d_file).delete();
+                new File(o_file).delete();
+
+                //System.out.println(body.length);
+
+            }
+
+        }
+        return body;
+    }
+
+    public static byte[] compressByte(byte[] content, String compressType) throws Exception {
+        compressType = compressType.toLowerCase(Locale.ROOT);
+
+        if (compressType.equals("br") || compressType.equals("brotli")){
+            String brotliPath = Function.getBrotliPath();
+            String d_file = "./text_"+ UUID.randomUUID().toString()+"_"+new Date().getTime()+".txt.br";
+            String o_file = "./text_"+ UUID.randomUUID().toString()+"_"+new Date().getTime()+".txt";
+
+            Runtime runtime = Runtime.getRuntime();
+            if (!brotliPath.isEmpty()) {
+
+                FileOutputStream outputStream = new FileOutputStream(o_file);
+                outputStream.write(content);
+                outputStream.close();
+
+                final Process exec0 = runtime.exec(new String[]{brotliPath, "-9", "-o", d_file, o_file});
+                Thread.ofVirtual().start(() -> {
+                    try {
+                        Thread.sleep(5000L);
+                    } catch (Exception e) {
+                        //e.printStackTrace();
+                    }
+
+                    if (exec0.isAlive()) {
+                        exec0.destroy();
+                    }
+                });
+                exec0.waitFor();
+
+                FileInputStream inputStream = new FileInputStream(d_file);
+                byte[] body = inputStream.readAllBytes();
+                inputStream.close();
+
+                new File(d_file).delete();
+                new File(o_file).delete();
+
+                return body;
+            }
+        } else if (compressType.equals("gzip")){
+            ByteArrayOutputStream compressBaos = new ByteArrayOutputStream();
+            try (OutputStream gzip = new GZIPOutputStream(compressBaos)) {
+                gzip.write(content);
+            }
+
+            return compressBaos.toByteArray();
+        }
+
+        return null;
+    }
+
+    public static String getContentEncoding(String httpRequest){
+        Matcher matcher = Function.matcher_contentEncoding.matcher(httpRequest);
+        if (matcher.find()){
+            return matcher.group(3);
+        }
+
+        return "";
     }
 }

@@ -21,6 +21,7 @@ public class ImageCall implements ServiceInterface {
     private String httpVersion = null;
     private String URI = null;
     private boolean isHead = false;
+    private String SendContentEncoding = "";
 
     private final String getImage_UserAgent = Function.UserAgent + " image2resize/"+Function.Version;
     private final File cache_folder = new File("./cache");
@@ -39,6 +40,14 @@ public class ImageCall implements ServiceInterface {
         final String method = Function.getMethod(httpRequest);
         this.isHead = method != null && method.equals("HEAD");
         this.URI = Function.getURI(httpRequest);
+        String ContentEncoding = Function.getContentEncoding(httpRequest);
+
+        if (ContentEncoding.matches(".*br.*")){
+            this.SendContentEncoding = "br";
+        } else if (ContentEncoding.matches(".*gzip.*")){
+            this.SendContentEncoding = "gzip";
+        }
+
     }
 
     public void run() throws Exception {
@@ -53,7 +62,7 @@ public class ImageCall implements ServiceInterface {
         if (error != null){
             Function.CacheDataList.remove(url);
             //System.out.println(error);
-            Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", error.getBytes(StandardCharsets.UTF_8), isHead);
+            Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(error.getBytes(StandardCharsets.UTF_8), SendContentEncoding), isHead);
             sock.close();
 
             //error = null;
@@ -110,13 +119,13 @@ public class ImageCall implements ServiceInterface {
 
                 try (DataInputStream dis = new DataInputStream(new FileInputStream("./cache/"+cacheFilename))) {
                     //out.write(dis.readAllBytes());
-                    Function.sendHTTPRequest(sock, httpVersion, 200, Function.contentType_png, "*", dis.readAllBytes(), isHead);
+                    Function.sendHTTPRequest(sock, httpVersion, 200, Function.contentType_png, SendContentEncoding, "*", Function.compressByte(dis.readAllBytes(), SendContentEncoding), isHead);
                 } catch (Exception e){
                     //e.printStackTrace();
                 }
 
             } else {
-                Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentFileNotFound, isHead);
+                Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(Function.contentFileNotFound, SendContentEncoding), isHead);
                 Function.CacheDataList.remove(url);
             }
             sock.close();
@@ -137,7 +146,7 @@ public class ImageCall implements ServiceInterface {
             Function.CacheDataList.remove(url);
             Function.ErrorURLList.put(url, "URL Not Found");
             //System.out.println("[Debug] HTTPRequest送信");
-            Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentNotFound2, isHead);
+            Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(Function.contentNotFound2, SendContentEncoding), isHead);
             sock.close();
 
             return;
@@ -158,7 +167,7 @@ public class ImageCall implements ServiceInterface {
                     .headers("User-Agent", getImage_UserAgent)
                     .headers("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                     .headers("Accept-Language", "ja,en;q=0.7,en-US;q=0.3")
-                    .headers("Accept-Encoding", "gzip")
+                    .headers("Accept-Encoding", "gzip, br")
                     .GET()
                     .build();
 
@@ -174,14 +183,15 @@ public class ImageCall implements ServiceInterface {
             if (send.statusCode() < 200 || send.statusCode() > 399){
                 Function.CacheDataList.remove(url);
                 Function.ErrorURLList.put(url, "URL Not Found");
-                Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentNotFound2, isHead);
+                Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(Function.contentNotFound2, SendContentEncoding), isHead);
                 sock.close();
 
                 send = null;
                 request = null;
                 return;
             }
-            data = send.body();
+            String contentEncoding = send.headers().firstValue("Content-Encoding").isPresent() ? send.headers().firstValue("Content-Encoding").get() : send.headers().firstValue("content-encoding").isPresent() ? send.headers().firstValue("content-encoding").get() : "";
+            data = Function.decompressByte(send.body(), contentEncoding);
             send = null;
             request = null;
 
@@ -196,7 +206,7 @@ public class ImageCall implements ServiceInterface {
                             .headers("User-Agent", getImage_UserAgent)
                             .headers("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                             .headers("Accept-Language", "ja,en;q=0.7,en-US;q=0.3")
-                            .headers("Accept-Encoding", "gzip")
+                            .headers("Accept-Encoding", "gzip, br")
                             .GET()
                             .build();
 
@@ -212,7 +222,7 @@ public class ImageCall implements ServiceInterface {
 
                     if (send.statusCode() < 200 || send.statusCode() > 399){
                         Function.CacheDataList.remove(url);
-                        Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentNotFound2, isHead);
+                        Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(Function.contentNotFound2, SendContentEncoding), isHead);
                         sock.close();
 
                         send = null;
@@ -234,11 +244,12 @@ public class ImageCall implements ServiceInterface {
                                 .headers("User-Agent", getImage_UserAgent)
                                 .headers("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                                 .headers("Accept-Language", "ja,en;q=0.7,en-US;q=0.3")
-                                .headers("Accept-Encoding", "gzip")
+                                .headers("Accept-Encoding", "gzip, br")
                                 .GET()
                                 .build();
 
                         send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                        contentEncoding = send.headers().firstValue("Content-Encoding").isPresent() ? send.headers().firstValue("Content-Encoding").get() : send.headers().firstValue("content-encoding").isPresent() ? send.headers().firstValue("content-encoding").get() : "";
 
                         if (send.headers().firstValue("Content-Type").isPresent()) {
                             contentType = send.headers().firstValue("Content-Type").get();
@@ -251,14 +262,14 @@ public class ImageCall implements ServiceInterface {
                         if (send.statusCode() < 200 || send.statusCode() > 399) {
                             Function.CacheDataList.remove(url);
                             Function.ErrorURLList.put(url, "URL Not Found");
-                            Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentNotFound2, isHead);
+                            Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(Function.contentNotFound2, SendContentEncoding), isHead);
                             sock.close();
 
                             send = null;
                             request = null;
                             return;
                         }
-                        data = send.body();
+                        data = Function.decompressByte(send.body(), contentEncoding);
                         send = null;
                         request = null;
                     } else {
@@ -266,7 +277,7 @@ public class ImageCall implements ServiceInterface {
                         html = null;
                         Function.CacheDataList.remove(url);
                         Function.ErrorURLList.put(url, "Not Image");
-                        Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentNotImage, isHead);
+                        Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(Function.contentNotImage, SendContentEncoding), isHead);
                         sock.close();
 
                         return;
@@ -278,7 +289,7 @@ public class ImageCall implements ServiceInterface {
         } catch (Exception e){
             Function.CacheDataList.remove(url);
             Function.ErrorURLList.put(url, "URL Not Found");
-            Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentNotFound2, isHead);
+            Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(Function.contentNotFound2, SendContentEncoding), isHead);
             sock.close();
 
             return;
@@ -288,7 +299,7 @@ public class ImageCall implements ServiceInterface {
             Function.CacheDataList.remove(url);
             Function.ErrorURLList.put(url, "Not Image");
             //System.out.println("[Debug] HTTPRequest送信");
-            Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentNotImage, isHead);
+            Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(Function.contentNotImage, SendContentEncoding), isHead);
             sock.close();
 
             return;
@@ -299,7 +310,7 @@ public class ImageCall implements ServiceInterface {
             Function.CacheDataList.remove(url);
             Function.ErrorURLList.put(url, "File Not Found");
             //System.out.println("[Debug] HTTPRequest送信");
-            Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentFileNotFound, isHead);
+            Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(Function.contentFileNotFound, SendContentEncoding), isHead);
             sock.close();
 
             return;
@@ -314,7 +325,7 @@ public class ImageCall implements ServiceInterface {
             Function.CacheDataList.remove(url);
             Function.ErrorURLList.put(url, "File Not Support");
             //System.out.println("[Debug] HTTPRequest送信");
-            Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentFileNotSupport, isHead);
+            Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(Function.contentFileNotSupport, SendContentEncoding), isHead);
             sock.close();
 
             return;
@@ -337,7 +348,7 @@ public class ImageCall implements ServiceInterface {
 
         //System.out.println("[Debug] 画像出力");
         //System.out.println("[Debug] HTTPRequest送信");
-        Function.sendHTTPRequest(sock, httpVersion, 200, Function.contentType_png, "*", content, isHead);
+        Function.sendHTTPRequest(sock, httpVersion, 200, Function.contentType_png, SendContentEncoding, "*", Function.compressByte(content, SendContentEncoding), isHead);
         //imageData.setFileContent(null);
         sock.close();
 

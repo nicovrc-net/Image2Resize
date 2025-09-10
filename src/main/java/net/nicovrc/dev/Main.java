@@ -72,6 +72,11 @@ RedisSSL: false
                 }
             }
 
+            if (Function.getBrotliPath().isEmpty()){
+                System.out.println("[Info] brotli実行ファイルを同じフォルダに置いてください。");
+                return;
+            }
+
             if (!new File(FolderPass).exists()){
                 new File(FolderPass).mkdir();
             }

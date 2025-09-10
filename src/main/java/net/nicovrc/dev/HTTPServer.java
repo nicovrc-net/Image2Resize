@@ -307,6 +307,12 @@ public class HTTPServer extends Thread {
                     try {
 
                         final String httpRequest = Function.getHTTPRequest(sock);
+
+                        if (httpRequest == null){
+                            sock.close();
+                            return;
+                        }
+
                         final String httpVersion = Function.getHTTPVersion(httpRequest);
                         final String httpMethod = Function.getMethod(httpRequest);
 
@@ -314,9 +320,13 @@ public class HTTPServer extends Thread {
                         final boolean isPOST = httpMethod != null && httpMethod.equals("POST");
                         final boolean isHead = httpMethod != null && httpMethod.equals("HEAD");
 
-                        if (httpRequest == null){
-                            sock.close();
-                            return;
+                        String ContentEncoding = Function.getContentEncoding(httpRequest);
+                        String SendContentEncoding = "";
+
+                        if (ContentEncoding.matches(".*br.*")){
+                            SendContentEncoding = "br";
+                        } else if (ContentEncoding.matches(".*gzip.*")){
+                            SendContentEncoding = "gzip";
                         }
 
                         //System.out.println("[Debug] HTTPRequest受信");
@@ -332,14 +342,14 @@ public class HTTPServer extends Thread {
 
                         if (httpVersion == null) {
                             //System.out.println("[Debug] HTTPRequest送信");
-                            Function.sendHTTPRequest(sock, "1.1", 502, Function.contentType_text, "*", Function.contentBadGateway, isHead);
+                            Function.sendHTTPRequest(sock, "1.1", 502, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(Function.contentBadGateway, SendContentEncoding), isHead);
                             sock.close();
                             return;
                         }
 
                         if (!isGET && !isPOST && !isHead) {
                             //System.out.println("[Debug] HTTPRequest送信");
-                            Function.sendHTTPRequest(sock, httpVersion, 405, Function.contentType_text, "*", Function.contentMethodNotAllowed, isHead);
+                            Function.sendHTTPRequest(sock, httpVersion, 405, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(Function.contentMethodNotAllowed, SendContentEncoding), isHead);
                             sock.close();
 
                             return;
@@ -349,7 +359,7 @@ public class HTTPServer extends Thread {
 
                         if (URI == null){
                             //System.out.println("[Debug] HTTPRequest送信");
-                            Function.sendHTTPRequest(sock, httpVersion, 502, Function.contentType_text, "*", Function.contentBadGateway, isHead);
+                            Function.sendHTTPRequest(sock, httpVersion, 502, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(Function.contentBadGateway, SendContentEncoding), isHead);
                             sock.close();
 
                             return;
@@ -372,7 +382,7 @@ public class HTTPServer extends Thread {
                             return;
                         }
 
-                        Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, "*", Function.contentNotFound, isHead);
+                        Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(Function.contentNotFound, SendContentEncoding), isHead);
                         sock.close();
 
                     } catch (Exception e) {
