@@ -89,8 +89,28 @@ jobs:
           name: ffmpeg
           path: ./ffmpeg
 
+  build_brotli:
+     runs-on: ubuntu-24.04
+     permissions:
+       contents: write
+     steps:
+       - name: Build brotli
+         run: |
+           git clone https://github.com/google/brotli.git
+           cd brotli
+           mkdir out && cd out
+           cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./installed ..
+           cmake --build . --config Release --target install
+         shell: bash
+
+       - name: Upload brotli
+         uses: actions/upload-artifact@v4
+         with:
+           name: brotli
+           path: ./brotli/out/brotli
+
   autotest1:
-    needs: build-21
+    needs: [build-21, build_brotli]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -124,7 +144,7 @@ jobs:
         shell: bash
 
   autotest2:
-    needs: build-21
+    needs: [build-21, build_brotli]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -158,7 +178,7 @@ jobs:
         shell: bash
 
   autotest3:
-    needs: [build-21, download_ffmpeg]
+    needs: [build-21, build_brotli, download_ffmpeg]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -200,7 +220,7 @@ jobs:
         shell: bash
 
   autotest4:
-    needs: [build-21, download_ffmpeg]
+    needs: [build-21, build_brotli, download_ffmpeg]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -242,7 +262,7 @@ jobs:
         shell: bash
 
   autotest5:
-    needs: [build-21, download_ffmpeg]
+    needs: [build-21, build_brotli, download_ffmpeg]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -284,7 +304,7 @@ jobs:
         shell: bash
 
   autotest6:
-    needs: [build-21, download_ffmpeg]
+    needs: [build-21, build_brotli, download_ffmpeg]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -332,7 +352,7 @@ jobs:
         shell: bash
 
   autotest7:
-    needs: build-21
+    needs: [build-21, build_brotli]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -374,7 +394,7 @@ jobs:
         shell: bash
 
   autotest8:
-    needs: build-21
+    needs: [build-21, build_brotli]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -428,7 +448,7 @@ jobs:
         shell: bash
 
   autotest9:
-    needs: [build-21, download_ffmpeg]
+    needs: [build-21, build_brotli, download_ffmpeg]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -485,7 +505,7 @@ jobs:
         shell: bash
 
   autotest10:
-    needs: [build-21, download_ffmpeg]
+    needs: [build-21, build_brotli, download_ffmpeg]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -528,7 +548,7 @@ jobs:
         shell: bash
 
   autotest11:
-    needs: [build-21, download_ffmpeg]
+    needs: [build-21, build_brotli, download_ffmpeg]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -571,7 +591,7 @@ jobs:
         shell: bash
 
   autotest12:
-    needs: [build-21, download_ffmpeg]
+    needs: [build-21, build_brotli, download_ffmpeg]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -633,7 +653,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - バグ修正
+            - gzip圧縮及びbrotli圧縮に対応
           draft: false
           prerelease: true
 
@@ -654,3 +674,4 @@ jobs:
           name: |
             jar
             ffmpeg
+            brotli
