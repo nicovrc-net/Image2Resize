@@ -127,6 +127,11 @@ jobs:
         with:
           name: jar
 
+      - name: Download brotli File
+        uses: actions/download-artifact@v4
+        with:
+          name: brotli
+
       - name: Run the application
         run: java -jar ./Image2Resize-1.0-SNAPSHOT-all.jar &
         shell: bash
@@ -161,6 +166,11 @@ jobs:
         with:
           name: jar
 
+      - name: Download brotli File
+        uses: actions/download-artifact@v4
+        with:
+          name: brotli
+
       - name: Run the application
         run: java -jar ./Image2Resize-1.0-SNAPSHOT-all.jar --default-config-mode &
         shell: bash
@@ -194,6 +204,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: jar
+
+      - name: Download brotli File
+        uses: actions/download-artifact@v4
+        with:
+          name: brotli
 
       - name: Download ffmpeg
         uses: actions/download-artifact@v4
@@ -245,6 +260,11 @@ jobs:
       - name: Make ffmpeg executable
         run: chmod +x ./ffmpeg
 
+      - name: Download brotli File
+        uses: actions/download-artifact@v4
+        with:
+          name: brotli
+
       - name: Run the application
         run: java -jar ./Image2Resize-1.0-SNAPSHOT-all.jar --default-config-mode &
         shell: bash
@@ -286,6 +306,11 @@ jobs:
 
       - name: Make ffmpeg executable
         run: chmod +x ./ffmpeg
+
+      - name: Download brotli File
+        uses: actions/download-artifact@v4
+        with:
+          name: brotli
 
       - name: Run the application
         run: java -jar ./Image2Resize-1.0-SNAPSHOT-all.jar --default-config-mode &
@@ -329,6 +354,11 @@ jobs:
       - name: Make ffmpeg executable
         run: chmod +x ./ffmpeg
 
+      - name: Download brotli File
+        uses: actions/download-artifact@v4
+        with:
+          name: brotli
+
       - name: Run the application
         run: java -jar ./Image2Resize-1.0-SNAPSHOT-all.jar --default-config-mode &
         shell: bash
@@ -369,6 +399,11 @@ jobs:
         with:
           name: jar
 
+      - name: Download brotli File
+        uses: actions/download-artifact@v4
+        with:
+          name: brotli
+
       - name: Run the application
         run: java -jar ./Image2Resize-1.0-SNAPSHOT-all.jar --default-config-mode &
         shell: bash
@@ -405,6 +440,11 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+
+      - name: Download brotli File
+        uses: actions/download-artifact@v4
+        with:
+          name: brotli
 
       - name: Download JarFile
         uses: actions/download-artifact@v4
@@ -473,6 +513,11 @@ jobs:
       - name: Make ffmpeg executable
         run: chmod +x ./ffmpeg
 
+      - name: Download brotli File
+        uses: actions/download-artifact@v4
+        with:
+          name: brotli
+
       - name: Run the application
         run: java -jar ./Image2Resize-1.0-SNAPSHOT-all.jar --default-config-mode &
         shell: bash
@@ -530,6 +575,11 @@ jobs:
       - name: Make ffmpeg executable
         run: chmod +x ./ffmpeg
 
+      - name: Download brotli File
+        uses: actions/download-artifact@v4
+        with:
+          name: brotli
+
       - name: Run the application
         run: java -jar ./Image2Resize-1.0-SNAPSHOT-all.jar --default-config-mode &
         shell: bash
@@ -573,6 +623,11 @@ jobs:
       - name: Make ffmpeg executable
         run: chmod +x ./ffmpeg
 
+      - name: Download brotli File
+        uses: actions/download-artifact@v4
+        with:
+          name: brotli
+
       - name: Run the application
         run: java -jar ./Image2Resize-1.0-SNAPSHOT-all.jar --default-config-mode &
         shell: bash
@@ -615,6 +670,11 @@ jobs:
 
       - name: Make ffmpeg executable
         run: chmod +x ./ffmpeg
+
+      - name: Download brotli File
+        uses: actions/download-artifact@v4
+        with:
+          name: brotli
 
       - name: Run the application
         run: java -jar ./Image2Resize-1.0-SNAPSHOT-all.jar --default-config-mode &
