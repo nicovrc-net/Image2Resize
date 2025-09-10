@@ -630,7 +630,11 @@ public class Function {
     }
 
     public static byte[] compressByte(byte[] content, String compressType) throws Exception {
-        compressType = compressType.toLowerCase(Locale.ROOT);
+        compressType = compressType != null ? compressType.toLowerCase(Locale.ROOT) : null;
+
+        if (compressType == null || compressType.isEmpty()){
+            return content;
+        }
 
         if (compressType.equals("br") || compressType.equals("brotli")){
             String brotliPath = Function.getBrotliPath();
