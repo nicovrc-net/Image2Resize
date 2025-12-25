@@ -15,7 +15,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
 
     implementation 'com.amihaiemil.web:eo-yaml:8.0.6'
-    implementation 'redis.clients:jedis:7.0.0'
+    implementation 'redis.clients:jedis:7.2.0'
 }
 
 tasks.test {
