@@ -82,227 +82,217 @@ public class HTTPServer extends Thread {
 
     @Override
     public void run() {
-        // キャッシュ掃除
-        CacheCheckTimer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                int startCacheCount = Function.CacheDataList.size();
-                if (startCacheCount > 0){
-                    System.out.println("[Info] キャッシュお掃除開始 (" + Function.sdf.format(new Date()) + ")");
-                    final HashMap<String, Long> temp = new HashMap<>(Function.CacheDataList);
-
-                    temp.forEach((url, cacheTime)->{
-
-                        if (cacheTime >= 0L){
-                            //System.out.println(StartTime - data.getCacheDate().getTime());
-                            if (new Date().getTime() - cacheTime >= 3600000){
-
-                                Function.CacheDataList.remove(url);
-
-                                try {
-
-                                    File file = new File("./cache/" + Function.getFileName(url, cacheTime));
-                                    if (file.exists()){
-                                        file.delete();
-                                    }
-                                    file = null;
-
-                                } catch (Exception e) {
-                                    //e.printStackTrace();
-                                }
-
-                            }
-                        }
-
-                    });
-
-                    temp.clear();
-                    //System.gc();
-
-                    Date date1 = new Date();
-                    System.out.println("[Info] キャッシュお掃除終了 (" + Function.sdf.format(date1) + ")");
-                    System.out.println("[Info] キャッシュ件数が"+startCacheCount+"件から"+Function.CacheDataList.size()+"件になりました。 (" + Function.sdf.format(date1) + ")");
-                    date1 = null;
-                }
-            }
-        }, 0L, 3600000L);
-
-        // ログ書き出し
-        LogWriteTimer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                new Thread(()->{
-                    if (!Function.LogWriteCacheList.isEmpty()){
-                        System.out.println("[Info] ログ書き込み開始 (" + Function.sdf.format(new Date()) + ")");
-                        long writeCount = Function.WriteLog(Function.LogWriteCacheList);
-                        System.out.println("[Info] ログ書き込み終了("+writeCount+"件) (" + Function.sdf.format(new Date()) + ")");
-                    }
-                    System.gc();
-                }).start();
-            }
-        }, 0L, 60000L);
-
-        // 終了監視
-        CheckStopTimer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                try {
-
-                    if (!stop_file.exists()){
-                        return;
-                    }
-
-                    boolean delete = stop_file.delete();
-                    if (delete){
-                        if (stop_lock_file.exists()){
-                            return;
-                        }
-                        System.out.println("[Info] 終了するための準備処理を開始します。");
-                        temp[0] = false;
-
-                        Socket socket = new Socket("127.0.0.1", HTTPPort);
-                        OutputStream stream = socket.getOutputStream();
-                        stream.write("".getBytes(StandardCharsets.UTF_8));
-                        stream.close();
-                        socket.close();
-                        System.out.println("[Info] (終了準備処理)処理受付中止 完了");
-
-                        boolean newFile = stop_lock_file.createNewFile();
-                        if (newFile){
-                            long count = Function.WriteLog(Function.LogWriteCacheList);
-                            if (count == 0){
-                                System.out.println("[Info] (終了準備処理)ログ書き出し完了");
-                            } else {
-                                while (count > 0){
-                                    if (Function.LogWriteCacheList.isEmpty()){
-                                        count = 0;
-                                    } else {
-                                        count = Function.WriteLog(Function.LogWriteCacheList);
-                                    }
-                                }
-                            }
-
-                            CheckStopTimer.cancel();
-                            CheckErrorCacheTimer.cancel();
-                            System.out.println("[Info] 終了準備処理完了");
-                            stop_lock_file.deleteOnExit();
-                        }
-                    }
-
-                } catch (Exception e){
-                    // e.printStackTrace();
-                }
-            }
-        }, 0L, 1000L);
-
-        ServerSocket svSock = null;
-        try {
-            svSock = new ServerSocket(HTTPPort);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        //死活監視追加
-        CheckAccessTimer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                if (!temp[0]){
-                    try {
-                        Socket socket = new Socket(localhost, HTTPPort);
-                        OutputStream stream = socket.getOutputStream();
-                        stream.write(emptyBytes);
-                        stream.close();
-                        socket.close();
-                    } catch (Exception e){
-                        //e.printStackTrace();
-                    }
-                    CheckAccessTimer.cancel();
-                    CheckErrorCacheTimer.cancel();
-                    return;
-                }
-
-                try {
-                    Socket socket = new Socket(localhost, HTTPPort);
-                    OutputStream out_stream = socket.getOutputStream();
-                    out_stream.write(emptyBytes);
-                    try {
-                        Thread.sleep(500L);
-                    } catch (Exception e){
-                        //e.printStackTrace();
-                    }
-                    socket.close();
-                } catch (Exception e){
-                    //e.printStackTrace();
-                    CheckAccessTimer.cancel();
-                    CheckErrorCacheTimer.cancel();
-                    try {
-                        boolean newFile = stop_file.createNewFile();
-                    } catch (IOException ex) {
-                        //ex.printStackTrace();
-                    }
-                }
-
-                if (check_url == null){
-                    return;
-                }
-
-                try {
-
-                    HttpClient client = HttpClient.newBuilder()
-                            .version(HttpClient.Version.HTTP_2)
-                            .followRedirects(HttpClient.Redirect.NORMAL)
-                            .connectTimeout(Duration.ofSeconds(5))
-                            .build();
-
-                    HttpRequest request = HttpRequest.newBuilder()
-                            .uri(check_url)
-                            .headers("User-Agent", userAgent1)
-                            .headers("x-image2-resize-test", check_url.toString())
-                            .GET()
-                            .build();
-
-                    HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-                    //System.out.println(send.statusCode());
-                    if (send.statusCode() < 200 || send.statusCode() > 399){
-                        send = null;
-                        request = null;
-                        client.close();
-                        client = null;
-                        throw new Exception("Error");
-                    }
-
-                    send = null;
-                    request = null;
-                    client.close();
-                    client = null;
-
-                } catch (Exception e){
-                    //e.printStackTrace();
-                    CheckAccessTimer.cancel();
-                    CheckErrorCacheTimer.cancel();
-                    try {
-                        boolean newFile = stop_file.createNewFile();
-                    } catch (IOException ex) {
-                        //ex.printStackTrace();
-                    }
-                }
-            }
-        }, 1000L, 1000L);
-
-        // エラーリスト掃除
-        CheckErrorCacheTimer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                Function.ErrorURLList.clear();
-            }
-        }, 0L, 10000L);
-
         System.out.println("[Info] TCP Port " + HTTPPort + "で 処理受付用HTTPサーバー待機開始");
         try (HttpClient client = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_2)
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .connectTimeout(Duration.ofSeconds(5))
                 .build()){
+
+            // キャッシュ掃除
+            CacheCheckTimer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    int startCacheCount = Function.CacheDataList.size();
+                    if (startCacheCount > 0){
+                        System.out.println("[Info] キャッシュお掃除開始 (" + Function.sdf.format(new Date()) + ")");
+                        final HashMap<String, Long> temp = new HashMap<>(Function.CacheDataList);
+
+                        temp.forEach((url, cacheTime)->{
+
+                            if (cacheTime >= 0L){
+                                //System.out.println(StartTime - data.getCacheDate().getTime());
+                                if (new Date().getTime() - cacheTime >= 3600000){
+
+                                    Function.CacheDataList.remove(url);
+
+                                    try {
+
+                                        File file = new File("./cache/" + Function.getFileName(url, cacheTime));
+                                        if (file.exists()){
+                                            file.delete();
+                                        }
+                                        file = null;
+
+                                    } catch (Exception e) {
+                                        //e.printStackTrace();
+                                    }
+
+                                }
+                            }
+
+                        });
+
+                        temp.clear();
+                        //System.gc();
+
+                        Date date1 = new Date();
+                        System.out.println("[Info] キャッシュお掃除終了 (" + Function.sdf.format(date1) + ")");
+                        System.out.println("[Info] キャッシュ件数が"+startCacheCount+"件から"+Function.CacheDataList.size()+"件になりました。 (" + Function.sdf.format(date1) + ")");
+                        date1 = null;
+                    }
+                }
+            }, 0L, 3600000L);
+
+            // ログ書き出し
+            LogWriteTimer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    new Thread(()->{
+                        if (!Function.LogWriteCacheList.isEmpty()){
+                            System.out.println("[Info] ログ書き込み開始 (" + Function.sdf.format(new Date()) + ")");
+                            long writeCount = Function.WriteLog(Function.LogWriteCacheList);
+                            System.out.println("[Info] ログ書き込み終了("+writeCount+"件) (" + Function.sdf.format(new Date()) + ")");
+                        }
+                        System.gc();
+                    }).start();
+                }
+            }, 0L, 60000L);
+
+            // 終了監視
+            CheckStopTimer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    try {
+
+                        if (!stop_file.exists()){
+                            return;
+                        }
+
+                        boolean delete = stop_file.delete();
+                        if (delete){
+                            if (stop_lock_file.exists()){
+                                return;
+                            }
+                            System.out.println("[Info] 終了するための準備処理を開始します。");
+                            temp[0] = false;
+
+                            Socket socket = new Socket("127.0.0.1", HTTPPort);
+                            OutputStream stream = socket.getOutputStream();
+                            stream.write("".getBytes(StandardCharsets.UTF_8));
+                            stream.close();
+                            socket.close();
+                            System.out.println("[Info] (終了準備処理)処理受付中止 完了");
+
+                            boolean newFile = stop_lock_file.createNewFile();
+                            if (newFile){
+                                long count = Function.WriteLog(Function.LogWriteCacheList);
+                                if (count == 0){
+                                    System.out.println("[Info] (終了準備処理)ログ書き出し完了");
+                                } else {
+                                    while (count > 0){
+                                        if (Function.LogWriteCacheList.isEmpty()){
+                                            count = 0;
+                                        } else {
+                                            count = Function.WriteLog(Function.LogWriteCacheList);
+                                        }
+                                    }
+                                }
+
+                                CheckStopTimer.cancel();
+                                CheckErrorCacheTimer.cancel();
+                                System.out.println("[Info] 終了準備処理完了");
+                                stop_lock_file.deleteOnExit();
+                            }
+                        }
+
+                    } catch (Exception e){
+                        // e.printStackTrace();
+                    }
+                }
+            }, 0L, 1000L);
+
+            ServerSocket svSock = null;
+            try {
+                svSock = new ServerSocket(HTTPPort);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+            //死活監視追加
+            CheckAccessTimer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    if (!temp[0]){
+                        try {
+                            Socket socket = new Socket(localhost, HTTPPort);
+                            OutputStream stream = socket.getOutputStream();
+                            stream.write(emptyBytes);
+                            stream.close();
+                            socket.close();
+                        } catch (Exception e){
+                            //e.printStackTrace();
+                        }
+                        CheckAccessTimer.cancel();
+                        CheckErrorCacheTimer.cancel();
+                        return;
+                    }
+
+                    try {
+                        Socket socket = new Socket(localhost, HTTPPort);
+                        OutputStream out_stream = socket.getOutputStream();
+                        out_stream.write(emptyBytes);
+                        try {
+                            Thread.sleep(500L);
+                        } catch (Exception e){
+                            //e.printStackTrace();
+                        }
+                        socket.close();
+                    } catch (Exception e){
+                        //e.printStackTrace();
+                        CheckAccessTimer.cancel();
+                        CheckErrorCacheTimer.cancel();
+                        try {
+                            boolean newFile = stop_file.createNewFile();
+                        } catch (IOException ex) {
+                            //ex.printStackTrace();
+                        }
+                    }
+
+                    if (check_url == null){
+                        return;
+                    }
+
+                    try {
+
+                        HttpRequest request = HttpRequest.newBuilder()
+                                .uri(check_url)
+                                .headers("User-Agent", userAgent1)
+                                .headers("x-image2-resize-test", check_url.toString())
+                                .GET()
+                                .build();
+
+                        HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                        //System.out.println(send.statusCode());
+                        if (send.statusCode() < 200 || send.statusCode() > 399){
+                            send = null;
+                            request = null;
+                            throw new Exception("Error");
+                        }
+
+                        send = null;
+                        request = null;
+
+                    } catch (Exception e){
+                        //e.printStackTrace();
+                        CheckAccessTimer.cancel();
+                        CheckErrorCacheTimer.cancel();
+                        try {
+                            boolean newFile = stop_file.createNewFile();
+                        } catch (IOException ex) {
+                            //ex.printStackTrace();
+                        }
+                    }
+                }
+            }, 1000L, 1000L);
+
+            // エラーリスト掃除
+            CheckErrorCacheTimer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    Function.ErrorURLList.clear();
+                }
+            }, 0L, 10000L);
 
             while (temp[0]) {
                 //System.gc();
