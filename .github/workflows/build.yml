@@ -192,7 +192,7 @@ jobs:
 
       - name: URL Resize Test
         run: |
-          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:25555/?url=https://nicovrc.net/i2i_autotest.png)
+          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:25555/?url=https://raw.githubusercontent.com/nicovrc-net/Image2Resize/refs/heads/master/.github/workflows/i2i_autotest.png)
           if [ "$HTTP_STATUS" -ne 200 ]; then
             echo "Expected HTTP status 200 but got $HTTP_STATUS"
             exit 1
@@ -464,7 +464,7 @@ jobs:
 
       - name: Access
         run: |
-          curl http://localhost:25555/?url=https://nicovrc.net/i2i_autotest.png > /dev/null
+          curl http://localhost:25555/?url=https://raw.githubusercontent.com/nicovrc-net/Image2Resize/refs/heads/master/.github/workflows/i2i_autotest.png > /dev/null
         shell: bash
 
       - name: Create stop.txt
