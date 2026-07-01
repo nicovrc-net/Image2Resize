@@ -1,6 +1,5 @@
 package net.nicovrc.dev.api;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import net.nicovrc.dev.Function;
 
@@ -30,26 +29,36 @@ public class PostImageResize implements ImageResizeAPI {
     public APIResult run(ConcurrentHashMap<String, Long> CacheDataList, ConcurrentHashMap<String, String> LogWriteCacheList, String httpRequest) {
         // {"filename": "(ファイル名)", "content": "(Base64エンコードしたもの)"}
         final Matcher matcher1 = ImagePostMatch.matcher(httpRequest);
+        final APIResult result = new APIResult();
+        final PostResult result1 = new PostResult();
+
         if (matcher1.find()){
-            final Gson gson = new Gson();
-            JsonElement json = gson.fromJson("{" + matcher1.group(1) + "}", JsonElement.class);
+            JsonElement json = Function.gson.fromJson("{" + matcher1.group(1) + "}", JsonElement.class);
 
             if (json.isJsonObject() && json.getAsJsonObject().has("scheme")){
                 // cf
                 if (matcher1.find()){
-                    json = gson.fromJson("{" + matcher1.group(1) + "}", JsonElement.class);
+                    json = Function.gson.fromJson("{" + matcher1.group(1) + "}", JsonElement.class);
                 }
                 //System.out.println(json);
             }
 
+
             if (!json.isJsonObject() || !json.getAsJsonObject().has("filename") || !json.getAsJsonObject().has("content")){
-                return new APIResult("404", "{\"message\": \"Not Support Request\"}".getBytes(StandardCharsets.UTF_8));
+                result1.setMessage("Not Support Request");
+                result.setHttpResponseCode("404");
+                result.setHttpContentType("application/json; charset=utf-8");
+                result.setHttpContent(Function.gson.toJson(result1).getBytes(StandardCharsets.UTF_8));
+                return result;
             }
 
             final String base64 = json.getAsJsonObject().has("content") ? json.getAsJsonObject().get("content").getAsString() : "";
             final byte[] bytes = Base64.getDecoder().decode(base64);
             if (bytes == null || bytes.length == 0){
-                return new APIResult("404", "{\"message\": \"Not Found Image\"}".getBytes(StandardCharsets.UTF_8));
+                result1.setMessage("Not Found Image");
+                result.setHttpResponseCode("404");
+                result.setHttpContentType("application/json; charset=utf-8");
+                result.setHttpContent(Function.gson.toJson(result1).getBytes(StandardCharsets.UTF_8));
             } else {
                 //System.out.println("debug 1-2");
                 byte[] resize = null;
@@ -57,14 +66,27 @@ public class PostImageResize implements ImageResizeAPI {
                     resize = Function.ImageResize(bytes);
                 } catch (Exception e) {
                     //e.printStackTrace();
-                    return new APIResult("404", "{\"message\": \"Not Support Image\"}".getBytes(StandardCharsets.UTF_8));
+                    result1.setMessage("Not Support Image");
+                    result.setHttpResponseCode("404");
+                    result.setHttpContentType("application/json; charset=utf-8");
+                    result.setHttpContent(Function.gson.toJson(result1).getBytes(StandardCharsets.UTF_8));
+                    return result;
                 }
                 //System.out.println(resize != null);
-                return new APIResult(resize != null ? "200" : "404", resize != null ? "image/png" : "application/json; charset=utf-8", resize != null ? resize : "{\"message\": \"Not Support Image\"}".getBytes(StandardCharsets.UTF_8));
+                result1.setMessage(resize == null ? "Not Support Image" : null);
+                result.setHttpResponseCode(resize != null ? "200" : "404");
+                result.setHttpContentType(resize != null ? "image/png" : "application/json; charset=utf-8");
+                result.setHttpContent(resize == null ? Function.gson.toJson(result1).getBytes(StandardCharsets.UTF_8) : resize);
             }
+            return result;
         } else {
             //System.out.println("debug 2");
-            return new APIResult("403", "{\"message\": \"Not Support Request\"}".getBytes(StandardCharsets.UTF_8));
+            result1.setMessage("Not Support Request");
+            result.setHttpResponseCode("403");
+            result.setHttpContentType("application/json; charset=utf-");
+            result.setHttpContent(Function.gson.toJson(result1).getBytes(StandardCharsets.UTF_8));
+
+            return result;
         }
     }
 

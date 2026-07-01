@@ -2,6 +2,7 @@ package net.nicovrc.dev;
 
 import com.amihaiemil.eoyaml.Yaml;
 import com.amihaiemil.eoyaml.YamlMapping;
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import redis.clients.jedis.*;
 
@@ -21,6 +22,7 @@ public class Function {
     public static final String UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0 image2resize/"+Function.Version;
     public static final String Version = "1.2.0";
     public static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    public static final Gson gson = new Gson();
 
     public static String ffmpegPass;
     public static String imageMagickPass;
