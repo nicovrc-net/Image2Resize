@@ -267,6 +267,10 @@ jobs:
       - name: Make ffmpeg executable
         run: chmod +x ./ffmpeg
 
+      - name: Download JsonFile
+        run: wget https://raw.githubusercontent.com/nicovrc-net/Image2Resize/refs/heads/master/.github/workflows/testfile.json
+        shell: bash
+
       - name: Run the application
         run: java -jar ./Image2Resize-1.0-SNAPSHOT-all.jar --default-config-mode &
         shell: bash
@@ -276,7 +280,6 @@ jobs:
 
       - name: API Check Test 2-1
         run: |
-          wget https://raw.githubusercontent.com/nicovrc-net/Image2Resize/refs/heads/master/.github/workflows/testfile.json
           HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" -X POST -H "Content-Type: application/json" -d @testfile.json http://localhost:25555/api/v1/image_resize)
           if [ "$HTTP_STATUS" -ne 200 ]; then
             echo "Expected HTTP status 200 but got $HTTP_STATUS"
