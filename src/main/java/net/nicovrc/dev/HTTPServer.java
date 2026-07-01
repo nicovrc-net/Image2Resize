@@ -298,8 +298,13 @@ public class HTTPServer extends Thread {
         }, 0L, 10000L);
 
         System.out.println("[Info] TCP Port " + HTTPPort + "で 処理受付用HTTPサーバー待機開始");
-        while (temp[0]) {
-            try {
+        try (HttpClient client = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_2)
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .connectTimeout(Duration.ofSeconds(5))
+                .build()){
+
+            while (temp[0]) {
                 //System.gc();
                 //System.out.println("[Debug] HTTPRequest待機");
                 final Socket sock = svSock.accept();
@@ -308,7 +313,7 @@ public class HTTPServer extends Thread {
 
                         final String httpRequest = Function.getHTTPRequest(sock);
 
-                        if (httpRequest == null){
+                        if (httpRequest == null) {
                             sock.close();
                             return;
                         }
@@ -320,36 +325,20 @@ public class HTTPServer extends Thread {
                         final boolean isPOST = httpMethod != null && httpMethod.equals("POST");
                         final boolean isHead = httpMethod != null && httpMethod.equals("HEAD");
 
-                        String ContentEncoding = Function.getContentEncoding(httpRequest);
-                        String SendContentEncoding = "";
-
-                        if (ContentEncoding.matches(".*br.*")){
-                            SendContentEncoding = "br";
-                        } else if (ContentEncoding.matches(".*gzip.*")){
-                            SendContentEncoding = "gzip";
-                        }
-
                         //System.out.println("[Debug] HTTPRequest受信");
                         // ログ保存は時間がかかるのでキャッシュする
                         // しかし死活管理からのアクセスは邪魔なのでログには記録しない
 
-                        Thread.ofVirtual().start(()->{
-                            if (!NotLog.matcher(httpRequest).find()){
+                        Thread.ofVirtual().start(() -> {
+                            if (!NotLog.matcher(httpRequest).find()) {
                                 System.out.println(httpRequest);
                                 Function.LogWriteCacheList.put(new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0], httpRequest);
                             }
                         });
 
-                        if (httpVersion == null) {
-                            //System.out.println("[Debug] HTTPRequest送信");
-                            Function.sendHTTPRequest(sock, "1.1", 502, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(Function.contentBadGateway, SendContentEncoding), isHead);
-                            sock.close();
-                            return;
-                        }
-
                         if (!isGET && !isPOST && !isHead) {
                             //System.out.println("[Debug] HTTPRequest送信");
-                            Function.sendHTTPRequest(sock, httpVersion, 405, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(Function.contentMethodNotAllowed, SendContentEncoding), isHead);
+                            Function.sendHTTPRequest(sock, httpVersion, 405, Function.contentType_text, null, "*", Function.contentMethodNotAllowed, isHead, null);
                             sock.close();
 
                             return;
@@ -357,9 +346,9 @@ public class HTTPServer extends Thread {
 
                         final String URI = Function.getURI(httpRequest);
 
-                        if (URI == null){
+                        if (URI == null) {
                             //System.out.println("[Debug] HTTPRequest送信");
-                            Function.sendHTTPRequest(sock, httpVersion, 502, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(Function.contentBadGateway, SendContentEncoding), isHead);
+                            Function.sendHTTPRequest(sock, httpVersion, 502, Function.contentType_text, null, "*", Function.contentBadGateway, isHead, null);
                             sock.close();
 
                             return;
@@ -370,19 +359,19 @@ public class HTTPServer extends Thread {
                         final boolean UrlMatchFlag = URI.startsWith("/?url=");
                         //System.out.println(" " + ApiMatchFlag + " / " + UrlMatchFlag);
 
-                        if (ApiMatchFlag){
-                            api_call.set(sock, httpRequest);
+                        if (ApiMatchFlag) {
+                            api_call.set(sock, httpRequest, client);
                             api_call.run();
                             return;
                         }
 
                         if (UrlMatchFlag) {
-                            image_call.set(sock, httpRequest);
+                            image_call.set(sock, httpRequest, client);
                             image_call.run();
                             return;
                         }
 
-                        Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(Function.contentNotFound, SendContentEncoding), isHead);
+                        Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, null, "*", Function.contentNotFound, isHead, null);
                         sock.close();
 
                     } catch (Exception e) {
@@ -390,17 +379,16 @@ public class HTTPServer extends Thread {
                         //temp[0] = false;
                         try {
                             sock.close();
-                        } catch (Exception ex){
+                        } catch (Exception ex) {
                             //e.printStackTrace();
                         }
                     }
                     //System.out.println("[Debug] HTTPRequest処理終了");
                 });
-
-            } catch (Exception e) {
-                //e.printStackTrace();
-                temp[0] = false;
             }
+
+        } catch (Exception e){
+            e.printStackTrace();
         }
 
         CheckStopTimer.cancel();

@@ -4,6 +4,7 @@ import net.nicovrc.dev.Function;
 import net.nicovrc.dev.api.*;
 
 import java.net.Socket;
+import java.net.http.HttpClient;
 import java.util.HashMap;
 
 public class APICall implements ServiceInterface {
@@ -14,7 +15,7 @@ public class APICall implements ServiceInterface {
     private String httpRequest = null;
     private String httpVersion = null;
     private boolean isHead = false;
-    private String SendContentEncoding = "";
+    private HttpClient httpClient = null;
 
     public APICall() {
 
@@ -30,21 +31,14 @@ public class APICall implements ServiceInterface {
 
     }
 
-    public void set(Socket sock, String httpRequest){
+    public void set(Socket sock, String httpRequest,  HttpClient httpClient) {
         this.sock = sock;
         this.httpRequest = httpRequest;
         this.httpVersion = Function.getHTTPVersion(httpRequest);
         final String method = Function.getMethod(httpRequest);
         this.isHead = method != null && method.equals("HEAD");
         this.URI = Function.getURI(httpRequest);
-
-
-        String ContentEncoding = Function.getContentEncoding(httpRequest);
-        if (ContentEncoding.matches(".*br.*")){
-            this.SendContentEncoding = "br";
-        } else if (ContentEncoding.matches(".*gzip.*")){
-            this.SendContentEncoding = "gzip";
-        }
+        this.httpClient = httpClient;
     }
 
     public void run() throws Exception {
@@ -52,12 +46,12 @@ public class APICall implements ServiceInterface {
         final ImageResizeAPI api = apiList.get(URI);
         if (api != null) {
             APIResult run = api.run(Function.CacheDataList, Function.LogWriteCacheList, httpRequest);
-            Function.sendHTTPRequest(sock, httpVersion, Integer.parseInt(run.getHttpResponseCode()), run.getHttpContentType(), SendContentEncoding, "*", Function.compressByte(run.getHttpContent(), SendContentEncoding), isHead);
+            Function.sendHTTPRequest(sock, httpVersion, Integer.parseInt(run.getHttpResponseCode()), run.getHttpContentType(), null, "*", run.getHttpContent(), isHead, null);
 
             return;
         }
 
-        Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, SendContentEncoding, "*", Function.compressByte(Function.contentNotFound, SendContentEncoding), isHead);
+        Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, null, "*", Function.contentNotFound, isHead, null);
         sock.close();
     }
 

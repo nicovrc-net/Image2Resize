@@ -8,6 +8,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.util.regex.Matcher;
 
 public class Main {
 
@@ -72,9 +73,73 @@ RedisSSL: false
                 }
             }
 
-            if (Function.getBrotliPath().isEmpty()){
-                System.out.println("[Info] brotli実行ファイルを同じフォルダに置いてください。");
-                return;
+
+            if (new File("/bin/ffmpeg").exists()){
+                Function.ffmpegPass = "/bin/ffmpeg";
+            } else if (new File("/usr/bin/ffmpeg").exists()){
+                Function.ffmpegPass = "/usr/bin/ffmpeg";
+            } else if (new File("/usr/local/bin/ffmpeg").exists()){
+                Function.ffmpegPass = "/usr/local/bin/ffmpeg";
+            } else if (new File("./ffmpeg").exists()){
+                Function.ffmpegPass = "./ffmpeg";
+            } else if (new File("./ffmpeg.exe").exists()){
+                Function.ffmpegPass = "./ffmpeg.exe";
+            } else if (new File("C:\\Windows\\System32\\ffmpeg.exe").exists()){
+                Function.ffmpegPass = "C:\\Windows\\System32\\ffmpeg.exe";
+            } else {
+                Function.ffmpegPass = "";
+            }
+            if (new File("/bin/convert").exists()){
+                Function.imageMagickPass = "/bin/convert";
+            } else if (new File("/usr/bin/convert").exists()){
+                Function.imageMagickPass = "/usr/bin/convert";
+            } else if (new File("/usr/local/bin/convert").exists()){
+                Function.imageMagickPass = "/usr/local/bin/convert";
+            } else if (new File("./convert").exists()){
+                Function.imageMagickPass = "./convert";
+            } else if (new File("./convert.exe").exists()) {
+                Function.imageMagickPass = "./convert.exe";
+            } else if (new File("./magick.exe").exists()){
+                Function.imageMagickPass = "./magick.exe";
+            } else {
+                File folders = new File("D:\\Program Files\\");
+
+                if (!folders.exists()){
+                    folders = null;
+                    folders = new File("C:\\Program Files\\");
+
+                    if (!folders.exists()){
+                        Function.imageMagickPass = "";
+                    }
+                }
+
+                if (folders.exists()){
+                    File[] files = folders.listFiles();
+                    if (files != null){
+                        for (File file : files){
+                            String path = file.getAbsolutePath();
+                            Matcher matcher = Function.ImageMagickPass.matcher(path);
+                            if (matcher.find()){
+                                File file1 = new File(path + "\\convert.exe");
+                                if (file1.exists()){
+                                    Function.imageMagickPass = file1.getAbsolutePath();
+                                    file1 = null;
+                                    break;
+                                }
+
+                                file1 = new File(path + "\\magick.exe");
+                                if (file1.exists()){
+                                    Function.imageMagickPass = file1.getAbsolutePath();
+                                    file1 = null;
+                                    break;
+                                }
+                            }
+                            matcher = null;
+                        }
+                        files = null;
+                    }
+                }
+                folders = null;
             }
 
             if (!new File(FolderPass).exists()){

@@ -14,25 +14,26 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 public class Function {
 
     public static final int HTTPPort = 25555;
-    public static final String UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0";
-    public static final String Version = "1.2.0-beta.2";
+    public static final String UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0 image2resize/"+Function.Version;
+    public static final String Version = "1.2.0";
     public static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+    public static String ffmpegPass;
+    public static String imageMagickPass;
 
     private static final Pattern HTTPVersion = Pattern.compile("HTTP/(\\d+\\.\\d+)");
     private static final Pattern HTTP = Pattern.compile("(CONNECT|DELETE|GET|HEAD|OPTIONS|PATCH|POST|PUT|TRACE) (.+) HTTP/(\\d\\.\\d)");
 
-    private static final Pattern ImageMagickPass = Pattern.compile("ImageMagick-");
+    public static final Pattern ImageMagickPass = Pattern.compile("ImageMagick-");
     private static final Pattern ffmpegImageInfo = Pattern.compile("Stream #0:0: Video: (.+), (.+)\\((.+)\\), (\\d+)x(\\d+)");
 
     public static final ConcurrentHashMap<String, Long> CacheDataList = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, String> LogWriteCacheList = new ConcurrentHashMap<>();
-    public static final ConcurrentHashMap<String, String> ErrorURLList = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<String, byte[]> ErrorURLList = new ConcurrentHashMap<>();
 
     public static final String contentType_text = "text/plain; charset=utf-8";
     public static final String contentType_png = "image/png";
@@ -74,79 +75,6 @@ public class Function {
         stream1.write(bytes);
         stream1.close();
         stream1 = null;
-
-        final String ffmpegPass;
-        final String imageMagickPass;
-        String imageMagickPass1 = "";
-        if (new File("/bin/ffmpeg").exists()){
-            ffmpegPass = "/bin/ffmpeg";
-        } else if (new File("/usr/bin/ffmpeg").exists()){
-            ffmpegPass = "/usr/bin/ffmpeg";
-        } else if (new File("/usr/local/bin/ffmpeg").exists()){
-            ffmpegPass = "/usr/local/bin/ffmpeg";
-        } else if (new File("./ffmpeg").exists()){
-            ffmpegPass = "./ffmpeg";
-        } else if (new File("./ffmpeg.exe").exists()){
-            ffmpegPass = "./ffmpeg.exe";
-        } else if (new File("C:\\Windows\\System32\\ffmpeg.exe").exists()){
-            ffmpegPass = "C:\\Windows\\System32\\ffmpeg.exe";
-        } else {
-            ffmpegPass = "";
-        }
-
-        if (new File("/bin/convert").exists()){
-            imageMagickPass1 = "/bin/convert";
-        } else if (new File("/usr/bin/convert").exists()){
-            imageMagickPass1 = "/usr/bin/convert";
-        } else if (new File("/usr/local/bin/convert").exists()){
-            imageMagickPass1 = "/usr/local/bin/convert";
-        } else if (new File("./convert").exists()){
-            imageMagickPass1 = "./convert";
-        } else if (new File("./convert.exe").exists()) {
-            imageMagickPass1 = "./convert.exe";
-        } else if (new File("./magick.exe").exists()){
-            imageMagickPass1 = "./magick.exe";
-        } else {
-            File folders = new File("D:\\Program Files\\");
-
-            if (!folders.exists()){
-                folders = null;
-                folders = new File("C:\\Program Files\\");
-
-                if (!folders.exists()){
-                    imageMagickPass1 = "";
-                }
-            }
-
-            if (folders.exists()){
-                File[] files = folders.listFiles();
-                if (files != null){
-                    for (File file : files){
-                        String path = file.getAbsolutePath();
-                        Matcher matcher = ImageMagickPass.matcher(path);
-                        if (matcher.find()){
-                            File file1 = new File(path + "\\convert.exe");
-                            if (file1.exists()){
-                                imageMagickPass1 = file1.getAbsolutePath();
-                                file1 = null;
-                                break;
-                            }
-
-                            file1 = new File(path + "\\magick.exe");
-                            if (file1.exists()){
-                                imageMagickPass1 = file1.getAbsolutePath();
-                                file1 = null;
-                                break;
-                            }
-                        }
-                        matcher = null;
-                    }
-                    files = null;
-                }
-            }
-            folders = null;
-        }
-        imageMagickPass = imageMagickPass1;
 
         //System.out.println("Debug : ");
         //System.out.println(" ffmpeg : " + ffmpegPass);
@@ -516,7 +444,7 @@ public class Function {
         return null;
     }
 
-    public static void sendHTTPRequest(Socket sock, String httpVersion, int code, String contentType, String contentEncoding, String AccessControlAllowOrigin, byte[] body, boolean isHEAD) throws Exception {
+    public static void sendHTTPRequest(Socket sock, String httpVersion, int code, String contentType, String contentEncoding, String AccessControlAllowOrigin, byte[] body, boolean isHEAD, String redirectUrl) throws Exception {
         OutputStream out = sock.getOutputStream();
         StringBuilder sb_header = new StringBuilder();
 
@@ -529,27 +457,39 @@ public class Function {
             case 403 -> sb_header.append("Forbidden");
             case 404 -> sb_header.append("Not Found");
             case 405 -> sb_header.append("Method Not Allowed");
+            case 503 -> sb_header.append("Service Unavailable");
         }
         sb_header.append("\r\n");
-        if (AccessControlAllowOrigin != null){
-            sb_header.append("Access-Control-Allow-Origin: ").append(AccessControlAllowOrigin).append("\r\n");
+
+        if (code != 302){
+            if (AccessControlAllowOrigin != null){
+                sb_header.append("Access-Control-Allow-Origin: ").append(AccessControlAllowOrigin).append("\r\n");
+            }
+            sb_header.append("Content-Length: ").append(body.length).append("\r\n");
+            if (contentEncoding != null && !contentEncoding.isEmpty()) {
+                sb_header.append("Content-Encoding: ").append(contentEncoding).append("\r\n");
+            }
+            sb_header.append("Content-Type: ").append(contentType).append("\r\n");
         }
-        sb_header.append("Content-Length: ").append(body.length).append("\r\n");
-        if (contentEncoding != null && !contentEncoding.isEmpty()) {
-            sb_header.append("Content-Encoding: ").append(contentEncoding).append("\r\n");
-        }
-        sb_header.append("Content-Type: ").append(contentType).append("\r\n");
 
         sb_header.append("Date: ").append(new Date()).append("\r\n");
+
+        if (code == 302 && redirectUrl != null){
+            sb_header.append("Location: ").append(redirectUrl).append("\r\n");
+        }
 
         sb_header.append("\r\n");
 
         //System.out.println(sb_header);
-        out.write(sb_header.toString().getBytes(StandardCharsets.UTF_8));
-        if (!isHEAD){
-            out.write(body);
+        if (sock.isConnected()){
+            out.write(sb_header.toString().getBytes(StandardCharsets.UTF_8));
+            if (code != 302){
+                if (!isHEAD){
+                    out.write(body);
+                }
+            }
+            out.flush();
         }
-        out.flush();
 
         out = null;
         sb_header.setLength(0);
@@ -569,118 +509,6 @@ public class Function {
         }
 
         return uri;
-    }
-
-    public static byte[] decompressByte(byte[] content, String compressType) throws Exception {
-        byte[] body = content;
-
-        if (compressType == null || compressType.isEmpty()){
-            return body;
-        }
-
-        if (compressType.toLowerCase(Locale.ROOT).equals("gzip")){
-
-            ByteArrayInputStream stream = new ByteArrayInputStream(content);
-            GZIPInputStream gis = new GZIPInputStream(stream);
-            body = gis.readAllBytes();
-            gis.close();
-            stream.close();
-
-        } else if (compressType.toLowerCase(Locale.ROOT).equals("br")){
-
-            String brotliPath = Function.getBrotliPath();
-            String d_file = "./text_d_"+ UUID.randomUUID().toString()+"_"+new Date().getTime()+".txt";
-            String o_file = "./text_d_"+ UUID.randomUUID().toString()+"_"+new Date().getTime()+".txt.br";
-
-            Runtime runtime = Runtime.getRuntime();
-            if (!brotliPath.isEmpty()){
-
-                FileOutputStream outputStream = new FileOutputStream(o_file);
-                outputStream.write(content);
-                outputStream.close();
-
-                //final Process exec0 = runtime.exec(new String[]{brotliPath, "-9", "-o", "text.br2", "text.txt"});
-                final Process exec0 = runtime.exec(new String[]{brotliPath, "-o" , d_file, "-d" , o_file});
-                Thread.ofVirtual().start(() -> {
-                    try {
-                        Thread.sleep(5000L);
-                    } catch (Exception e) {
-                        //e.printStackTrace();
-                    }
-
-                    if (exec0.isAlive()) {
-                        exec0.destroy();
-                    }
-                });
-                exec0.waitFor();
-
-                FileInputStream inputStream = new FileInputStream(d_file);
-                body = inputStream.readAllBytes();
-                inputStream.close();
-
-                new File(d_file).delete();
-                new File(o_file).delete();
-
-                //System.out.println(body.length);
-
-            }
-
-        }
-        return body;
-    }
-
-    public static byte[] compressByte(byte[] content, String compressType) throws Exception {
-        compressType = compressType != null ? compressType.toLowerCase(Locale.ROOT) : null;
-
-        if (compressType == null || compressType.isEmpty()){
-            return content;
-        }
-
-        if (compressType.equals("br") || compressType.equals("brotli")){
-            String brotliPath = Function.getBrotliPath();
-            String d_file = "./text_"+ UUID.randomUUID().toString()+"_"+new Date().getTime()+".txt.br";
-            String o_file = "./text_"+ UUID.randomUUID().toString()+"_"+new Date().getTime()+".txt";
-
-            Runtime runtime = Runtime.getRuntime();
-            if (!brotliPath.isEmpty()) {
-
-                FileOutputStream outputStream = new FileOutputStream(o_file);
-                outputStream.write(content);
-                outputStream.close();
-
-                final Process exec0 = runtime.exec(new String[]{brotliPath, "-9", "-o", d_file, o_file});
-                Thread.ofVirtual().start(() -> {
-                    try {
-                        Thread.sleep(5000L);
-                    } catch (Exception e) {
-                        //e.printStackTrace();
-                    }
-
-                    if (exec0.isAlive()) {
-                        exec0.destroy();
-                    }
-                });
-                exec0.waitFor();
-
-                FileInputStream inputStream = new FileInputStream(d_file);
-                byte[] body = inputStream.readAllBytes();
-                inputStream.close();
-
-                new File(d_file).delete();
-                new File(o_file).delete();
-
-                return body;
-            }
-        } else if (compressType.equals("gzip")){
-            ByteArrayOutputStream compressBaos = new ByteArrayOutputStream();
-            try (OutputStream gzip = new GZIPOutputStream(compressBaos)) {
-                gzip.write(content);
-            }
-
-            return compressBaos.toByteArray();
-        }
-
-        return null;
     }
 
     public static String getContentEncoding(String httpRequest){
