@@ -153,6 +153,8 @@ public class HTTPServer extends Thread {
                 public void run() {
                     try {
 
+                        //System.out.println(temp[0]);
+
                         if (!stop_file.exists()){
                             return;
                         }
@@ -167,7 +169,7 @@ public class HTTPServer extends Thread {
 
                             Socket socket = new Socket("127.0.0.1", HTTPPort);
                             OutputStream stream = socket.getOutputStream();
-                            stream.write("".getBytes(StandardCharsets.UTF_8));
+                            stream.write(new byte[0]);
                             stream.close();
                             socket.close();
                             System.out.println("[Info] (終了準備処理)処理受付中止 完了");
@@ -187,10 +189,21 @@ public class HTTPServer extends Thread {
                                     }
                                 }
 
-                                CheckStopTimer.cancel();
-                                CheckErrorCacheTimer.cancel();
+                                stop_lock_file.delete();
                                 System.out.println("[Info] 終了準備処理完了");
-                                stop_lock_file.deleteOnExit();
+
+                                // 念の為もう一回送る
+                                Thread.ofVirtual().start(()->{
+                                    try {
+                                        Socket socket1 = new Socket("127.0.0.1", HTTPPort);
+                                        OutputStream stream1 = socket1.getOutputStream();
+                                        stream1.write("stop-packet".getBytes(StandardCharsets.UTF_8));
+                                        stream1.close();
+                                        socket1.close();
+                                    } catch (Exception e){
+                                        // e.printStackTrace();
+                                    }
+                                });
                             }
                         }
 
@@ -293,6 +306,7 @@ public class HTTPServer extends Thread {
             }, 0L, 10000L);
 
             while (temp[0]) {
+
                 //System.gc();
                 //System.out.println("[Debug] HTTPRequest待機");
                 final Socket sock = svSock.accept();
@@ -303,6 +317,13 @@ public class HTTPServer extends Thread {
                         //System.out.println(httpRequest);
 
                         if (httpRequest == null) {
+                            Function.sendHTTPRequest(sock, "1.1", 502, Function.contentType_text, null, "*", Function.contentBadGateway, false, null);
+                            sock.close();
+                            return;
+                        }
+
+                        if (httpRequest.equals("stop-packet")){
+                            Function.sendHTTPRequest(sock, "1.1", 502, Function.contentType_text, null, "*", Function.contentBadGateway, false, null);
                             sock.close();
                             return;
                         }
@@ -380,13 +401,17 @@ public class HTTPServer extends Thread {
             e.printStackTrace();
         }
 
+        System.out.println("exit flg");
+        Function.WriteLog(Function.LogWriteCacheList);
+        System.out.println("exit flg2");
         CheckStopTimer.cancel();
         CacheCheckTimer.cancel();
         LogWriteTimer.cancel();
-        Function.WriteLog(Function.LogWriteCacheList);
         CheckAccessTimer.cancel();
         CheckErrorCacheTimer.cancel();
+        System.out.println("exit flg3");
         if (cache_folder.listFiles() != null){
+            //System.out.println(Objects.requireNonNull(cache_folder.listFiles()).length);
             for (File listFile : Objects.requireNonNull(cache_folder.listFiles())) {
                 if (listFile.getName().equals(".") || listFile.getName().equals("..")){
                     continue;

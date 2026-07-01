@@ -498,13 +498,4 @@ public class Function {
 
         return uri;
     }
-
-    public static String getContentEncoding(String httpRequest){
-        Matcher matcher = Function.matcher_contentEncoding.matcher(httpRequest);
-        if (matcher.find()){
-            return matcher.group(3);
-        }
-
-        return "";
-    }
 }
