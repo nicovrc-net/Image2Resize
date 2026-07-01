@@ -57,7 +57,7 @@ public class PostImageResize implements ImageResizeAPI {
             try {
                 bytes = Base64.getDecoder().decode(base64);
             } catch (Exception e){
-                bytes = new byte[0];
+                bytes = base64.getBytes(StandardCharsets.UTF_8);
             }
 
             if (bytes == null || bytes.length == 0){
