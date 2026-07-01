@@ -150,8 +150,8 @@ RedisSSL: false
             return;
         }
 
-        Thread httpServer = new HTTPServer(port);
-        httpServer.start();
+        Function.httpServer = new HTTPServer(port);
+        Function.httpServer.start();
     }
 
 }

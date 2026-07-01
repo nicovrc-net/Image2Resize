@@ -189,7 +189,17 @@ public class HTTPServer extends Thread {
                                     }
                                 }
 
-                                stop_lock_file.delete();
+                                if (cache_folder.listFiles() != null){
+                                    //System.out.println(Objects.requireNonNull(cache_folder.listFiles()).length);
+                                    for (File listFile : Objects.requireNonNull(cache_folder.listFiles())) {
+                                        if (listFile.getName().equals(".") || listFile.getName().equals("..")){
+                                            continue;
+                                        }
+
+                                        listFile.delete();
+                                    }
+                                }
+
                                 System.out.println("[Info] 終了準備処理完了");
 
                                 // 念の為もう一回送る
@@ -204,6 +214,19 @@ public class HTTPServer extends Thread {
                                         // e.printStackTrace();
                                     }
                                 });
+
+                                stop_lock_file.delete();
+                                //System.out.println("exit flg");
+                                Function.WriteLog(Function.LogWriteCacheList);
+                                //System.out.println("exit flg2");
+                                CheckStopTimer.cancel();
+                                CacheCheckTimer.cancel();
+                                LogWriteTimer.cancel();
+                                CheckAccessTimer.cancel();
+                                CheckErrorCacheTimer.cancel();
+                                //System.out.println("exit flg3");
+                                System.out.println("[Info] 終了します...");
+                                Function.httpServer.interrupt();
                             }
                         }
 
@@ -313,18 +336,22 @@ public class HTTPServer extends Thread {
                 Thread.ofVirtual().start(() -> {
                     try {
 
+                        if (!sock.isConnected()){
+                            return;
+                        }
+
+                        if (sock.isClosed()){
+                            return;
+                        }
+
                         final String httpRequest = Function.getHTTPRequest(sock);
                         //System.out.println(httpRequest);
 
                         if (httpRequest == null) {
-                            Function.sendHTTPRequest(sock, "1.1", 502, Function.contentType_text, null, "*", Function.contentBadGateway, false, null);
-                            sock.close();
                             return;
                         }
 
                         if (httpRequest.equals("stop-packet")){
-                            Function.sendHTTPRequest(sock, "1.1", 502, Function.contentType_text, null, "*", Function.contentBadGateway, false, null);
-                            sock.close();
                             return;
                         }
 
@@ -400,26 +427,5 @@ public class HTTPServer extends Thread {
         } catch (Exception e){
             e.printStackTrace();
         }
-
-        System.out.println("exit flg");
-        Function.WriteLog(Function.LogWriteCacheList);
-        System.out.println("exit flg2");
-        CheckStopTimer.cancel();
-        CacheCheckTimer.cancel();
-        LogWriteTimer.cancel();
-        CheckAccessTimer.cancel();
-        CheckErrorCacheTimer.cancel();
-        System.out.println("exit flg3");
-        if (cache_folder.listFiles() != null){
-            //System.out.println(Objects.requireNonNull(cache_folder.listFiles()).length);
-            for (File listFile : Objects.requireNonNull(cache_folder.listFiles())) {
-                if (listFile.getName().equals(".") || listFile.getName().equals("..")){
-                    continue;
-                }
-
-                listFile.delete();
-            }
-        }
-        System.out.println("[Info] 終了します...");
     }
 }

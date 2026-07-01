@@ -24,6 +24,8 @@ public class Function {
     public static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     public static final Gson gson = new Gson();
 
+    public static Thread httpServer = null;
+
     public static String ffmpegPass;
     public static String imageMagickPass;
 
@@ -469,7 +471,7 @@ public class Function {
         sb_header.append("\r\n");
 
         //System.out.println(sb_header);
-        if (sock.isConnected()){
+        if (sock.isConnected() && !sock.isClosed()){
             out.write(sb_header.toString().getBytes(StandardCharsets.UTF_8));
             if (code != 302){
                 if (!isHEAD){
