@@ -321,7 +321,7 @@ jobs:
         run: |
           wget https://raw.githubusercontent.com/nicovrc-net/Image2Resize/refs/heads/master/.github/workflows/testfile2.json
           HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" -X POST -d @testfile2.json http://localhost:25555/api/v1/image_resize)
-          CODE=$(curl -s -X POST -d @testfile2.json http://localhost:25555/api/v1/image_resize)
+          CODE=$(curl -s -X POST -H "Content-Type: application/json" -d @testfile2.json http://localhost:25555/api/v1/image_resize)
           if [ "$HTTP_STATUS" -ne 404 ]; then
             exit 1
           else
