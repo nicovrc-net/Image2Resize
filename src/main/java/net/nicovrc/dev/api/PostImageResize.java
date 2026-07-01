@@ -78,7 +78,6 @@ public class PostImageResize implements ImageResizeAPI {
                 result.setHttpContentType(resize != null ? "image/png" : "application/json; charset=utf-8");
                 result.setHttpContent(resize == null ? Function.gson.toJson(result1).getBytes(StandardCharsets.UTF_8) : resize);
             }
-            return result;
         } else {
             //System.out.println("debug 2");
             result1.setMessage("Not Support Request");
@@ -86,8 +85,8 @@ public class PostImageResize implements ImageResizeAPI {
             result.setHttpContentType("application/json; charset=utf-");
             result.setHttpContent(Function.gson.toJson(result1).getBytes(StandardCharsets.UTF_8));
 
-            return result;
         }
+        return result;
     }
 
     @Override

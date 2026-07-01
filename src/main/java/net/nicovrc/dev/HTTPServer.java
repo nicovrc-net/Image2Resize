@@ -328,7 +328,7 @@ public class HTTPServer extends Thread {
 
                         if (!isGET && !isPOST && !isHead) {
                             //System.out.println("[Debug] HTTPRequest送信");
-                            Function.sendHTTPRequest(sock, httpVersion, 405, Function.contentType_text, null, "*", Function.contentMethodNotAllowed, isHead, null);
+                            Function.sendHTTPRequest(sock, httpVersion, 405, Function.contentType_text, null, "*", Function.contentMethodNotAllowed, false, null);
                             sock.close();
 
                             return;
@@ -336,7 +336,7 @@ public class HTTPServer extends Thread {
 
                         final String URI = Function.getURI(httpRequest);
 
-                        if (URI == null) {
+                        if (!isPOST && URI == null) {
                             //System.out.println("[Debug] HTTPRequest送信");
                             Function.sendHTTPRequest(sock, httpVersion, 502, Function.contentType_text, null, "*", Function.contentBadGateway, isHead, null);
                             sock.close();
