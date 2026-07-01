@@ -26,8 +26,6 @@ public class HTTPServer extends Thread {
     private final Pattern NotLog;
     private final URI check_url;
 
-    private final String userAgent1 = Function.UserAgent + " image2resize-access-check/"+Function.Version;
-
     private final Timer CacheCheckTimer = new Timer();
     private final Timer LogWriteTimer = new Timer();
     private final Timer CheckStopTimer = new Timer();
@@ -257,7 +255,7 @@ public class HTTPServer extends Thread {
 
                         HttpRequest request = HttpRequest.newBuilder()
                                 .uri(check_url)
-                                .headers("User-Agent", userAgent1)
+                                .headers("User-Agent", Function.UserAgent)
                                 .headers("x-image2-resize-test", check_url.toString())
                                 .GET()
                                 .build();
@@ -302,6 +300,7 @@ public class HTTPServer extends Thread {
                     try {
 
                         final String httpRequest = Function.getHTTPRequest(sock);
+                        //System.out.println(httpRequest);
 
                         if (httpRequest == null) {
                             sock.close();

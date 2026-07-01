@@ -343,20 +343,6 @@ public class Function {
         return count;
     }
 
-    public static String getBrotliPath(){
-
-        if (new File("./brotli.exe").exists()){
-            return "./brotli.exe";
-        }
-
-        if (new File("./brotli").exists()){
-            return "./brotli";
-        }
-
-        return "";
-
-    }
-
     public static String getHTTPRequest(Socket sock) throws Exception{
         //System.out.println("debug 1");
         InputStream in = sock.getInputStream();
