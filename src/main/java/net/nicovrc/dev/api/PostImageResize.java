@@ -53,7 +53,13 @@ public class PostImageResize implements ImageResizeAPI {
             }
 
             final String base64 = json.getAsJsonObject().has("content") ? json.getAsJsonObject().get("content").getAsString() : "";
-            final byte[] bytes = Base64.getDecoder().decode(base64);
+            byte[] bytes;
+            try {
+                bytes = Base64.getDecoder().decode(base64);
+            } catch (Exception e){
+                bytes = new byte[0];
+            }
+
             if (bytes == null || bytes.length == 0){
                 result1.setMessage("Not Found Image");
                 result.setHttpResponseCode("404");
