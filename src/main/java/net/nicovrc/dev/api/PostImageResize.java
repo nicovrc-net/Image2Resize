@@ -33,7 +33,14 @@ public class PostImageResize implements ImageResizeAPI {
         final PostResult result1 = new PostResult();
 
         if (matcher1.find()){
-            JsonElement json = Function.gson.fromJson("{" + matcher1.group(1) + "}", JsonElement.class);
+            JsonElement json = null;
+
+            try {
+                json = Function.gson.fromJson("{" + matcher1.group(1) + "}", JsonElement.class);
+            } catch (Exception e) {
+                //e.printStackTrace();
+                json = Function.gson.fromJson("{}", JsonElement.class);
+            }
 
             if (json.isJsonObject() && json.getAsJsonObject().has("scheme")){
                 // cf
