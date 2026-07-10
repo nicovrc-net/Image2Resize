@@ -140,7 +140,7 @@ public class HTTPServer extends Thread {
                     new Thread(()->{
                         if (!Function.LogWriteCacheList.isEmpty()){
                             System.out.println("[Info] ログ書き込み開始 (" + Function.sdf.format(new Date()) + ")");
-                            long writeCount = Function.WriteLog(Function.LogWriteCacheList);
+                            long writeCount = Function.WriteLog();
                             System.out.println("[Info] ログ書き込み終了("+writeCount+"件) (" + Function.sdf.format(new Date()) + ")");
                         }
                         System.gc();
@@ -166,16 +166,12 @@ public class HTTPServer extends Thread {
                                 return;
                             }
                             System.out.println("[Info] 終了するための準備処理を開始します。");
-                            long count = Function.WriteLog(Function.LogWriteCacheList);
+                            long count = Function.WriteLog();
                             if (count == 0){
                                 System.out.println("[Info] (終了準備処理)ログ書き出し完了");
                             } else {
                                 while (count > 0){
-                                    if (Function.LogWriteCacheList.isEmpty()){
-                                        count = 0;
-                                    } else {
-                                        count = Function.WriteLog(Function.LogWriteCacheList);
-                                    }
+                                    count = Function.WriteLog();
                                 }
                             }
                             System.out.println("[Info] (終了準備処理)処理受付中止 完了");
@@ -190,7 +186,7 @@ public class HTTPServer extends Thread {
                             System.out.println("[Info] 終了準備処理完了");
 
                             //System.out.println("exit flg");
-                            Function.WriteLog(Function.LogWriteCacheList);
+                            Function.WriteLog();
                             //System.out.println("exit flg2");
                             CheckStopTimer.cancel();
                             CacheCheckTimer.cancel();

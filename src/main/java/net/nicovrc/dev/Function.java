@@ -452,7 +452,7 @@ public class Function {
         return file;
     }
 
-    public static long WriteLog(ConcurrentHashMap<String, String> LogWriteCacheList){
+    public static long WriteLog(){
         // Config
         String tempPass;
         boolean tempFlag;
