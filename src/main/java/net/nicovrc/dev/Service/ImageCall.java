@@ -34,6 +34,7 @@ public class ImageCall implements ServiceInterface {
         this.ch = ch;
         this.httpVersion = Function.getHTTPVersion(httpRequest);
         this.URI = Function.getURI(httpRequest);
+        this.client = httpClient;
     }
 
     public void run() throws Exception {

@@ -33,13 +33,7 @@ public class HTTPServer extends Thread {
     private final Timer CheckAccessTimer = new Timer();
     private final Timer CheckErrorCacheTimer = new Timer();
 
-
-    private final File cache_folder = new File("./cache");
-    private final String localhost = "127.0.0.1";
-
     private final byte[] emptyBytes = new byte[0];
-
-    private final boolean[] temp = {true};
 
     private final APICall api_call = new APICall();
     private final ImageCall image_call = new ImageCall();
@@ -208,23 +202,6 @@ public class HTTPServer extends Thread {
             CheckAccessTimer.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-                    try {
-                        Socket socket = new Socket(localhost, HTTPPort);
-                        OutputStream out_stream = socket.getOutputStream();
-                        out_stream.write(emptyBytes);
-                        try {
-                            Thread.sleep(500L);
-                        } catch (Exception e){
-                            //e.printStackTrace();
-                        }
-                        socket.close();
-                    } catch (Exception e){
-                        //e.printStackTrace();
-                        CheckAccessTimer.cancel();
-                        CheckErrorCacheTimer.cancel();
-                        Function.writeFile("./stop.txt", emptyBytes);
-                    }
-
                     if (check_url == null){
                         return;
                     }
@@ -282,6 +259,13 @@ public class HTTPServer extends Thread {
                                 b.flip();
                                 //System.out.println(new String(b.array(), StandardCharsets.UTF_8));
                                 final String httpRequest = Function.getHTTPRequest(b);
+
+                                if (NotLog.matcher(httpRequest).find()) {
+                                    String httpHeader = Function.createHTTPHeader("1.1", 200, Function.contentType_text, null, "*", emptyBytes, null);
+
+                                    Function.sendHTTPData(ch, Function.createSendHTTPData(httpHeader, emptyBytes));
+                                    return;
+                                }
 
                                 //System.out.println(httpRequest);
 
