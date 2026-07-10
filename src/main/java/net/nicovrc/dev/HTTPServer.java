@@ -14,7 +14,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -171,10 +170,12 @@ public class HTTPServer extends Thread {
                             System.out.println("[Info] (終了準備処理)処理受付中止 完了");
 
                             if (Function.getFileList("./cache") != null){
-                                //System.out.println(Objects.requireNonNull(cache_folder.listFiles()).length);
-                                for (String filePass : Objects.requireNonNull(Function.getFileList("./cache"))) {
-                                    Function.deleteFile(filePass);
+                                if (Function.deleteFolder("./cache")){
+                                    System.out.println("[Info] (終了準備処理)キャッシュフォルダ 掃除完了");
+                                } else {
+                                    System.out.println("aa");
                                 }
+                                Function.createFolder("./cache");
                             }
 
                             System.out.println("[Info] 終了準備処理完了");
@@ -189,7 +190,6 @@ public class HTTPServer extends Thread {
                             CheckErrorCacheTimer.cancel();
                             //System.out.println("exit flg3");
                             System.out.println("[Info] 終了します...");
-                            Function.httpServer.interrupt();
                         }
 
                     } catch (Exception e){

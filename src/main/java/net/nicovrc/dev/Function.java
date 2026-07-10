@@ -129,9 +129,35 @@ public class Function {
         }
     }
 
+    public static boolean deleteFolder(String folderPass) {
+        Path targetDir = Paths.get(folderPass);
+
+        try {
+            if (Files.exists(targetDir)) {
+                try (var paths = Files.walk(targetDir)) {
+                    paths.forEach(path -> {
+                                try {
+                                    if (!Files.isDirectory(path)) {
+                                        Files.delete(path);
+                                    }
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            });
+                }
+                return true;
+            }
+        } catch (IOException e) {
+            //e.printStackTrace();
+            return false;
+        }
+
+        return false;
+    }
+
     public static String[] getFileList(String filePass) {
         Path path = Paths.get(filePass);
-        if (!Files.notExists(path)) {
+        if (!isFoundFolder(filePass)) {
             return null;
         }
         return path.toFile().list();
