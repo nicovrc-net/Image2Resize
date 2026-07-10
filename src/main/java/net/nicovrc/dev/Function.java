@@ -548,8 +548,9 @@ public class Function {
 
         } else {
             temp.forEach((id, httpRequest)->{
-                String path = FolderPass+"/" + id + ".txt";
-                boolean isFound = isFoundFile(path);
+                String path = getFullPath(FolderPass+"/" + id + ".txt");
+                System.out.println(path);
+                boolean isFound = isFoundFile(getFullPath(path));
                 while (isFound){
                     id = new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0];
                     path = FolderPass+"/" + id + ".txt";

@@ -268,11 +268,15 @@ public class HTTPServer extends Thread {
                                     return;
                                 }
 
-                                //System.out.println(httpRequest);
-
                                 if (httpRequest.isEmpty()) {
                                     close(ch);
                                     return;
+                                }
+
+                                if (!NotLog.matcher(httpRequest).find()){
+                                    System.out.println(httpRequest);
+
+                                    Function.LogWriteCacheList.put(new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0], httpRequest);
                                 }
 
                                 final String httpVersion = Function.getHTTPVersion(httpRequest);
