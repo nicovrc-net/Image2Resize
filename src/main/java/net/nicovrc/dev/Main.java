@@ -132,6 +132,10 @@ RedisSSL: false
             if (!Function.isFoundFolder(FolderPass)){
                 Function.createFolder(FolderPass);
             }
+
+            if (!Function.isFoundFolder("./cache")){
+                Function.createFolder("./cache");
+            }
         } catch (Exception e){
             e.printStackTrace();
             return;
