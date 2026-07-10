@@ -250,7 +250,7 @@ public class HTTPServer extends Thread {
                     public void completed(AsynchronousSocketChannel ch, Void att) {
                         server.accept(null, this);
 
-                        ByteBuffer buf = ByteBuffer.allocate(2048);
+                        ByteBuffer buf = ByteBuffer.allocate(1024768*32);
                         ch.read(buf, buf, new CompletionHandler<>() {
                             public void completed(Integer n, ByteBuffer b) {
                                 if (n == -1) {
