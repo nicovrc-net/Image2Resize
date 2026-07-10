@@ -180,6 +180,7 @@ public class HTTPServer extends Thread {
 
                             System.out.println("[Info] 終了準備処理完了");
 
+                            Function.writeFile("./lock-stop", emptyBytes);
                             //System.out.println("exit flg");
                             Function.WriteLog();
                             //System.out.println("exit flg2");
@@ -351,16 +352,23 @@ public class HTTPServer extends Thread {
                 });
 
                 while (true) {
-                    if (Function.isFoundFile("./stop_lock.txt")){
-                        Function.deleteFile("./stop_lock.txt");
+                    if (Function.isFoundFile("./lock-stop")){
+                        Function.deleteFile("./lock-stop");
                         break;
                     }
+                    //System.out.println("test0");
                     try {
                         Thread.sleep(100L);
                     } catch (Exception ignored) {
                         //ignored.printStackTrace();
                     }
                 }
+                CheckStopTimer.cancel();
+                CacheCheckTimer.cancel();
+                LogWriteTimer.cancel();
+                CheckAccessTimer.cancel();
+                CheckErrorCacheTimer.cancel();
+                //System.out.println("test");
                 //Thread.currentThread().join();
             } catch (Exception e) {
                 e.printStackTrace();

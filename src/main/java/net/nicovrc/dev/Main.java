@@ -4,6 +4,7 @@ package net.nicovrc.dev;
 import com.amihaiemil.eoyaml.Yaml;
 import com.amihaiemil.eoyaml.YamlMapping;
 
+import javax.sound.sampled.Port;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
@@ -140,9 +141,13 @@ RedisSSL: false
             e.printStackTrace();
             return;
         }
-
-        Function.httpServer = new HTTPServer(port);
-        Function.httpServer.start();
+        Thread start = Thread.ofVirtual().start(new HTTPServer(port));
+        try {
+            start.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        //System.out.println("test2");
     }
 
 }
