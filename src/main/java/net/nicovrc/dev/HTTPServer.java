@@ -169,16 +169,9 @@ public class HTTPServer extends Thread {
                                 return;
                             }
                             System.out.println("[Info] 終了するための準備処理を開始します。");
-                            temp[0] = false;
-
-                            Socket socket = new Socket("127.0.0.1", HTTPPort);
-                            OutputStream stream = socket.getOutputStream();
-                            stream.write(new byte[0]);
-                            stream.close();
-                            socket.close();
+                            boolean newFile = stop_lock_file.createNewFile();
                             System.out.println("[Info] (終了準備処理)処理受付中止 完了");
 
-                            boolean newFile = stop_lock_file.createNewFile();
                             if (newFile){
                                 long count = Function.WriteLog(Function.LogWriteCacheList);
                                 if (count == 0){
@@ -240,32 +233,10 @@ public class HTTPServer extends Thread {
                 }
             }, 0L, 1000L);
 
-            ServerSocket svSock = null;
-            try {
-                svSock = new ServerSocket(HTTPPort);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
             //死活監視追加
             CheckAccessTimer.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-                    if (!temp[0]){
-                        try {
-                            Socket socket = new Socket(localhost, HTTPPort);
-                            OutputStream stream = socket.getOutputStream();
-                            stream.write(emptyBytes);
-                            stream.close();
-                            socket.close();
-                        } catch (Exception e){
-                            //e.printStackTrace();
-                        }
-                        CheckAccessTimer.cancel();
-                        CheckErrorCacheTimer.cancel();
-                        return;
-                    }
-
                     try {
                         Socket socket = new Socket(localhost, HTTPPort);
                         OutputStream out_stream = socket.getOutputStream();
@@ -447,103 +418,6 @@ public class HTTPServer extends Thread {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
-            /*
-            while (temp[0]) {
-
-                //System.gc();
-                //System.out.println("[Debug] HTTPRequest待機");
-                final Socket sock = svSock.accept();
-                Thread.ofVirtual().start(() -> {
-                    try {
-
-                        if (!sock.isConnected()){
-                            return;
-                        }
-
-                        if (sock.isClosed()){
-                            return;
-                        }
-
-                        final String httpRequest = Function.getHTTPRequest(sock);
-                        //System.out.println(httpRequest);
-
-                        if (httpRequest == null) {
-                            return;
-                        }
-
-                        if (httpRequest.equals("stop-packet")){
-                            return;
-                        }
-
-                        final String httpVersion = Function.getHTTPVersion(httpRequest);
-                        final String httpMethod = Function.getMethod(httpRequest);
-
-                        final boolean isGET = httpMethod != null && httpMethod.equals("GET");
-                        final boolean isPOST = httpMethod != null && httpMethod.equals("POST");
-                        final boolean isHead = httpMethod != null && httpMethod.equals("HEAD");
-
-                        //System.out.println("[Debug] HTTPRequest受信");
-                        // ログ保存は時間がかかるのでキャッシュする
-                        // しかし死活管理からのアクセスは邪魔なのでログには記録しない
-
-                        Thread.ofVirtual().start(() -> {
-                            if (!NotLog.matcher(httpRequest).find()) {
-                                System.out.println(httpRequest);
-                                Function.LogWriteCacheList.put(new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0], httpRequest);
-                            }
-                        });
-
-                        if (!isGET && !isPOST && !isHead) {
-                            //System.out.println("[Debug] HTTPRequest送信");
-                            Function.sendHTTPRequest(sock, httpVersion, 405, Function.contentType_text, null, "*", Function.contentMethodNotAllowed, false, null);
-                            sock.close();
-
-                            return;
-                        }
-
-                        final String URI = Function.getURI(httpRequest);
-
-                        if (!isPOST && URI == null) {
-                            //System.out.println("[Debug] HTTPRequest送信");
-                            Function.sendHTTPRequest(sock, httpVersion, 502, Function.contentType_text, null, "*", Function.contentBadGateway, isHead, null);
-                            sock.close();
-
-                            return;
-                        }
-
-                        //System.out.println(URI);
-                        final boolean ApiMatchFlag = URI.startsWith("/api/");
-                        final boolean UrlMatchFlag = URI.startsWith("/?url=");
-                        //System.out.println(" " + ApiMatchFlag + " / " + UrlMatchFlag);
-
-                        if (ApiMatchFlag) {
-                            api_call.set(sock, httpRequest, client);
-                            api_call.run();
-                            return;
-                        }
-
-                        if (UrlMatchFlag) {
-                            image_call.set(sock, httpRequest, client);
-                            image_call.run();
-                            return;
-                        }
-
-                        Function.sendHTTPRequest(sock, httpVersion, 404, Function.contentType_text, null, "*", Function.contentNotFound, isHead, null);
-                        sock.close();
-
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        //temp[0] = false;
-                        try {
-                            sock.close();
-                        } catch (Exception ex) {
-                            //e.printStackTrace();
-                        }
-                    }
-                    //System.out.println("[Debug] HTTPRequest処理終了");
-                });
-            }*/
 
         } catch (Exception e){
             e.printStackTrace();
