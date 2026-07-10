@@ -192,7 +192,7 @@ jobs:
 
       - name: URL Resize Test
         run: |
-          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:25555/?url=https://raw.githubusercontent.com/nicovrc-net/Image2Resize/refs/heads/master/.github/workflows/i2i_autotest.png)
+          HTTP_STATUS=$(curl -m 2 -o /dev/null -s -w "%{http_code}" http://localhost:25555/?url=https://raw.githubusercontent.com/nicovrc-net/Image2Resize/refs/heads/master/.github/workflows/i2i_autotest.png)
           if [ "$HTTP_STATUS" -ne 200 ]; then
             echo "Expected HTTP status 200 but got $HTTP_STATUS"
             exit 1
@@ -234,7 +234,7 @@ jobs:
 
       - name: API Check Test 1
         run: |
-          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:25555/api/v1/get_data)
+          HTTP_STATUS=$(curl -m 2 -o /dev/null -s -w "%{http_code}" http://localhost:25555/api/v1/get_data)
           if [ "$HTTP_STATUS" -ne 200 ]; then
             echo "Expected HTTP status 200 but got $HTTP_STATUS"
             exit 1
@@ -280,7 +280,7 @@ jobs:
 
       - name: API Check Test 2-1
         run: |
-          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" -X POST -H "Content-Type: application/json" -d @testfile.json http://localhost:25555/api/v1/image_resize)
+          HTTP_STATUS=$(curl -m 2 -o /dev/null -s -w "%{http_code}" -X POST -H "Content-Type: application/json" -d @testfile.json http://localhost:25555/api/v1/image_resize)
           if [ "$HTTP_STATUS" -ne 200 ]; then
             echo "Expected HTTP status 200 but got $HTTP_STATUS"
             exit 1
@@ -322,7 +322,7 @@ jobs:
 
       - name: API Check Test 2-2
         run: |
-          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"filename":"autotest.txt", "content":"44Gm44GN44GZ44Go44Gg44KI44O844KT"\}' http://localhost:25555/api/v1/image_resize)
+          HTTP_STATUS=$(curl -m 2 -o /dev/null -s -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"filename":"autotest.txt", "content":"44Gm44GN44GZ44Go44Gg44KI44O844KT"\}' http://localhost:25555/api/v1/image_resize)
           if [ "$HTTP_STATUS" -ne 403 ]; then
             exit 1
           fi
