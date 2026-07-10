@@ -88,7 +88,7 @@ public class PostImageResize implements ImageResizeAPI {
             //System.out.println("debug 2");
             result1.setMessage("Not Support Request");
             result.setHttpResponseCode("403");
-            result.setHttpContentType("application/json; charset=utf-");
+            result.setHttpContentType("application/json; charset=utf-8");
             result.setHttpContent(Function.gson.toJson(result1).getBytes(StandardCharsets.UTF_8));
 
         }
