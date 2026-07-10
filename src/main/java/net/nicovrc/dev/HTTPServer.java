@@ -17,7 +17,6 @@ import java.nio.channels.CompletionHandler;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
@@ -35,8 +34,6 @@ public class HTTPServer extends Thread {
     private final Timer CheckErrorCacheTimer = new Timer();
 
 
-    private final File stop_file = new File("./stop.txt");
-    private final File stop_lock_file = new File("./lock-stop");
     private final File cache_folder = new File("./cache");
     private final String localhost = "127.0.0.1";
 
@@ -159,72 +156,50 @@ public class HTTPServer extends Thread {
 
                         //System.out.println(temp[0]);
 
-                        if (!stop_file.exists()){
+                        if (!Function.isFoundFile("./stop.txt")){
                             return;
                         }
 
-                        boolean delete = stop_file.delete();
+                        boolean delete = Function.deleteFile("./stop.txt");
                         if (delete){
-                            if (stop_lock_file.exists()){
+                            if (Function.isFoundFile("./lock-stop")){
                                 return;
                             }
                             System.out.println("[Info] 終了するための準備処理を開始します。");
-                            boolean newFile = stop_lock_file.createNewFile();
+                            long count = Function.WriteLog(Function.LogWriteCacheList);
+                            if (count == 0){
+                                System.out.println("[Info] (終了準備処理)ログ書き出し完了");
+                            } else {
+                                while (count > 0){
+                                    if (Function.LogWriteCacheList.isEmpty()){
+                                        count = 0;
+                                    } else {
+                                        count = Function.WriteLog(Function.LogWriteCacheList);
+                                    }
+                                }
+                            }
                             System.out.println("[Info] (終了準備処理)処理受付中止 完了");
 
-                            if (newFile){
-                                long count = Function.WriteLog(Function.LogWriteCacheList);
-                                if (count == 0){
-                                    System.out.println("[Info] (終了準備処理)ログ書き出し完了");
-                                } else {
-                                    while (count > 0){
-                                        if (Function.LogWriteCacheList.isEmpty()){
-                                            count = 0;
-                                        } else {
-                                            count = Function.WriteLog(Function.LogWriteCacheList);
-                                        }
-                                    }
+                            if (Function.getFileList("./cache") != null){
+                                //System.out.println(Objects.requireNonNull(cache_folder.listFiles()).length);
+                                for (String filePass : Objects.requireNonNull(Function.getFileList("./cache"))) {
+                                    Function.deleteFile(filePass);
                                 }
-
-                                if (cache_folder.listFiles() != null){
-                                    //System.out.println(Objects.requireNonNull(cache_folder.listFiles()).length);
-                                    for (File listFile : Objects.requireNonNull(cache_folder.listFiles())) {
-                                        if (listFile.getName().equals(".") || listFile.getName().equals("..")){
-                                            continue;
-                                        }
-
-                                        listFile.delete();
-                                    }
-                                }
-
-                                System.out.println("[Info] 終了準備処理完了");
-
-                                // 念の為もう一回送る
-                                Thread.ofVirtual().start(()->{
-                                    try {
-                                        Socket socket1 = new Socket("127.0.0.1", HTTPPort);
-                                        OutputStream stream1 = socket1.getOutputStream();
-                                        stream1.write("stop-packet".getBytes(StandardCharsets.UTF_8));
-                                        stream1.close();
-                                        socket1.close();
-                                    } catch (Exception e){
-                                        // e.printStackTrace();
-                                    }
-                                });
-
-                                stop_lock_file.delete();
-                                //System.out.println("exit flg");
-                                Function.WriteLog(Function.LogWriteCacheList);
-                                //System.out.println("exit flg2");
-                                CheckStopTimer.cancel();
-                                CacheCheckTimer.cancel();
-                                LogWriteTimer.cancel();
-                                CheckAccessTimer.cancel();
-                                CheckErrorCacheTimer.cancel();
-                                //System.out.println("exit flg3");
-                                System.out.println("[Info] 終了します...");
-                                Function.httpServer.interrupt();
                             }
+
+                            System.out.println("[Info] 終了準備処理完了");
+
+                            //System.out.println("exit flg");
+                            Function.WriteLog(Function.LogWriteCacheList);
+                            //System.out.println("exit flg2");
+                            CheckStopTimer.cancel();
+                            CacheCheckTimer.cancel();
+                            LogWriteTimer.cancel();
+                            CheckAccessTimer.cancel();
+                            CheckErrorCacheTimer.cancel();
+                            //System.out.println("exit flg3");
+                            System.out.println("[Info] 終了します...");
+                            Function.httpServer.interrupt();
                         }
 
                     } catch (Exception e){
@@ -251,11 +226,7 @@ public class HTTPServer extends Thread {
                         //e.printStackTrace();
                         CheckAccessTimer.cancel();
                         CheckErrorCacheTimer.cancel();
-                        try {
-                            boolean newFile = stop_file.createNewFile();
-                        } catch (IOException ex) {
-                            //ex.printStackTrace();
-                        }
+                        Function.writeFile("./stop.txt", emptyBytes);
                     }
 
                     if (check_url == null){
@@ -286,11 +257,7 @@ public class HTTPServer extends Thread {
                         //e.printStackTrace();
                         CheckAccessTimer.cancel();
                         CheckErrorCacheTimer.cancel();
-                        try {
-                            boolean newFile = stop_file.createNewFile();
-                        } catch (IOException ex) {
-                            //ex.printStackTrace();
-                        }
+                        Function.writeFile("./stop.txt", emptyBytes);
                     }
                 }
             }, 1000L, 1000L);
