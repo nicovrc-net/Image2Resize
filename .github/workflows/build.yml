@@ -630,7 +630,6 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - gzip圧縮及びbrotli圧縮を対応を取りやめ
             - 内部リファクタリング
           draft: false
           prerelease: false
