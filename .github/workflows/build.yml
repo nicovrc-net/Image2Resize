@@ -112,7 +112,7 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 1
+        run: sleep 2
 
       - name: Create config.yml Test
         run: |
@@ -146,7 +146,7 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 1
+        run: sleep 2
 
       - name: Create LogFolder Test
         run: |
@@ -188,7 +188,7 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 1
+        run: sleep 2
 
       - name: URL Resize Test
         run: |
@@ -230,7 +230,7 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 1
+        run: sleep 2
 
       - name: API Check Test 1
         run: |
@@ -276,7 +276,7 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 1
+        run: sleep 2
 
       - name: API Check Test 2-1
         run: |
@@ -318,7 +318,7 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 1
+        run: sleep 2
 
       - name: API Check Test 2-2
         run: |
@@ -351,7 +351,7 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 1
+        run: sleep 2
 
       - name: Create stop.txt
         run: |
@@ -393,7 +393,7 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 1
+        run: sleep 2
 
       - name: Access
         run: |
@@ -455,7 +455,7 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 1
+        run: sleep 2
 
       - name: Access
         run: |
@@ -512,7 +512,7 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 1
+        run: sleep 2
 
       - name: Site OGPTag Check Test 1
         run: |
@@ -555,7 +555,7 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 1
+        run: sleep 2
 
       - name: Site OGPTag Check Test 3
         run: |
@@ -598,7 +598,7 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 1
+        run: sleep 2
 
       - name: Site OGPTag Check Test 3
         run: |
