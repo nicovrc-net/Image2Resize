@@ -1,6 +1,5 @@
 package net.nicovrc.dev.api;
 
-import com.google.gson.Gson;
 import net.nicovrc.dev.Function;
 
 import java.nio.charset.StandardCharsets;

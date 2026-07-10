@@ -8,7 +8,14 @@ import redis.clients.jedis.*;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.CompletionHandler;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -20,7 +27,7 @@ public class Function {
 
     public static final int HTTPPort = 25555;
     public static final String UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0 image2resize/"+Function.Version;
-    public static final String Version = "1.2.0";
+    public static final String Version = "1.3.0";
     public static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     public static final Gson gson = new Gson();
 
@@ -31,6 +38,7 @@ public class Function {
 
     private static final Pattern HTTPVersion = Pattern.compile("HTTP/(\\d+\\.\\d+)");
     private static final Pattern HTTP = Pattern.compile("(CONNECT|DELETE|GET|HEAD|OPTIONS|PATCH|POST|PUT|TRACE) (.+) HTTP/(\\d\\.\\d)");
+    private static final Pattern HTTPURI = Pattern.compile("(.+) HTTP/");
 
     public static final Pattern ImageMagickPass = Pattern.compile("ImageMagick-");
     private static final Pattern ffmpegImageInfo = Pattern.compile("Stream #0:0: Video: (.+), (.+)\\((.+)\\), (\\d+)x(\\d+)");
@@ -42,16 +50,230 @@ public class Function {
     public static final String contentType_text = "text/plain; charset=utf-8";
     public static final String contentType_png = "image/png";
 
-    public static final byte[] contentBadGateway = "Bad Gateway".getBytes(StandardCharsets.UTF_8);
-    public static final byte[] contentNotFound = "Not Found".getBytes(StandardCharsets.UTF_8);
-    public static final byte[] contentNotFound2 = "URL Not Found".getBytes(StandardCharsets.UTF_8);
-    public static final byte[] contentMethodNotAllowed = "Method Not Allowed".getBytes(StandardCharsets.UTF_8);
-    public static final byte[] contentNotImage = "Not Image".getBytes(StandardCharsets.UTF_8);
-    public static final byte[] contentFileNotFound = "File Not Found".getBytes(StandardCharsets.UTF_8);
-    public static final byte[] contentFileNotSupport = "File Not Support".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] content_BadGateway = "Bad Gateway".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] content_NotFound = "Not Found".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] content_NotFound2 = "URL Not Found".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] content_MethodNotAllowed = "Method Not Allowed".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] content_NotImage = "Not Image".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] content_FileNotFound = "File Not Found".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] content_FileNotSupport = "File Not Support".getBytes(StandardCharsets.UTF_8);
 
+    public static boolean isFoundFile(String filePass) {
+        Path path = Paths.get(filePass);
+        return Files.exists(path);
+    }
 
-    private static final Pattern matcher_contentEncoding = Pattern.compile("([aA])ccept-([eE])ncoding: (.+)");
+    public static boolean isFoundFolder(String folderPass) {
+        Path path = Paths.get(folderPass);
+        return Files.exists(path);
+    }
+
+    public static boolean createFolder(String filePass) {
+        if (!isFoundFile(filePass)) {
+            try {
+                Files.createDirectory(Path.of(filePass));
+                return true;
+            } catch (IOException e) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    public static String getFileByText(String filePass, Charset charset) {
+
+        if (charset == null) {
+            charset = StandardCharsets.UTF_8;
+        }
+
+        byte[] binary = getFileByBinary(filePass);
+        if (binary == null) {
+            return null;
+        }
+
+        return new String(binary, charset);
+    }
+
+    public static byte[] getFileByBinary(String filePass){
+        final Path path = Path.of(filePass);
+        try {
+            return Files.readAllBytes(path);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public static boolean writeFile(String filePass, String content, Charset charset) {
+        return writeFile(filePass, content.getBytes(charset));
+    }
+
+    public static boolean writeFile(String filePass, byte[] content) {
+        Path path = Paths.get(filePass);
+
+        try (OutputStream out = new BufferedOutputStream(Files.newOutputStream(path))) {
+            out.write(content);
+            out.flush();
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    public static boolean deleteFile(String filePass) {
+        Path path = Paths.get(filePass);
+        try {
+            Files.delete(path);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    public static String[] getFileList(String filePass) {
+        Path path = Paths.get(filePass);
+        if (!Files.notExists(path)) {
+            return null;
+        }
+        return path.toFile().list();
+    }
+
+    public static String getFullPath(String filePass) {
+        Path path = Paths.get(filePass);
+        return path.toAbsolutePath().toString();
+    }
+
+    public static String getHTTPRequest(ByteBuffer buffer) {
+        return new String(buffer.array(), StandardCharsets.UTF_8);
+    }
+
+    public static String createHTTPHeader(String httpVersion, int code, String contentType, String contentEncoding, String AccessControlAllowOrigin, byte[] body, String redirectUrl) {
+        return createHTTPHeader(httpVersion, code, contentType, contentEncoding, AccessControlAllowOrigin, body, redirectUrl, false, -1, -1, -1);
+    }
+
+    public static String createHTTPHeader(String httpVersion, int code, String contentType, String contentEncoding, String AccessControlAllowOrigin, byte[] body, String redirectUrl,boolean isRange, long rangeStart, long rangeEnd, long rangeSize){
+        StringBuffer sb_header = new StringBuffer();
+
+        //System.out.println(code);
+
+        sb_header.append("HTTP/").append(httpVersion == null ? "1.1" : httpVersion);
+        sb_header.append(" ").append(code).append(" ");
+        switch (code) {
+            case 200 -> sb_header.append("OK");
+            case 206 -> sb_header.append("Partial Content");
+            case 302 -> sb_header.append("Found");
+            case 400 -> sb_header.append("Bad Request");
+            case 403 -> sb_header.append("Forbidden");
+            case 404 -> sb_header.append("Not Found");
+            case 405 -> sb_header.append("Method Not Allowed");
+            case 503 -> sb_header.append("Service Unavailable");
+        }
+        sb_header.append("\r\n");
+
+        if (code != 302){
+            if (AccessControlAllowOrigin != null){
+                sb_header.append("Access-Control-Allow-Origin: ").append(AccessControlAllowOrigin).append("\r\n");
+            }
+            if (isRange){
+                sb_header.append("Accept-Ranges: bytes\r\n");
+            }
+            sb_header.append("Content-Length: ").append(body.length).append("\r\n");
+            if (contentEncoding != null && !contentEncoding.isEmpty()) {
+                sb_header.append("Content-Encoding: ").append(contentEncoding).append("\r\n");
+            }
+            sb_header.append("Content-Type: ").append(contentType).append("\r\n");
+
+            if (isRange){
+                sb_header.append("Content-Ranges: ").append(rangeStart).append("-").append(rangeEnd).append("/").append(rangeSize).append("\r\n");
+            }
+        }
+
+        sb_header.append("Date: ").append(new Date()).append("\r\n");
+
+        if (code == 302 && redirectUrl != null){
+            sb_header.append("Location: ").append(redirectUrl).append("\r\n");
+        }
+
+        sb_header.append("\r\n");
+        String httpRequest = sb_header.toString();
+        sb_header.setLength(0);
+        sb_header = null;
+
+        //System.out.println(httpRequest);
+        return httpRequest;
+
+    }
+
+    public static byte[] createSendHTTPData(String header, byte[] body){
+        if (body == null){
+            return header.getBytes(StandardCharsets.UTF_8);
+        }
+        return concatByteArrays(header.getBytes(StandardCharsets.UTF_8), body);
+    }
+
+    public static void sendHTTPData(AsynchronousSocketChannel ch, byte[] data){
+        ByteBuffer write = ByteBuffer.allocate(data.length);
+        write.put(data);
+        write.flip();
+
+        ch.write(write, write, new CompletionHandler<>() {
+            public void completed(Integer m, ByteBuffer bb) {
+                bb.clear();
+                try {
+                    ch.close();
+                } catch (IOException ex) {
+                    // ex.printStackTrace();
+                }
+            }
+
+            public void failed(Throwable e, ByteBuffer bb) {
+                try {
+                    ch.close();
+                } catch (IOException ex) {
+                    // ex.printStackTrace();
+                }
+            }
+        });
+    }
+
+    public static String getHTTPVersion(String HTTPRequest){
+        Matcher matcher = HTTPVersion.matcher(HTTPRequest);
+
+        if (matcher.find()){
+            String group = matcher.group(1);
+            matcher = null;
+            return group;
+        }
+        matcher = null;
+        return null;
+
+    }
+
+    public static String getMethod(String HTTPRequest){
+        Matcher matcher = HTTP.matcher(HTTPRequest);
+        if (matcher.find()){
+            return matcher.group(1);
+        }
+
+        return null;
+    }
+
+    public static String getURI(String HTTPRequest){
+        String uri = null;
+        Matcher matcher1 = HTTP.matcher(HTTPRequest);
+        Matcher matcher2 = HTTPURI.matcher(HTTPRequest);
+
+        if (matcher1.find()) {
+            uri = matcher1.group(2);
+        } else if (matcher2.find()) {
+            uri = matcher2.group(1);
+        }
+        matcher1 = null;
+        matcher2 = null;
+
+        //System.out.println("URI : "+uri);
+
+        return uri;
+    }
 
     public static String getFileName(String url, long cacheTime) {
         final StringBuilder cacheFilename = new StringBuilder();
@@ -75,10 +297,7 @@ public class Function {
         final String fileName = "./temp-" + new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0] + UUID.randomUUID().toString().split("-")[1];
         final String convertFileName = fileName + ".png";
 
-        FileOutputStream stream1 = new FileOutputStream(fileName);
-        stream1.write(bytes);
-        stream1.close();
-        stream1 = null;
+        writeFile(fileName, bytes);
 
         //System.out.println("Debug : ");
         //System.out.println(" ffmpeg : " + ffmpegPass);
@@ -223,20 +442,12 @@ public class Function {
 
         runtime = null;
 
-        File delete1 = new File(fileName);
-        if (delete1.exists()){
-            delete1.delete();
+        if (isFoundFile(fileName)){
+            deleteFile(fileName);
         }
-        File delete2 = new File(convertFileName);
-        if (delete2.exists()){
-            FileInputStream stream = new FileInputStream(convertFileName);
-            file = stream.readAllBytes();
-            stream.close();
-            stream = null;
-            delete2.delete();
+        if (isFoundFile(convertFileName)){
+            file = getFileByBinary(convertFileName);
         }
-        delete1 = null;
-        delete2 = null;
 
         return file;
     }
@@ -311,13 +522,12 @@ public class Function {
 
         } else {
             temp.forEach((id, httpRequest)->{
-                File file = new File(FolderPass+"/" + id + ".txt");
-                boolean isFound = file.exists();
+                String path = FolderPass+"/" + id + ".txt";
+                boolean isFound = isFoundFile(path);
                 while (isFound){
                     id = new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0];
-                    file = new File(FolderPass+"/" + id + ".txt");
-                    isFound = file.exists();
-                    file = null;
+                    path = FolderPass+"/" + id + ".txt";
+                    isFound = isFoundFile(path);
 
                     try {
                         Thread.sleep(500L);
@@ -327,15 +537,10 @@ public class Function {
                 }
 
                 try {
-                    PrintWriter writer = new PrintWriter(file);
-                    writer.print(httpRequest);
-                    writer.close();
-                    writer = null;
+                    writeFile(path, httpRequest, StandardCharsets.UTF_8);
                 } catch (Exception e){
                     LogWriteCacheList.put(id, httpRequest);
                 }
-
-                file = null;
             });
         }
 
@@ -345,95 +550,12 @@ public class Function {
         return count;
     }
 
+    @Deprecated
     public static String getHTTPRequest(Socket sock) throws Exception{
-        //System.out.println("debug 1");
-        InputStream in = sock.getInputStream();
-        StringBuilder sb = new StringBuilder();
-        int readMaxsize = 2048;
-        byte[] data = new byte[readMaxsize];
-        int readSize = in.read(data);
-
-        if (readSize <= 0) {
-            data = null;
-            sb = null;
-            in = null;
-            return null;
-        }
-        //System.out.println("debug 2");
-        data = Arrays.copyOf(data, readSize);
-        String temp = new String(data, StandardCharsets.UTF_8);
-        sb.append(temp);
-        temp = null;
-
-        if (readSize == readMaxsize){
-            data = new byte[readMaxsize];
-            readSize = in.read(data);
-            boolean isLoop = true;
-            while (readSize >= 0){
-                //System.out.println(readSize);
-                data = Arrays.copyOf(data, readSize);
-                temp = new String(data, StandardCharsets.UTF_8);
-                sb.append(temp);
-
-                data = null;
-                temp = null;
-
-                if (readSize < readMaxsize){
-                    isLoop = false;
-                }
-
-                if (!isLoop){
-                    break;
-                }
-
-                data = new byte[readMaxsize];
-                readSize = in.read(data);
-                if (readSize < readMaxsize){
-                    isLoop = false;
-                }
-            }
-        }
-
-        data = null;
-        String httpRequest = sb.toString();
-        sb.setLength(0);
-        sb = null;
-        in = null;
-        //System.out.println("debug 3");
-        //System.gc();
-        return httpRequest;
-    }
-
-    public static String getHTTPVersion(String HTTPRequest){
-        if (HTTPRequest == null){
-            return null;
-        }
-
-        Matcher matcher = HTTPVersion.matcher(HTTPRequest);
-
-        if (matcher.find()){
-            String group = matcher.group(1);
-            matcher = null;
-            return group;
-        }
-        matcher = null;
-        return null;
-
-    }
-
-    public static String getMethod(String HTTPRequest){
-        if (HTTPRequest == null){
-            return null;
-        }
-
-        Matcher matcher = HTTP.matcher(HTTPRequest);
-        if (matcher.find()){
-            return matcher.group(1);
-        }
-
         return null;
     }
 
+    @Deprecated
     public static void sendHTTPRequest(Socket sock, String httpVersion, int code, String contentType, String contentEncoding, String AccessControlAllowOrigin, byte[] body, boolean isHEAD, String redirectUrl) throws Exception {
         OutputStream out = sock.getOutputStream();
         StringBuilder sb_header = new StringBuilder();
@@ -487,17 +609,11 @@ public class Function {
 
     }
 
-    public static String getURI(String HTTPRequest){
-        String uri = null;
-        Matcher matcher = HTTP.matcher(HTTPRequest);
-
-        if (!matcher.find()){
-            matcher = null;
-        } else {
-            uri = matcher.group(2);
-            matcher = null;
-        }
-
-        return uri;
+    public static byte[] concatByteArrays(byte[]... arrays) {
+        return Arrays.stream(arrays)
+                .collect(ByteArrayOutputStream::new,
+                        ByteArrayOutputStream::writeBytes,
+                        (left, right) -> left.writeBytes(right.toByteArray()))
+                .toByteArray();
     }
 }

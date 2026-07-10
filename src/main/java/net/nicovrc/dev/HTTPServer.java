@@ -6,16 +6,18 @@ import net.nicovrc.dev.Service.APICall;
 import net.nicovrc.dev.Service.ImageCall;
 
 import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.*;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousServerSocketChannel;
+import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.CompletionHandler;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
@@ -44,6 +46,8 @@ public class HTTPServer extends Thread {
 
     private final APICall api_call = new APICall();
     private final ImageCall image_call = new ImageCall();
+
+    private static final Pattern matcher_image = Pattern.compile("url=");
 
     public HTTPServer(int HTTPPort){
         this.HTTPPort = HTTPPort;
@@ -328,6 +332,123 @@ public class HTTPServer extends Thread {
                 }
             }, 0L, 10000L);
 
+            try (AsynchronousServerSocketChannel server = AsynchronousServerSocketChannel.open()
+                    .bind(new InetSocketAddress(HTTPPort))) {
+                server.accept(null, new CompletionHandler<AsynchronousSocketChannel, Void>() {
+                    public void completed(AsynchronousSocketChannel ch, Void att) {
+                        server.accept(null, this);
+
+                        ByteBuffer buf = ByteBuffer.allocate(2048);
+                        ch.read(buf, buf, new CompletionHandler<>() {
+                            public void completed(Integer n, ByteBuffer b) {
+                                if (n == -1) {
+                                    close(ch);
+                                    return;
+                                }
+                                b.flip();
+                                //System.out.println(new String(b.array(), StandardCharsets.UTF_8));
+                                final String httpRequest = Function.getHTTPRequest(b);
+
+                                //System.out.println(httpRequest);
+
+                                if (httpRequest.isEmpty()) {
+                                    close(ch);
+                                    return;
+                                }
+
+                                final String httpVersion = Function.getHTTPVersion(httpRequest);
+                                final String httpMethod = Function.getMethod(httpRequest);
+
+                                final boolean isGET = httpMethod != null && httpMethod.equals("GET");
+                                final boolean isPOST = httpMethod != null && httpMethod.equals("POST");
+                                final boolean isHead = httpMethod != null && httpMethod.equals("HEAD");
+
+                                String httpHeader = null;
+                                byte[] httpBody = null;
+
+                                if (!isGET && !isPOST && !isHead) {
+                                    //System.out.println("[Debug] HTTPRequest送信");
+                                    httpBody = Function.content_MethodNotAllowed;
+                                    httpHeader = Function.createHTTPHeader(httpVersion, 405, Function.contentType_text, null, "*", httpBody, null);
+                                    Function.sendHTTPData(ch, Function.createSendHTTPData(httpHeader, httpBody));
+                                    return;
+                                }
+
+                                final String URI = Function.getURI(httpRequest);
+                                if (URI == null) {
+                                    //System.out.println("[Debug] HTTPRequest送信");
+                                    httpBody = Function.content_BadGateway;
+                                    httpHeader = Function.createHTTPHeader(httpVersion, 502, Function.contentType_text, null, "*", httpBody, null);
+
+                                    Function.sendHTTPData(ch, Function.createSendHTTPData(httpHeader, httpBody));
+                                    return;
+                                }
+
+                                final boolean ApiMatchFlag = URI.startsWith("/api");
+                                final boolean UrlMatchFlag = matcher_image.matcher(URI).find();
+
+
+                                if (ApiMatchFlag) {
+                                    api_call.set(ch, httpRequest, client);
+                                    try {
+                                        api_call.run();
+                                    } catch (Exception e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                    return;
+                                }
+
+                                if (UrlMatchFlag) {
+                                    image_call.set(ch, httpRequest, client);
+                                    try {
+                                        image_call.run();
+                                    } catch (Exception e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                    return;
+                                }
+
+                                httpBody = Function.content_NotFound;
+                                httpHeader = Function.createHTTPHeader(httpVersion, 404, Function.contentType_text, null, "*", httpBody, null);
+
+                                Function.sendHTTPData(ch, Function.createSendHTTPData(httpHeader, httpBody));
+                            }
+
+                            public void failed(Throwable e, ByteBuffer b) {
+                                close(ch);
+                            }
+                        });
+                    }
+
+                    public void failed(Throwable e, Void att) {
+                        e.printStackTrace();
+                    }
+
+                    void close(AsynchronousSocketChannel c) {
+                        try {
+                            c.close();
+                        } catch (Exception ignored) {
+                        }
+                    }
+                });
+
+                while (true) {
+                    if (Function.isFoundFile("./stop_lock.txt")){
+                        Function.deleteFile("./stop_lock.txt");
+                        break;
+                    }
+                    try {
+                        Thread.sleep(100L);
+                    } catch (Exception ignored) {
+                        //ignored.printStackTrace();
+                    }
+                }
+                //Thread.currentThread().join();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            /*
             while (temp[0]) {
 
                 //System.gc();
@@ -422,7 +543,7 @@ public class HTTPServer extends Thread {
                     }
                     //System.out.println("[Debug] HTTPRequest処理終了");
                 });
-            }
+            }*/
 
         } catch (Exception e){
             e.printStackTrace();

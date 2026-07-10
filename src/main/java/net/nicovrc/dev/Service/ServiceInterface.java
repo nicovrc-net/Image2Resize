@@ -1,11 +1,12 @@
 package net.nicovrc.dev.Service;
 
-import java.net.Socket;
 import java.net.http.HttpClient;
+import java.nio.channels.AsynchronousSocketChannel;
 
 public interface ServiceInterface {
 
-    void set(Socket sock, String httpRequest, HttpClient httpClient);
+    void set(AsynchronousSocketChannel ch, String httpRequest, HttpClient httpClient);
+
     void run() throws Exception;
 
 }
