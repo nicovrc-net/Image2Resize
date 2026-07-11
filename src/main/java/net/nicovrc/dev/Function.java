@@ -6,6 +6,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.nicovrc.dev.data.CacheData;
 import redis.clients.jedis.*;
+import redis.clients.jedis.params.ScanParams;
+import redis.clients.jedis.params.SetParams;
+import redis.clients.jedis.resps.ScanResult;
 
 import java.io.*;
 import java.net.Socket;
@@ -34,6 +37,15 @@ public class Function {
 
     public static String ffmpegPass;
     public static String imageMagickPass;
+
+    public static String LogFolderPass = null;
+    public static boolean isWriteRedis = false;
+    public static String RedisServer = null;
+    public static int RedisServerPort = 6379;
+    public static String RedisServerPass = null;
+    public static boolean isRedisCache = false;
+
+    public static RedisClient redisClient = null;
 
     private static final Pattern HTTPVersion = Pattern.compile("HTTP/(\\d+\\.\\d+)");
     private static final Pattern HTTP = Pattern.compile("(CONNECT|DELETE|GET|HEAD|OPTIONS|PATCH|POST|PUT|TRACE) (.+) HTTP/(\\d\\.\\d)");
@@ -478,81 +490,35 @@ public class Function {
     }
 
     public static long WriteLog(){
-        // Config
-        String tempPass;
-        boolean tempFlag;
-        String tempRedisServer;
-        int tempRedisPort;
-        String tempRedisPass;
-        boolean redisTLS = false;
-
-
-        try {
-            final YamlMapping yamlMapping = Yaml.createYamlInput(new File("./config.yml")).readYamlMapping();
-            tempFlag = yamlMapping.string("LogToRedis").toLowerCase(Locale.ROOT).equals("true");
-            tempPass = yamlMapping.string("LogFileFolderPass");
-            tempRedisServer = yamlMapping.string("RedisServer");
-            tempRedisPort = yamlMapping.integer("RedisPort");
-            tempRedisPass = yamlMapping.string("RedisPass");
-            try {
-                redisTLS = yamlMapping.string("RedisSSL").equals("true");
-            } catch (Exception e){
-                //e.printStackTrace();
-            }
-
-        } catch (Exception e){
-            // e.printStackTrace();
-            tempPass = "./log";
-            tempFlag = false;
-            tempRedisServer = "127.0.0.1";
-            tempRedisPort = 6379;
-            tempRedisPass = "";
-        }
-        final String FolderPass = tempPass;
-        final boolean isWriteRedis = tempFlag;
-        final String RedisServer = tempRedisServer;
-        final int RedisServerPort = tempRedisPort;
-        final String RedisServerPass = tempRedisPass;
-
-
         HashMap<String, String> temp = new HashMap<>(LogWriteCacheList);
         LogWriteCacheList.clear();
-        if (isWriteRedis){
+        if (isWriteRedis && redisClient != null){
 
-            JedisClientConfig config = RedisServerPass.isEmpty() ? DefaultJedisClientConfig.builder()
-                    .ssl(redisTLS)
-                    .build() : DefaultJedisClientConfig.builder()
-                    .ssl(redisTLS)
-                    .password(RedisServerPass)
-                    .build();
+            temp.forEach((id, httpRequest)->{
 
-            try (JedisPooled jedis = new JedisPooled(new HostAndPort(RedisServer, RedisServerPort), config)){
-                temp.forEach((id, httpRequest)->{
-
-                    boolean isFound = jedis.get(id) != null;
-                    while (isFound){
-                        id = new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0];
-                        isFound = jedis.get(id) != null;
-                        try {
-                            Thread.sleep(500L);
-                        } catch (Exception e){
-                            isFound = false;
-                        }
+                boolean isFound = redisClient.get(id) != null;
+                while (isFound){
+                    id = new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0];
+                    isFound = redisClient.get(id) != null;
+                    try {
+                        Thread.sleep(500L);
+                    } catch (Exception e){
+                        isFound = false;
                     }
+                }
 
-                    jedis.set("image2resize:log:"+id, new GsonBuilder().serializeNulls().setPrettyPrinting().create().toJson(httpRequest));
+                redisClient.set("image2resize:log:"+id, new GsonBuilder().serializeNulls().setPrettyPrinting().create().toJson(httpRequest));
 
-                });
-            }
+            });
 
         } else {
             temp.forEach((id, httpRequest)->{
-                String path = getFullPath(FolderPass+"/" + id + ".txt");
+                String path = getFullPath(LogFolderPass+"/" + id + ".txt");
                 //System.out.println(path);
                 boolean isFound = isFoundFile(getFullPath(path));
                 while (isFound){
                     id = new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0];
-                    path = FolderPass+"/" + id + ".txt";
+                    path = LogFolderPass+"/" + id + ".txt";
                     isFound = isFoundFile(path);
 
                     try {
@@ -638,35 +604,84 @@ public class Function {
                 .toByteArray();
     }
 
+
     public static void addCache(CacheData data) {
-        CacheList.put(data.getURL(), data);
+        if (isRedisCache && redisClient != null) {
+            String id = Base64.getEncoder().encodeToString(data.getURL().getBytes(StandardCharsets.UTF_8));
+            redisClient.set("image2resize:cache:"+id, new GsonBuilder().serializeNulls().setPrettyPrinting().create().toJson(data), new SetParams().ex(3600));
+        } else {
+            CacheList.put(data.getURL(), data);
+        }
     }
 
     public static void removeCache(String url) {
-        CacheList.remove(url);
+        if (isRedisCache && redisClient != null) {
+            String id = Base64.getEncoder().encodeToString(url.getBytes(StandardCharsets.UTF_8));
+            redisClient.del("image2resize:cache:"+id);
+        } else {
+            CacheList.remove(url);
+        }
     }
 
     public static CacheData getCache(String url) {
+        if (isRedisCache && redisClient != null) {
+            String id = Base64.getEncoder().encodeToString(url.getBytes(StandardCharsets.UTF_8));
+            return gson.fromJson(redisClient.get("image2resize:cache:" + id), CacheData.class);
+        } else {
+            CacheData cacheData = CacheList.get(url);
+            if (cacheData == null){
+                return null;
+            }
 
-        CacheData cacheData = CacheList.get(url);
-        if (cacheData == null){
-            return null;
-        }
+            if (cacheData.getCacheFileName().equals("dummy")){
+                return CacheList.get(url);
+            }
 
-        if (cacheData.getCacheFileName().equals("dummy")){
+            Long cacheTime = cacheData.getCacheTime();
+            if (cacheTime >= (new Date().getTime() - 3600000L)){
+                CacheList.remove(url);
+                return null;
+            }
+
             return CacheList.get(url);
         }
-
-        Long cacheTime = cacheData.getCacheTime();
-        if (cacheTime >= (new Date().getTime() - 3600000L)){
-            CacheList.remove(url);
-            return null;
-        }
-
-        return CacheList.get(url);
     }
 
     public static HashMap<String, CacheData> getCacheList() {
-        return new HashMap<>(CacheList);
+        if (isRedisCache && redisClient != null) {
+            final HashMap<String, CacheData> temp = new HashMap<>();
+            final ScanParams params = new ScanParams();
+            params.count(1000);
+            params.match("image2resize:cache:*");
+            String cur = ScanParams.SCAN_POINTER_START;
+            ScanResult<String> scanResult = null;
+            List<String> result = null;
+            String jsonText = null;
+
+            boolean isEnd = false;
+            while (!isEnd) {
+                scanResult = redisClient.scan(cur, params);
+                result = scanResult.getResult();
+
+                //System.out.println(result.size());
+                for (String key : result) {
+                    jsonText = redisClient.get(key);
+                    CacheData data = Function.gson.fromJson(jsonText, CacheData.class);
+                    temp.put(data.getURL(), data);
+                    jsonText = null;
+                }
+
+                cur = scanResult.getCursor();
+                if (cur.equals("0")) {
+                    isEnd = true;
+                }
+                scanResult = null;
+                result.clear();
+            }
+
+            return temp;
+        } else {
+            return new HashMap<>(CacheList);
+        }
     }
 }
