@@ -10,12 +10,7 @@ public class Test implements ImageResizeAPI{
     }
 
     @Override
-    public APIResult run(ConcurrentHashMap<String, Long> CacheDataList, ConcurrentHashMap<String, String> LogWriteCacheList) {
-        return run();
-    }
-
-    @Override
-    public APIResult run(ConcurrentHashMap<String, Long> CacheDataList, ConcurrentHashMap<String, String> LogWriteCacheList, String httpRequest) {
+    public APIResult run(String httpRequest) {
         return run();
     }
 

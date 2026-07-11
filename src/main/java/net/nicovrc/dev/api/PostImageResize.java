@@ -5,7 +5,6 @@ import net.nicovrc.dev.Function;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -13,20 +12,12 @@ public class PostImageResize implements ImageResizeAPI {
 
     private final Pattern ImagePostMatch = Pattern.compile("\\{(.+)\\}");
 
-    @Override
-    @Deprecated
     public APIResult run(){
         return null;
     }
 
     @Override
-    @Deprecated
-    public APIResult run(ConcurrentHashMap<String, Long> CacheDataList, ConcurrentHashMap<String, String> LogWriteCacheList) {
-        return null;
-    }
-
-    @Override
-    public APIResult run(ConcurrentHashMap<String, Long> CacheDataList, ConcurrentHashMap<String, String> LogWriteCacheList, String httpRequest) {
+    public APIResult run(String httpRequest) {
         // {"filename": "(ファイル名)", "content": "(Base64エンコードしたもの)"}
         final Matcher matcher1 = ImagePostMatch.matcher(httpRequest);
         final APIResult result = new APIResult();

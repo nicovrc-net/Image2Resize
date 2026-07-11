@@ -4,6 +4,7 @@ import com.amihaiemil.eoyaml.Yaml;
 import com.amihaiemil.eoyaml.YamlMapping;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import net.nicovrc.dev.data.CacheData;
 import redis.clients.jedis.*;
 
 import java.io.*;
@@ -27,7 +28,7 @@ public class Function {
 
     public static final int HTTPPort = 25555;
     public static final String UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0 image2resize/"+Function.Version;
-    public static final String Version = "1.3.0";
+    public static final String Version = "1.4.0";
     public static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     public static final Gson gson = new Gson();
 
@@ -41,9 +42,9 @@ public class Function {
     public static final Pattern ImageMagickPass = Pattern.compile("ImageMagick-");
     private static final Pattern ffmpegImageInfo = Pattern.compile("Stream #0:0: Video: (.+), (.+)\\((.+)\\), (\\d+)x(\\d+)");
 
-    public static final ConcurrentHashMap<String, Long> CacheDataList = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, String> LogWriteCacheList = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, byte[]> ErrorURLList = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<String, CacheData> CacheList = new ConcurrentHashMap<>();
 
     public static final String contentType_text = "text/plain; charset=utf-8";
     public static final String contentType_png = "image/png";
@@ -576,11 +577,6 @@ public class Function {
     }
 
     @Deprecated
-    public static String getHTTPRequest(Socket sock) throws Exception{
-        return null;
-    }
-
-    @Deprecated
     public static void sendHTTPRequest(Socket sock, String httpVersion, int code, String contentType, String contentEncoding, String AccessControlAllowOrigin, byte[] body, boolean isHEAD, String redirectUrl) throws Exception {
         OutputStream out = sock.getOutputStream();
         StringBuilder sb_header = new StringBuilder();
@@ -640,5 +636,37 @@ public class Function {
                         ByteArrayOutputStream::writeBytes,
                         (left, right) -> left.writeBytes(right.toByteArray()))
                 .toByteArray();
+    }
+
+    public static void addCache(CacheData data) {
+        CacheList.put(data.getURL(), data);
+    }
+
+    public static void removeCache(String url) {
+        CacheList.remove(url);
+    }
+
+    public static CacheData getCache(String url) {
+
+        CacheData cacheData = CacheList.get(url);
+        if (cacheData == null){
+            return null;
+        }
+
+        if (cacheData.getCacheFileName().equals("dummy")){
+            return CacheList.get(url);
+        }
+
+        Long cacheTime = cacheData.getCacheTime();
+        if (cacheTime >= (new Date().getTime() - 3600000L)){
+            CacheList.remove(url);
+            return null;
+        }
+
+        return CacheList.get(url);
+    }
+
+    public static HashMap<String, CacheData> getCacheList() {
+        return new HashMap<>(CacheList);
     }
 }

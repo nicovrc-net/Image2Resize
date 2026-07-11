@@ -4,7 +4,6 @@ package net.nicovrc.dev;
 import com.amihaiemil.eoyaml.Yaml;
 import com.amihaiemil.eoyaml.YamlMapping;
 
-import javax.sound.sampled.Port;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;

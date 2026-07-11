@@ -1,6 +1,7 @@
 package net.nicovrc.dev.Service;
 
 import net.nicovrc.dev.Function;
+import net.nicovrc.dev.data.CacheData;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -50,7 +51,7 @@ public class ImageCall implements ServiceInterface {
         final byte[] error = Function.ErrorURLList.get(url);
         //System.out.println(url + " : " + error);
         if (error != null){
-            Function.CacheDataList.remove(url);
+            Function.removeCache(url);
             //System.out.println(error);
             String httpHeader = Function.createHTTPHeader(httpVersion, 404, Function.contentType_text, null, "*", error, null);
             Function.sendHTTPData(ch, Function.createSendHTTPData(httpHeader, error));
@@ -61,42 +62,21 @@ public class ImageCall implements ServiceInterface {
         }
 
         // キャッシュを見に行く
-        Long cacheTime = Function.CacheDataList.get(url);
-        String cacheFilename = Function.getFileName(url, cacheTime != null ? cacheTime : nowTime);
+        CacheData cache = Function.getCache(url);
 
 
         //System.out.println(cacheTime + " / " + cacheFilename);
 
-        if (cacheTime != null){
+        if (cache != null){
             // あればキャッシュから
             //System.out.println("[Debug] CacheFound");
             //System.out.println("[Debug] HTTPRequest送信");
 
-            boolean isTemp = cacheTime <= -1L;
+            boolean isTemp = cache.getCacheFileName().equals("dummy");
             //System.out.println(cacheTime + " : " + isTemp);
-            int[] count = {0,0};
             while (isTemp){
-                if (cacheTime == null){
-                    break;
-                }
-
-                if (cacheTime == -1L){
-                    cacheTime = Function.CacheDataList.get(url);
-                    if (count[1] >= 50){
-                        cacheTime = null;
-                        break;
-                    }
-                    try {
-                        Thread.sleep(100L);
-                    } catch (Exception e){
-                        //e.printStackTrace();
-                    }
-                    count[1]++;
-                    continue;
-                }
-
-                cacheTime = Function.CacheDataList.get(url);
-                isTemp = cacheTime <= -1L;
+                cache = Function.getCache(url);
+                isTemp = cache != null && cache.getCacheFileName().equals("dummy");
                 try {
                     Thread.sleep(100L);
                 } catch (Exception e){
@@ -104,36 +84,30 @@ public class ImageCall implements ServiceInterface {
                 }
             }
 
-            if (cacheTime != null){
-                cacheFilename = Function.getFileName(url, cacheTime);
-
-                if (Function.isFoundFile("./cache/"+cacheFilename)){
-                    byte[] httpBody = Function.getFileByBinary("./cache/"+cacheFilename);
+            if (cache != null){
+                if (Function.isFoundFile("./cache/"+cache.getCacheFileName())){
+                    byte[] httpBody = Function.getFileByBinary("./cache/"+cache.getCacheFileName());
                     String httpHeader = Function.createHTTPHeader(httpVersion, 200, Function.contentType_png, null, "*", httpBody, null);
                     Function.sendHTTPData(ch, Function.createSendHTTPData(httpHeader, httpBody));
                 }
-
             } else {
                 String httpHeader = Function.createHTTPHeader(httpVersion, 404, Function.contentType_text, null, "*", Function.content_FileNotFound, null);
                 Function.sendHTTPData(ch, Function.createSendHTTPData(httpHeader, Function.content_FileNotFound));
 
-                Function.CacheDataList.remove(url);
+                Function.removeCache(url);
             }
-            cacheTime = null;
-
             return;
 
         }
 
         //System.out.println("[Debug] Cache Not Found");
+        Function.addCache(new CacheData(url, nowTime, "dummy"));
 
-        cacheTime = null;
-        Function.CacheDataList.put(url, -1L);
-
-        final String filePass = "./cache/" + cacheFilename;
+        final String fileName = Function.getFileName(url, new Date().getTime());
+        final String filePass = "./cache/" + fileName;
 
         if (!url.toLowerCase(Locale.ROOT).startsWith("http")) {
-            Function.CacheDataList.remove(url);
+            Function.removeCache(url);
             Function.ErrorURLList.put(url, Function.content_NotFound2);
             //System.out.println("[Debug] HTTPRequest送信");
 
@@ -164,7 +138,7 @@ public class ImageCall implements ServiceInterface {
             contentType = send.headers().firstValue("content-type").get();
         }
         if (send.statusCode() < 200 || send.statusCode() > 399){
-            Function.CacheDataList.remove(url);
+            Function.removeCache(url);
             Function.ErrorURLList.put(url, Function.content_NotFound2);
             String httpHeader = Function.createHTTPHeader(httpVersion, 404, Function.contentType_text, null, "*", Function.content_NotFound2, null);
             Function.sendHTTPData(ch, Function.createSendHTTPData(httpHeader, Function.content_NotFound2));
@@ -203,7 +177,7 @@ public class ImageCall implements ServiceInterface {
                 //System.out.println(header);
 
                 if (send.statusCode() < 200 || send.statusCode() > 399){
-                    Function.CacheDataList.remove(url);
+                    Function.removeCache(url);
                     String httpHeader = Function.createHTTPHeader(httpVersion, 404, Function.contentType_text, null, "*", Function.content_NotFound2, null);
                     Function.sendHTTPData(ch, Function.createSendHTTPData(httpHeader, Function.content_NotFound2));
 
@@ -241,7 +215,7 @@ public class ImageCall implements ServiceInterface {
                     //System.out.println(header);
 
                     if (send.statusCode() < 200 || send.statusCode() > 399) {
-                        Function.CacheDataList.remove(url);
+                        Function.removeCache(url);
                         Function.ErrorURLList.put(url, Function.content_NotFound2);
                         String httpHeader = Function.createHTTPHeader(httpVersion, 404, Function.contentType_text, null, "*", Function.content_NotFound2, null);
                         Function.sendHTTPData(ch, Function.createSendHTTPData(httpHeader, Function.content_NotFound2));
@@ -256,7 +230,7 @@ public class ImageCall implements ServiceInterface {
                 } else {
 
                     html = null;
-                    Function.CacheDataList.remove(url);
+                    Function.removeCache(url);
                     Function.ErrorURLList.put(url, Function.content_NotImage);
                     String httpHeader = Function.createHTTPHeader(httpVersion, 404, Function.contentType_text, null, "*", Function.content_NotImage, null);
                     Function.sendHTTPData(ch, Function.createSendHTTPData(httpHeader, Function.content_NotFound2));
@@ -269,7 +243,7 @@ public class ImageCall implements ServiceInterface {
         }
 
         if (contentType != null && !contentType.toLowerCase(Locale.ROOT).startsWith("image")) {
-            Function.CacheDataList.remove(url);
+            Function.removeCache(url);
             Function.ErrorURLList.put(url, Function.content_NotImage);
             //System.out.println("[Debug] HTTPRequest送信");
             String httpHeader = Function.createHTTPHeader(httpVersion, 404, Function.contentType_text, null, "*", Function.content_NotImage, null);
@@ -280,7 +254,7 @@ public class ImageCall implements ServiceInterface {
         contentType = null;
 
         if (data.length == 0){
-            Function.CacheDataList.remove(url);
+            Function.removeCache(url);
             Function.ErrorURLList.put(url, Function.content_FileNotFound);
             //System.out.println("[Debug] HTTPRequest送信");
             String httpHeader = Function.createHTTPHeader(httpVersion, 404, Function.contentType_text, null, "*", Function.content_FileNotFound, null);
@@ -295,7 +269,7 @@ public class ImageCall implements ServiceInterface {
 
         if (content == null){
 
-            Function.CacheDataList.remove(url);
+            Function.removeCache(url);
             Function.ErrorURLList.put(url, Function.content_FileNotSupport);
             //System.out.println("[Debug] HTTPRequest送信");
             String httpHeader = Function.createHTTPHeader(httpVersion, 404, Function.contentType_text, null, "*", Function.content_FileNotSupport, null);
@@ -309,8 +283,9 @@ public class ImageCall implements ServiceInterface {
         Thread.ofVirtual().start(()->{
             Function.writeFile(filePass, content);
 
-            Function.CacheDataList.remove(url);
-            Function.CacheDataList.put(url, nowTime);
+            Function.removeCache(url);
+            CacheData cacheData = new CacheData(url, nowTime, fileName);
+            Function.addCache(cacheData);
         });
 
         //System.out.println("[Debug] 画像出力");

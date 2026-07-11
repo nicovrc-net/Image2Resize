@@ -12,20 +12,12 @@ public class GetCacheList implements ImageResizeAPI {
     @Override
     @Deprecated
     public APIResult run() {
-        return null;
-    }
-
-    @Override
-    public APIResult run(ConcurrentHashMap<String, Long> CacheDataList, ConcurrentHashMap<String, String> LogWriteCacheList) {
-        if (CacheDataList == null){
-            return null;
-        }
 
         final HashMap<String, String> cacheList = new HashMap<>();
         final Date tempDate = new Date();
-        CacheDataList.forEach((url, cacheTime)->{
-            if (cacheTime > 0){
-                tempDate.setTime(cacheTime);
+        Function.getCacheList().forEach((url, cache)->{
+            if (cache.getCacheTime() > 0){
+                tempDate.setTime(cache.getCacheTime());
                 cacheList.put(url, Function.sdf.format(tempDate));
             }
         });
@@ -37,9 +29,8 @@ public class GetCacheList implements ImageResizeAPI {
     }
 
     @Override
-    @Deprecated
-    public APIResult run(ConcurrentHashMap<String, Long> CacheDataList, ConcurrentHashMap<String, String> LogWriteCacheList, String httpRequest) {
-        return run(CacheDataList, LogWriteCacheList);
+    public APIResult run(String httpRequest) {
+        return run();
     }
 
     @Override

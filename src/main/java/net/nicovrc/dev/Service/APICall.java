@@ -40,7 +40,7 @@ public class APICall implements ServiceInterface {
 
         final ImageResizeAPI api = apiList.get(URI);
         if (api != null) {
-            APIResult run = api.run(Function.CacheDataList, Function.LogWriteCacheList, httpRequest);
+            APIResult run = api.run(httpRequest);
 
             byte[] httpBody = run.getHttpContent();
             String httpHeader = Function.createHTTPHeader(httpVersion, Integer.parseInt(run.getHttpResponseCode()), run.getHttpContentType(), null, "*", httpBody, null);

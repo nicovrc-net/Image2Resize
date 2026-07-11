@@ -26,7 +26,6 @@ public class HTTPServer extends Thread {
     private final Pattern NotLog;
     private final URI check_url;
 
-    private final Timer CacheCheckTimer = new Timer();
     private final Timer LogWriteTimer = new Timer();
     private final Timer CheckStopTimer = new Timer();
     private final Timer CheckAccessTimer = new Timer();
@@ -80,51 +79,6 @@ public class HTTPServer extends Thread {
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .connectTimeout(Duration.ofSeconds(5))
                 .build()){
-
-            // キャッシュ掃除
-            CacheCheckTimer.scheduleAtFixedRate(new TimerTask() {
-                @Override
-                public void run() {
-                    int startCacheCount = Function.CacheDataList.size();
-                    if (startCacheCount > 0){
-                        System.out.println("[Info] キャッシュお掃除開始 (" + Function.sdf.format(new Date()) + ")");
-                        final HashMap<String, Long> temp = new HashMap<>(Function.CacheDataList);
-
-                        temp.forEach((url, cacheTime)->{
-
-                            if (cacheTime >= 0L){
-                                //System.out.println(StartTime - data.getCacheDate().getTime());
-                                if (new Date().getTime() - cacheTime >= 3600000){
-
-                                    Function.CacheDataList.remove(url);
-
-                                    try {
-
-                                        File file = new File("./cache/" + Function.getFileName(url, cacheTime));
-                                        if (file.exists()){
-                                            file.delete();
-                                        }
-                                        file = null;
-
-                                    } catch (Exception e) {
-                                        //e.printStackTrace();
-                                    }
-
-                                }
-                            }
-
-                        });
-
-                        temp.clear();
-                        //System.gc();
-
-                        Date date1 = new Date();
-                        System.out.println("[Info] キャッシュお掃除終了 (" + Function.sdf.format(date1) + ")");
-                        System.out.println("[Info] キャッシュ件数が"+startCacheCount+"件から"+Function.CacheDataList.size()+"件になりました。 (" + Function.sdf.format(date1) + ")");
-                        date1 = null;
-                    }
-                }
-            }, 0L, 3600000L);
 
             // ログ書き出し
             LogWriteTimer.scheduleAtFixedRate(new TimerTask() {
@@ -185,7 +139,6 @@ public class HTTPServer extends Thread {
                             Function.WriteLog();
                             //System.out.println("exit flg2");
                             CheckStopTimer.cancel();
-                            CacheCheckTimer.cancel();
                             LogWriteTimer.cancel();
                             CheckAccessTimer.cancel();
                             CheckErrorCacheTimer.cancel();
@@ -371,7 +324,6 @@ public class HTTPServer extends Thread {
                     }
                 }
                 CheckStopTimer.cancel();
-                CacheCheckTimer.cancel();
                 LogWriteTimer.cancel();
                 CheckAccessTimer.cancel();
                 CheckErrorCacheTimer.cancel();

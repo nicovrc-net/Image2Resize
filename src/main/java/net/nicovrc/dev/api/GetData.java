@@ -9,18 +9,12 @@ public class GetData implements ImageResizeAPI {
 
     @Override
     public APIResult run() {
-        return null;
+        return new APIResult("200", ("{\"Version\":\""+ Function.Version+"\",\"ImageCacheCount\":"+Function.getCacheList().size()+",\"LogCacheCount\":"+Function.LogWriteCacheList.size()+"}").getBytes(StandardCharsets.UTF_8));
     }
 
     @Override
-    public APIResult run(ConcurrentHashMap<String, Long> CacheDataList, ConcurrentHashMap<String, String> LogWriteCacheList) {
-        return new APIResult("200", ("{\"Version\":\""+ Function.Version+"\",\"ImageCacheCount\":"+CacheDataList.size()+",\"LogCacheCount\":"+LogWriteCacheList.size()+"}").getBytes(StandardCharsets.UTF_8));
-    }
-
-    @Override
-    @Deprecated
-    public APIResult run(ConcurrentHashMap<String, Long> CacheDataList, ConcurrentHashMap<String, String> LogWriteCacheList, String httpRequest) {
-        return run(CacheDataList, LogWriteCacheList);
+    public APIResult run(String httpRequest) {
+        return run();
     }
 
     @Override
