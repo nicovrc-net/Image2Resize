@@ -173,7 +173,7 @@ public class HTTPServer extends Thread {
                                 if (Function.deleteFolder("./cache")){
                                     System.out.println("[Info] (終了準備処理)キャッシュフォルダ 掃除完了");
                                 } else {
-                                    System.out.println("aa");
+                                    // System.out.println("aa");
                                 }
                                 Function.createFolder("./cache");
                             }
@@ -315,6 +315,7 @@ public class HTTPServer extends Thread {
                                     api_call.set(ch, httpRequest, client);
                                     try {
                                         api_call.run();
+                                        close(ch);
                                     } catch (Exception e) {
                                         throw new RuntimeException(e);
                                     }
@@ -325,6 +326,7 @@ public class HTTPServer extends Thread {
                                     image_call.set(ch, httpRequest, client);
                                     try {
                                         image_call.run();
+                                        close(ch);
                                     } catch (Exception e) {
                                         throw new RuntimeException(e);
                                     }
