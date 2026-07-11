@@ -559,7 +559,7 @@ jobs:
 
       - name: Site OGPTag Check Test 3
         run: |
-          HTTP_STATUS=$(curl -m 2 -o /dev/null -s -w "%{http_code}" http://localhost:25555/?url=https://vrchat-fbt.com/category/寄付者/茅野ななみ/)
+          HTTP_STATUS=$(curl -m 2 -o /dev/null -s -w "%{http_code}" http://localhost:25555/?url=https://nicovrc.net/)
           if [ "$HTTP_STATUS" -ne 200 ]; then
             exit 1
           else
