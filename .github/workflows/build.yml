@@ -630,7 +630,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: v${{ github.ref }}
           body: |
-            - 内部リファクタリング
+            - 内部キャッシュにRedisを使うように
           draft: false
           prerelease: false
 
