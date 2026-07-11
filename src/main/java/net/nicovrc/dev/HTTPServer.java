@@ -335,6 +335,7 @@ public class HTTPServer extends Thread {
                                 httpHeader = Function.createHTTPHeader(httpVersion, 404, Function.contentType_text, null, "*", httpBody, null);
 
                                 Function.sendHTTPData(ch, Function.createSendHTTPData(httpHeader, httpBody));
+                                close(ch);
                             }
 
                             public void failed(Throwable e, ByteBuffer b) {
