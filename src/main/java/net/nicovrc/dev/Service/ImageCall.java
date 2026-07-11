@@ -22,7 +22,7 @@ public class ImageCall implements ServiceInterface {
     private HttpClient client = null;
 
     private final Pattern ogp_image_nicovideo = Pattern.compile("<meta data-server=\"1\" property=\"og:image\" content=\"(.+)\" />");
-    private final Pattern ogp_image_web = Pattern.compile("<meta property=\"og:image\" content=\"(.+)\">");
+    private final Pattern ogp_image_web = Pattern.compile("<meta property=\"og:image\" content=\"(.+)\"");
 
     public ImageCall(){
         if (Function.isFoundFolder("./cache")){
@@ -106,6 +106,7 @@ public class ImageCall implements ServiceInterface {
         final String fileName = Function.getFileName(url, new Date().getTime());
         final String filePass = "./cache/" + fileName;
 
+        //System.out.println("URL : "+url);
         if (!url.toLowerCase(Locale.ROOT).startsWith("http")) {
             Function.removeCache(url);
             Function.ErrorURLList.put(url, Function.content_NotFound2);

@@ -260,6 +260,7 @@ public class HTTPServer extends Thread {
                                     return;
                                 }
 
+                                //System.out.println("URI : " + URI);
                                 final boolean ApiMatchFlag = URI.startsWith("/api");
                                 final boolean UrlMatchFlag = matcher_image.matcher(URI).find();
 
