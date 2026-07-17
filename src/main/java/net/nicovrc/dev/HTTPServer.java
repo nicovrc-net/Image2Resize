@@ -239,6 +239,7 @@ public class HTTPServer {
                 String httpHeader = Function.createHTTPHeader("1.1", 200, Function.contentType_text, null, "*", emptyBytes, null);
 
                 Function.sendHTTPData(ctx.asyncSocketChannel, Function.createSendHTTPData(httpHeader, emptyBytes));
+                ctx.close();
                 return;
             }
 
@@ -251,6 +252,7 @@ public class HTTPServer {
                 System.out.println(httpRequest);
 
                 Function.LogWriteCacheList.put(new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0], httpRequest);
+                ctx.close();
                 return;
             }
 
