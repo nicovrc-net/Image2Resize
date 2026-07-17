@@ -33,9 +33,6 @@ public class HTTPServer extends Thread {
 
     private final byte[] emptyBytes = new byte[0];
 
-    private final APICall api_call = new APICall();
-    private final ImageCall image_call = new ImageCall();
-
     private static final Pattern matcher_image = Pattern.compile("url=");
 
     public HTTPServer(int HTTPPort){
@@ -264,6 +261,8 @@ public class HTTPServer extends Thread {
                                 final boolean ApiMatchFlag = URI.startsWith("/api");
                                 final boolean UrlMatchFlag = matcher_image.matcher(URI).find();
 
+                                final APICall api_call = new APICall();
+                                final ImageCall image_call = new ImageCall();
 
                                 if (ApiMatchFlag) {
                                     api_call.set(ch, httpRequest, client);
