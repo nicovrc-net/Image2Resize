@@ -5,6 +5,8 @@ public class CacheData {
     private Long cacheTime;
     private String cacheFileName;
 
+    private byte[] content;
+
     public CacheData(String url, Long cacheTime, String cacheFileName) {
         this.url = url;
         this.cacheTime = cacheTime;
@@ -32,6 +34,14 @@ public class CacheData {
 
     public void setCacheFileName(String cacheFileName) {
         this.cacheFileName = cacheFileName;
+    }
+
+    public byte[] getContent() {
+        return content;
+    }
+
+    public void setContent(byte[] content) {
+        this.content = content;
     }
 
 }

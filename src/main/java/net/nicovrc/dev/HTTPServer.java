@@ -86,14 +86,13 @@ public class HTTPServer {
         Function.LogWriteTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                new Thread(()->{
+                Thread.ofVirtual().start(()->{
                     if (!Function.LogWriteCacheList.isEmpty()){
                         System.out.println("[Info] ログ書き込み開始 (" + Function.sdf.format(new Date()) + ")");
                         long writeCount = Function.WriteLog();
                         System.out.println("[Info] ログ書き込み終了("+writeCount+"件) (" + Function.sdf.format(new Date()) + ")");
                     }
-                    System.gc();
-                }).start();
+                });
             }
         }, 0L, 60000L);
 
@@ -128,8 +127,6 @@ public class HTTPServer {
                         if (Function.getFileList("./cache") != null){
                             if (Function.deleteFolder("./cache")){
                                 System.out.println("[Info] (終了準備処理)キャッシュフォルダ 掃除完了");
-                            } else {
-                                // System.out.println("aa");
                             }
                             Function.createFolder("./cache");
                         }
@@ -193,7 +190,7 @@ public class HTTPServer {
                     Function.writeFile("./stop.txt", emptyBytes);
                 }
             }
-        }, 1000L, 1000L);
+        }, 1000L, 10000L);
 
         // エラーリスト掃除
         Function.CheckErrorCacheTimer.scheduleAtFixedRate(new TimerTask() {
@@ -251,7 +248,7 @@ public class HTTPServer {
             if (!NotLog.matcher(httpRequest).find()){
                 System.out.println(httpRequest);
 
-                Function.LogWriteCacheList.put(new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0], httpRequest);
+                Thread.ofVirtual().start(()->Function.LogWriteCacheList.put(new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0], httpRequest));
             }
 
             final String httpVersion = Function.getHTTPVersion(httpRequest);

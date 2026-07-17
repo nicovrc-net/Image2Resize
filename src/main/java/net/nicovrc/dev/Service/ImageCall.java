@@ -63,7 +63,7 @@ public class ImageCall implements ServiceInterface {
         // キャッシュを見に行く
         while (TempCacheList.get(url) != null) {
             try {
-                Thread.sleep(100L);
+                Thread.sleep(10L);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -77,7 +77,10 @@ public class ImageCall implements ServiceInterface {
             // あればキャッシュから
             //System.out.println("[Debug] CacheFound");
             //System.out.println("[Debug] HTTPRequest送信");
-            if (Function.isFoundFile("./cache/"+cache.getCacheFileName())){
+            if (cache.getContent() != null) {
+                String httpHeader = Function.createHTTPHeader(httpVersion, 200, Function.contentType_png, null, "*", cache.getContent(), null);
+                Function.sendHTTPData(ch, Function.createSendHTTPData(httpHeader, cache.getContent()));
+            } else if (Function.isFoundFile("./cache/"+cache.getCacheFileName())){
                 byte[] httpBody = Function.getFileByBinary("./cache/"+cache.getCacheFileName());
                 String httpHeader = Function.createHTTPHeader(httpVersion, 200, Function.contentType_png, null, "*", httpBody, null);
                 Function.sendHTTPData(ch, Function.createSendHTTPData(httpHeader, httpBody));
@@ -154,7 +157,6 @@ public class ImageCall implements ServiceInterface {
                             .headers("User-Agent", Function.UserAgent)
                             .headers("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                             .headers("Accept-Language", "ja,en;q=0.7,en-US;q=0.3")
-                            .headers("Accept-Encoding", "gzip, br")
                             .GET()
                             .build();
 
@@ -192,7 +194,6 @@ public class ImageCall implements ServiceInterface {
                                 .headers("User-Agent", Function.UserAgent)
                                 .headers("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
                                 .headers("Accept-Language", "ja,en;q=0.7,en-US;q=0.3")
-                                .headers("Accept-Encoding", "gzip, br")
                                 .GET()
                                 .build();
 
@@ -280,6 +281,7 @@ public class ImageCall implements ServiceInterface {
             Function.writeFile(filePass, content);
 
             CacheData cacheData = new CacheData(url, nowTime, fileName);
+            cacheData.setContent(content);
             Function.addCache(cacheData);
             TempCacheList.remove(url);
         });
