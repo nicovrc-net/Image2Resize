@@ -173,7 +173,11 @@ public class HTTPServer {
                         return;
                     }
 
-                    try {
+                    try (HttpClient client = HttpClient.newBuilder()
+                            .version(HttpClient.Version.HTTP_2)
+                            .followRedirects(HttpClient.Redirect.NORMAL)
+                            .connectTimeout(Duration.ofSeconds(5))
+                            .build()){
 
                         HttpRequest request = HttpRequest.newBuilder()
                                 .uri(check_url)
