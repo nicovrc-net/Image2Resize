@@ -69,8 +69,9 @@ public class ImageCall implements ServiceInterface {
                 e.printStackTrace();
             }
         }
-        CacheData cache = Function.getCache(url);
 
+        //System.out.println(url);
+        CacheData cache = Function.getCache(url);
 
         //System.out.println(cacheTime + " / " + cacheFilename);
         //long end = new Date().getTime();
@@ -82,13 +83,14 @@ public class ImageCall implements ServiceInterface {
             if (cache.getContent() != null) {
                 String httpHeader = Function.createHTTPHeader(httpVersion, 200, Function.contentType_png, null, "*", cache.getContent(), null);
                 Function.sendHTTPData(ch, Function.createSendHTTPData(httpHeader, cache.getContent()));
+                return;
             } else if (Function.isFoundFile("./cache/"+cache.getCacheFileName())){
                 byte[] httpBody = Function.getFileByBinary("./cache/"+cache.getCacheFileName());
                 String httpHeader = Function.createHTTPHeader(httpVersion, 200, Function.contentType_png, null, "*", httpBody, null);
                 Function.sendHTTPData(ch, Function.createSendHTTPData(httpHeader, httpBody));
+                return;
             }
             return;
-
         }
 
         //System.out.println("[Debug] Cache Not Found");

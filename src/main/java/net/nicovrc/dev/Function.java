@@ -59,7 +59,7 @@ public class Function {
 
     public static final ConcurrentHashMap<String, String> LogWriteCacheList = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, byte[]> ErrorURLList = new ConcurrentHashMap<>();
-    public static final ConcurrentHashMap<String, CacheData> CacheList = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, CacheData> CacheList = new ConcurrentHashMap<>();
 
     public static final String contentType_text = "text/plain; charset=utf-8";
     public static final String contentType_png = "image/png";
@@ -624,6 +624,7 @@ public class Function {
             String id = Base64.getEncoder().encodeToString(data.getURL().getBytes(StandardCharsets.UTF_8));
             redisClient.set("image2resize:cache:"+id, new GsonBuilder().serializeNulls().setPrettyPrinting().create().toJson(data), new SetParams().ex(3600));
         } else {
+            //System.out.println("data.url = "+data.getURL());
             CacheList.put(data.getURL(), data);
         }
     }
@@ -642,17 +643,16 @@ public class Function {
             String id = Base64.getEncoder().encodeToString(url.getBytes(StandardCharsets.UTF_8));
             return gson.fromJson(redisClient.get("image2resize:cache:" + id), CacheData.class);
         } else {
+            //System.out.println("url = "+url);
             CacheData cacheData = CacheList.get(url);
             if (cacheData == null){
+                //System.out.println("null");
                 return null;
             }
 
-            if (cacheData.getCacheFileName().equals("dummy")){
-                return CacheList.get(url);
-            }
-
             Long cacheTime = cacheData.getCacheTime();
-            if (cacheTime >= (new Date().getTime() - 3600000L)){
+            if (new Date().getTime() - cacheTime > 3600000L){
+                //System.out.println("Date");
                 CacheList.remove(url);
                 return null;
             }
