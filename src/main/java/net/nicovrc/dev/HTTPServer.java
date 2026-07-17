@@ -158,7 +158,7 @@ public class HTTPServer {
                 }
             }
         }, 0L, 1000L);
-/*
+
         //死活監視追加
         Function.CheckAccessTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -195,7 +195,7 @@ public class HTTPServer {
                 }
             }
         }, 1000L, 1000L);
-*/
+
         // エラーリスト掃除
         Function.CheckErrorCacheTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
