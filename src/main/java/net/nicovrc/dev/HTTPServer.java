@@ -182,7 +182,7 @@ public class HTTPServer {
                     Function.writeFile("./stop.txt", emptyBytes);
                 }
             }
-        }, 1000L, 1000L);
+        }, 2000L, 1000L);
 
         // エラーリスト掃除
         Function.CheckErrorCacheTimer.scheduleAtFixedRate(new TimerTask() {
