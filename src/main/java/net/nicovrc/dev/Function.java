@@ -13,6 +13,7 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
+import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -108,10 +109,22 @@ public class Function {
     }
 
     public static byte[] getFileByBinary(String filePass){
-        final Path path = Path.of(filePass);
-        try {
-            return Files.readAllBytes(path);
-        } catch (Exception e) {
+
+        try (RandomAccessFile file = new RandomAccessFile(filePass, "r");
+             FileChannel channel = file.getChannel()) {
+
+            long fileSize = channel.size();
+            if (fileSize > Integer.MAX_VALUE) {
+                return null;
+            }
+
+            // ファイルサイズ分のバッファを確保して一気に読み込む
+            ByteBuffer buffer = ByteBuffer.allocate((int) fileSize);
+            channel.read(buffer);
+
+            return buffer.array();
+        } catch (IOException e) {
+            // 必要に応じてログ出力
             return null;
         }
     }
