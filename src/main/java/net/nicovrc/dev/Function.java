@@ -482,6 +482,7 @@ public class Function {
         }
         if (isFoundFile(convertFileName)){
             file = getFileByBinary(convertFileName);
+            deleteFile(convertFileName);
         }
 
         return file;
