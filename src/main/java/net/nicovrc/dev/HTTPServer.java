@@ -34,9 +34,6 @@ public class HTTPServer {
 
     private static final Pattern matcher_image = Pattern.compile("url=");
 
-    private HttpClient client = null;
-
-
     public HTTPServer() {
         try {
             this.asyncChannel = AsynchronousServerSocketChannel.open();
@@ -85,138 +82,126 @@ public class HTTPServer {
         }
         asyncChannel.accept(null, acceptHandler);
 
-        try (HttpClient client = HttpClient.newBuilder()
-                .version(HttpClient.Version.HTTP_2)
-                .followRedirects(HttpClient.Redirect.NORMAL)
-                .connectTimeout(Duration.ofSeconds(5))
-                .build()){
-
-            this.client = client;
-
-            // ログ書き出し
-            Function.LogWriteTimer.scheduleAtFixedRate(new TimerTask() {
-                @Override
-                public void run() {
-                    new Thread(()->{
-                        if (!Function.LogWriteCacheList.isEmpty()){
-                            System.out.println("[Info] ログ書き込み開始 (" + Function.sdf.format(new Date()) + ")");
-                            long writeCount = Function.WriteLog();
-                            System.out.println("[Info] ログ書き込み終了("+writeCount+"件) (" + Function.sdf.format(new Date()) + ")");
-                        }
-                        System.gc();
-                    }).start();
-                }
-            }, 0L, 60000L);
-
-            // 終了監視
-            Function.CheckStopTimer.scheduleAtFixedRate(new TimerTask() {
-                @Override
-                public void run() {
-                    try {
-
-                        //System.out.println(temp[0]);
-
-                        if (!Function.isFoundFile("./stop.txt")){
-                            return;
-                        }
-
-                        boolean delete = Function.deleteFile("./stop.txt");
-                        if (delete){
-                            if (Function.isFoundFile("./lock-stop")){
-                                return;
-                            }
-                            System.out.println("[Info] 終了するための準備処理を開始します。");
-                            long count = Function.WriteLog();
-                            if (count == 0){
-                                System.out.println("[Info] (終了準備処理)ログ書き出し完了");
-                            } else {
-                                while (count > 0){
-                                    count = Function.WriteLog();
-                                }
-                            }
-                            System.out.println("[Info] (終了準備処理)処理受付中止 完了");
-
-                            if (Function.getFileList("./cache") != null){
-                                if (Function.deleteFolder("./cache")){
-                                    System.out.println("[Info] (終了準備処理)キャッシュフォルダ 掃除完了");
-                                } else {
-                                    // System.out.println("aa");
-                                }
-                                Function.createFolder("./cache");
-                            }
-
-                            System.out.println("[Info] 終了準備処理完了");
-
-                            Function.writeFile("./lock-stop", emptyBytes);
-                            //System.out.println("exit flg");
-                            Function.WriteLog();
-                            //System.out.println("exit flg2");
-                            Function.CheckStopTimer.cancel();
-                            Function.LogWriteTimer.cancel();
-                            Function.CheckAccessTimer.cancel();
-                            Function.CheckErrorCacheTimer.cancel();
-                            //System.out.println("exit flg3");
-                            System.out.println("[Info] 終了します...");
-                        }
-
-                    } catch (Exception e){
-                        // e.printStackTrace();
+        // ログ書き出し
+        Function.LogWriteTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                new Thread(()->{
+                    if (!Function.LogWriteCacheList.isEmpty()){
+                        System.out.println("[Info] ログ書き込み開始 (" + Function.sdf.format(new Date()) + ")");
+                        long writeCount = Function.WriteLog();
+                        System.out.println("[Info] ログ書き込み終了("+writeCount+"件) (" + Function.sdf.format(new Date()) + ")");
                     }
-                }
-            }, 0L, 1000L);
+                    System.gc();
+                }).start();
+            }
+        }, 0L, 60000L);
 
-            //死活監視追加
-            Function.CheckAccessTimer.scheduleAtFixedRate(new TimerTask() {
-                @Override
-                public void run() {
-                    if (check_url == null){
+        // 終了監視
+        Function.CheckStopTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+
+                    //System.out.println(temp[0]);
+
+                    if (!Function.isFoundFile("./stop.txt")){
                         return;
                     }
 
-                    try (HttpClient client = HttpClient.newBuilder()
-                            .version(HttpClient.Version.HTTP_2)
-                            .followRedirects(HttpClient.Redirect.NORMAL)
-                            .connectTimeout(Duration.ofSeconds(5))
-                            .build()){
+                    boolean delete = Function.deleteFile("./stop.txt");
+                    if (delete){
+                        if (Function.isFoundFile("./lock-stop")){
+                            return;
+                        }
+                        System.out.println("[Info] 終了するための準備処理を開始します。");
+                        long count = Function.WriteLog();
+                        if (count == 0){
+                            System.out.println("[Info] (終了準備処理)ログ書き出し完了");
+                        } else {
+                            while (count > 0){
+                                count = Function.WriteLog();
+                            }
+                        }
+                        System.out.println("[Info] (終了準備処理)処理受付中止 完了");
 
-                        HttpRequest request = HttpRequest.newBuilder()
-                                .uri(check_url)
-                                .headers("User-Agent", Function.UserAgent)
-                                .headers("x-image2-resize-test", check_url.toString())
-                                .GET()
-                                .build();
-
-                        HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-                        //System.out.println(send.statusCode());
-                        if (send.statusCode() < 200 || send.statusCode() > 399){
-                            send = null;
-                            request = null;
-                            throw new Exception("Error");
+                        if (Function.getFileList("./cache") != null){
+                            if (Function.deleteFolder("./cache")){
+                                System.out.println("[Info] (終了準備処理)キャッシュフォルダ 掃除完了");
+                            } else {
+                                // System.out.println("aa");
+                            }
+                            Function.createFolder("./cache");
                         }
 
-                        send = null;
-                        request = null;
+                        System.out.println("[Info] 終了準備処理完了");
 
-                    } catch (Exception e){
-                        e.printStackTrace();
+                        Function.writeFile("./lock-stop", emptyBytes);
+                        //System.out.println("exit flg");
+                        Function.WriteLog();
+                        //System.out.println("exit flg2");
+                        Function.CheckStopTimer.cancel();
+                        Function.LogWriteTimer.cancel();
                         Function.CheckAccessTimer.cancel();
                         Function.CheckErrorCacheTimer.cancel();
-                        Function.writeFile("./stop.txt", emptyBytes);
+                        //System.out.println("exit flg3");
+                        System.out.println("[Info] 終了します...");
                     }
-                }
-            }, 1000L, 1000L);
 
-            // エラーリスト掃除
-            Function.CheckErrorCacheTimer.scheduleAtFixedRate(new TimerTask() {
-                @Override
-                public void run() {
-                    Function.ErrorURLList.clear();
+                } catch (Exception e){
+                    // e.printStackTrace();
                 }
-            }, 0L, 10000L);
+            }
+        }, 0L, 1000L);
 
-        } catch (Exception e){
-            e.printStackTrace();
-        }
+        //死活監視追加
+        Function.CheckAccessTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (check_url == null){
+                    return;
+                }
+
+                try (HttpClient client = HttpClient.newBuilder()
+                        .version(HttpClient.Version.HTTP_2)
+                        .followRedirects(HttpClient.Redirect.NORMAL)
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .build()){
+
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .uri(check_url)
+                            .headers("User-Agent", Function.UserAgent)
+                            .headers("x-image2-resize-test", check_url.toString())
+                            .GET()
+                            .build();
+
+                    HttpResponse<byte[]> send = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                    //System.out.println(send.statusCode());
+                    if (send.statusCode() < 200 || send.statusCode() > 399){
+                        send = null;
+                        request = null;
+                        throw new Exception("Error");
+                    }
+
+                    send = null;
+                    request = null;
+
+                } catch (Exception e){
+                    e.printStackTrace();
+                    Function.CheckAccessTimer.cancel();
+                    Function.CheckErrorCacheTimer.cancel();
+                    Function.writeFile("./stop.txt", emptyBytes);
+                }
+            }
+        }, 1000L, 1000L);
+
+        // エラーリスト掃除
+        Function.CheckErrorCacheTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                Function.ErrorURLList.clear();
+            }
+        }, 0L, 10000L);
     }
 
     private final CompletionHandler<AsynchronousSocketChannel, Void> acceptHandler = new CompletionHandler<>() {
@@ -305,32 +290,47 @@ public class HTTPServer {
             final ImageCall image_call = new ImageCall();
 
             if (ApiMatchFlag) {
-                api_call.set(ctx.asyncSocketChannel, httpRequest, client);
+                try (HttpClient client = HttpClient.newBuilder()
+                        .version(HttpClient.Version.HTTP_2)
+                        .followRedirects(HttpClient.Redirect.NORMAL)
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .build()) {
+                    api_call.set(ctx.asyncSocketChannel, httpRequest, client);
 
-                Thread.ofVirtual().start(()->{
-                    try {
-                        api_call.run();
-                        ctx.close();
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+                    Thread.ofVirtual().start(()->{
+                        try {
+                            api_call.run();
+                            ctx.close();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
 
                 return;
             }
 
             if (UrlMatchFlag) {
-                image_call.set(ctx.asyncSocketChannel, httpRequest, client);
+                try (HttpClient client = HttpClient.newBuilder()
+                        .version(HttpClient.Version.HTTP_2)
+                        .followRedirects(HttpClient.Redirect.NORMAL)
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .build()){
+                    image_call.set(ctx.asyncSocketChannel, httpRequest, client);
 
-                Thread.ofVirtual().start(()->{
-                    try {
-                        image_call.run();
-                        ctx.close();
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                });
-
+                    Thread.ofVirtual().start(()->{
+                        try {
+                            image_call.run();
+                            ctx.close();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 return;
             }
 
