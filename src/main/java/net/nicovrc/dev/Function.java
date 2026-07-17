@@ -263,9 +263,7 @@ public class Function {
     }
 
     public static void sendHTTPData(AsynchronousSocketChannel ch, byte[] data){
-        ByteBuffer write = ByteBuffer.allocate(data.length);
-        write.put(data);
-        write.flip();
+        ByteBuffer write = ByteBuffer.wrap(data);
 
         ch.write(write, write, new CompletionHandler<>() {
             public void completed(Integer m, ByteBuffer bb) {

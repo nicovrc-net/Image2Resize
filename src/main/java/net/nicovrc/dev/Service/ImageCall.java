@@ -42,6 +42,7 @@ public class ImageCall implements ServiceInterface {
     }
 
     public void run() throws Exception {
+        //long start = new Date().getTime();
         final String url = URI.replaceAll("^(/\\?url=)", "");
         final long nowTime = new Date().getTime();
         //System.out.println(url);
@@ -72,7 +73,8 @@ public class ImageCall implements ServiceInterface {
 
 
         //System.out.println(cacheTime + " / " + cacheFilename);
-
+        //long end = new Date().getTime();
+        //System.out.println(end - start);
         if (cache != null){
             // あればキャッシュから
             //System.out.println("[Debug] CacheFound");

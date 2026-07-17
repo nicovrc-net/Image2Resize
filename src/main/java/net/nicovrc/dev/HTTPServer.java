@@ -227,6 +227,7 @@ public class HTTPServer {
                 ctx.close();
                 return;
             }
+            //long start = new Date().getTime();
             //System.out.println("read " + result + " bytes.");
             ctx.buffer.flip();
 
@@ -305,6 +306,8 @@ public class HTTPServer {
                 return;
             }
             //System.out.println("test1");
+            //long end = new Date().getTime();
+            //System.out.println(end - start);
             if (UrlMatchFlag) {
 
                     image_call.set(ctx.asyncSocketChannel, httpRequest, null);
