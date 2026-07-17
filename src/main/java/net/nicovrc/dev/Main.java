@@ -208,10 +208,34 @@ RedisSSL: false
             e.printStackTrace();
             return;
         }
-        Thread start = Thread.ofVirtual().start(new HTTPServer(port));
+
         try {
-            start.join();
-        } catch (InterruptedException e) {
+            try (HttpClient client = HttpClient.newBuilder()
+                    .version(HttpClient.Version.HTTP_2)
+                    .followRedirects(HttpClient.Redirect.NORMAL)
+                    .connectTimeout(Duration.ofSeconds(5))
+                    .build()){
+                new HTTPServer(client , port).start();
+            } catch (Exception e){
+                // e.printStackTrace();
+            }
+            while (true) {
+                if (Function.isFoundFile("./lock-stop")){
+                    Function.deleteFile("./lock-stop");
+                    break;
+                }
+                //System.out.println("test0");
+                try {
+                    Thread.sleep(100L);
+                } catch (Exception ignored) {
+                    //ignored.printStackTrace();
+                }
+            }
+            Function.CheckStopTimer.cancel();
+            Function.LogWriteTimer.cancel();
+            Function.CheckAccessTimer.cancel();
+            Function.CheckErrorCacheTimer.cancel();
+        } catch (Exception e) {
             e.printStackTrace();
         }
         Function.redisClient.close();

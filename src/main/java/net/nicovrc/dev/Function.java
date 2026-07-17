@@ -26,6 +26,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Function {
+    public static final Timer LogWriteTimer = new Timer();
+    public static final Timer CheckStopTimer = new Timer();
+    public static final Timer CheckAccessTimer = new Timer();
+    public static final Timer CheckErrorCacheTimer = new Timer();
 
     public static final int HTTPPort = 25555;
     public static final String UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0 image2resize/"+Function.Version;
