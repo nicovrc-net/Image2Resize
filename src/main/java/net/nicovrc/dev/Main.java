@@ -215,7 +215,7 @@ RedisSSL: false
                     .followRedirects(HttpClient.Redirect.NORMAL)
                     .connectTimeout(Duration.ofSeconds(5))
                     .build()){
-                new HTTPServer(client , port).start();
+                new HTTPServer(client, port).start();
             } catch (Exception e){
                 // e.printStackTrace();
             }
