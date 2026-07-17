@@ -291,7 +291,7 @@ public class HTTPServer {
             final APICall api_call = new APICall();
             final ImageCall image_call = new ImageCall();
 
-            System.out.println("test0");
+            //System.out.println("test0");
             if (ApiMatchFlag) {
 
                     api_call.set(ctx.asyncSocketChannel, httpRequest, null);
@@ -307,7 +307,7 @@ public class HTTPServer {
 
                 return;
             }
-            System.out.println("test1");
+            //System.out.println("test1");
             if (UrlMatchFlag) {
 
                     image_call.set(ctx.asyncSocketChannel, httpRequest, null);
@@ -322,7 +322,7 @@ public class HTTPServer {
                     });
                 return;
             }
-            System.out.println("test2");
+            //System.out.println("test2");
 
             httpBody = Function.content_NotFound;
             httpHeader = Function.createHTTPHeader(httpVersion, 404, Function.contentType_text, null, "*", httpBody, null);
