@@ -210,15 +210,10 @@ RedisSSL: false
         }
 
         try {
-            try (HttpClient client = HttpClient.newBuilder()
-                    .version(HttpClient.Version.HTTP_2)
-                    .followRedirects(HttpClient.Redirect.NORMAL)
-                    .connectTimeout(Duration.ofSeconds(5))
-                    .build()){
-                new HTTPServer(client, port).start();
-            } catch (Exception e){
-                // e.printStackTrace();
-            }
+
+            new HTTPServer().start(port);
+
+
             while (true) {
                 if (Function.isFoundFile("./lock-stop")){
                     Function.deleteFile("./lock-stop");
