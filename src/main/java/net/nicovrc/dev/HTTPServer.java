@@ -158,7 +158,7 @@ public class HTTPServer {
                 }
             }
         }, 0L, 1000L);
-
+/*
         //死活監視追加
         Function.CheckAccessTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -195,7 +195,7 @@ public class HTTPServer {
                 }
             }
         }, 1000L, 1000L);
-
+*/
         // エラーリスト掃除
         Function.CheckErrorCacheTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -253,6 +253,7 @@ public class HTTPServer {
                 System.out.println(httpRequest);
 
                 Function.LogWriteCacheList.put(new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0], httpRequest);
+                return;
             }
 
             final String httpVersion = Function.getHTTPVersion(httpRequest);
