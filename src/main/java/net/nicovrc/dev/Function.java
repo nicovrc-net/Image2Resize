@@ -178,7 +178,7 @@ public class Function {
     }
 
     public static String getHTTPRequest(ByteBuffer buffer) {
-        return new String(buffer.array(), StandardCharsets.UTF_8);
+        return new String(buffer.array(), StandardCharsets.UTF_8).split("\\u0000\\u0000")[0];
     }
 
     public static String createHTTPHeader(String httpVersion, int code, String contentType, String contentEncoding, String AccessControlAllowOrigin, byte[] body, String redirectUrl) {
