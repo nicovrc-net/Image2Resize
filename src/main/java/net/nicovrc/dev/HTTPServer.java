@@ -252,8 +252,6 @@ public class HTTPServer {
                 System.out.println(httpRequest);
 
                 Function.LogWriteCacheList.put(new Date().getTime() + "_" + UUID.randomUUID().toString().split("-")[0], httpRequest);
-                ctx.close();
-                return;
             }
 
             final String httpVersion = Function.getHTTPVersion(httpRequest);
