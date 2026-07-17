@@ -266,23 +266,31 @@ public class HTTPServer extends Thread {
 
                                 if (ApiMatchFlag) {
                                     api_call.set(ch, httpRequest, client);
-                                    try {
-                                        api_call.run();
-                                        close(ch);
-                                    } catch (Exception e) {
-                                        throw new RuntimeException(e);
-                                    }
+
+                                    Thread.ofVirtual().start(()->{
+                                        try {
+                                            api_call.run();
+                                            close(ch);
+                                        } catch (Exception e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    });
+
                                     return;
                                 }
 
                                 if (UrlMatchFlag) {
                                     image_call.set(ch, httpRequest, client);
-                                    try {
-                                        image_call.run();
-                                        close(ch);
-                                    } catch (Exception e) {
-                                        throw new RuntimeException(e);
-                                    }
+
+                                    Thread.ofVirtual().start(()->{
+                                        try {
+                                            image_call.run();
+                                            close(ch);
+                                        } catch (Exception e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    });
+
                                     return;
                                 }
 
