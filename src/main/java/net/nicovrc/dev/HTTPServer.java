@@ -75,6 +75,18 @@ public class HTTPServer {
         }
         checkUrl1 = null;
 
+    }
+
+    public void start() {
+        System.out.println("[Info] TCP Port " + HTTPPort + "で 処理受付用HTTPサーバー待機開始");
+
+        try {
+            asyncChannel.bind(new InetSocketAddress(HTTPPort));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        asyncChannel.accept(null, acceptHandler);
+
         // ログ書き出し
         Function.LogWriteTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -182,7 +194,7 @@ public class HTTPServer {
                     Function.writeFile("./stop.txt", emptyBytes);
                 }
             }
-        }, 5000L, 1000L);
+        }, 1000L, 1000L);
 
         // エラーリスト掃除
         Function.CheckErrorCacheTimer.scheduleAtFixedRate(new TimerTask() {
@@ -191,19 +203,6 @@ public class HTTPServer {
                 Function.ErrorURLList.clear();
             }
         }, 0L, 10000L);
-
-    }
-
-    public void start() {
-        System.out.println("[Info] TCP Port " + HTTPPort + "で 処理受付用HTTPサーバー待機開始");
-
-        try {
-            asyncChannel.bind(new InetSocketAddress(HTTPPort));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        asyncChannel.accept(null, acceptHandler);
-
 
     }
 
