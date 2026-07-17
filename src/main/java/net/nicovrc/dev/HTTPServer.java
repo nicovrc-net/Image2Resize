@@ -269,6 +269,7 @@ public class HTTPServer {
                 httpBody = Function.content_MethodNotAllowed;
                 httpHeader = Function.createHTTPHeader(httpVersion, 405, Function.contentType_text, null, "*", httpBody, null);
                 Function.sendHTTPData(ctx.asyncSocketChannel, Function.createSendHTTPData(httpHeader, httpBody));
+                ctx.close();
                 return;
             }
 
@@ -279,6 +280,7 @@ public class HTTPServer {
                 httpHeader = Function.createHTTPHeader(httpVersion, 502, Function.contentType_text, null, "*", httpBody, null);
 
                 Function.sendHTTPData(ctx.asyncSocketChannel, Function.createSendHTTPData(httpHeader, httpBody));
+                ctx.close();
                 return;
             }
 
@@ -289,13 +291,10 @@ public class HTTPServer {
             final APICall api_call = new APICall();
             final ImageCall image_call = new ImageCall();
 
+            System.out.println("test0");
             if (ApiMatchFlag) {
-                try (HttpClient client = HttpClient.newBuilder()
-                        .version(HttpClient.Version.HTTP_2)
-                        .followRedirects(HttpClient.Redirect.NORMAL)
-                        .connectTimeout(Duration.ofSeconds(5))
-                        .build()) {
-                    api_call.set(ctx.asyncSocketChannel, httpRequest, client);
+
+                    api_call.set(ctx.asyncSocketChannel, httpRequest, null);
 
                     Thread.ofVirtual().start(()->{
                         try {
@@ -305,20 +304,13 @@ public class HTTPServer {
                             throw new RuntimeException(e);
                         }
                     });
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
 
                 return;
             }
-
+            System.out.println("test1");
             if (UrlMatchFlag) {
-                try (HttpClient client = HttpClient.newBuilder()
-                        .version(HttpClient.Version.HTTP_2)
-                        .followRedirects(HttpClient.Redirect.NORMAL)
-                        .connectTimeout(Duration.ofSeconds(5))
-                        .build()){
-                    image_call.set(ctx.asyncSocketChannel, httpRequest, client);
+
+                    image_call.set(ctx.asyncSocketChannel, httpRequest, null);
 
                     Thread.ofVirtual().start(()->{
                         try {
@@ -328,11 +320,9 @@ public class HTTPServer {
                             throw new RuntimeException(e);
                         }
                     });
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
                 return;
             }
+            System.out.println("test2");
 
             httpBody = Function.content_NotFound;
             httpHeader = Function.createHTTPHeader(httpVersion, 404, Function.contentType_text, null, "*", httpBody, null);
