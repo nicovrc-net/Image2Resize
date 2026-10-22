@@ -191,8 +191,8 @@ public class ImageCall implements ServiceInterface {
                     matcher = ogp_image_nicovideo.matcher(html);
                     if (matcher.find()) {
                         //System.out.println(html);
-                        System.out.println(matcher.group(1));
-                        uri = new URI(matcher.group(1).split("\"")[0]);
+                        //System.out.println(matcher.group(1).replaceAll("&amp;", "&"));
+                        uri = new URI(matcher.group(1).replaceAll("&amp;", "&").split("\"")[0]);
                         request = HttpRequest.newBuilder()
                                 .uri(uri)
                                 .headers("User-Agent", Function.UserAgent)
