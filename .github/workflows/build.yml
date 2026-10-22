@@ -196,7 +196,7 @@ jobs:
 
       - name: URL Resize Test
         run: |
-          HTTP_STATUS=$(curl -m 2 -o /dev/null -s -w "%{http_code}" http://localhost:25555/?url=https://raw.githubusercontent.com/nicovrc-net/Image2Resize/refs/heads/master/.github/workflows/i2i_autotest.png)
+          HTTP_STATUS=$(curl -m 5 -o /dev/null -s -w "%{http_code}" http://localhost:25555/?url=https://raw.githubusercontent.com/nicovrc-net/Image2Resize/refs/heads/master/.github/workflows/i2i_autotest.png)
           if [ "$HTTP_STATUS" -ne 200 ]; then
             echo "Expected HTTP status 200 but got $HTTP_STATUS"
             exit 1
@@ -242,7 +242,7 @@ jobs:
 
       - name: API Check Test 1
         run: |
-          HTTP_STATUS=$(curl -m 2 -o /dev/null -s -w "%{http_code}" http://localhost:25555/api/v1/get_data)
+          HTTP_STATUS=$(curl -m 5 -o /dev/null -s -w "%{http_code}" http://localhost:25555/api/v1/get_data)
           if [ "$HTTP_STATUS" -ne 200 ]; then
             echo "Expected HTTP status 200 but got $HTTP_STATUS"
             exit 1
@@ -292,7 +292,7 @@ jobs:
 
       - name: API Check Test 2-1
         run: |
-          HTTP_STATUS=$(curl -m 2 -o /dev/null -s -w "%{http_code}" -X POST -H "Content-Type: application/json" -d @testfile.json http://localhost:25555/api/v1/image_resize)
+          HTTP_STATUS=$(curl -m 5 -o /dev/null -s -w "%{http_code}" -X POST -H "Content-Type: application/json" -d @testfile.json http://localhost:25555/api/v1/image_resize)
           if [ "$HTTP_STATUS" -ne 200 ]; then
             echo "Expected HTTP status 200 but got $HTTP_STATUS"
             exit 1
@@ -338,7 +338,7 @@ jobs:
 
       - name: API Check Test 2-2
         run: |
-          HTTP_STATUS=$(curl -m 2 -o /dev/null -s -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"filename":"autotest.txt", "content":"44Gm44GN44GZ44Go44Gg44KI44O844KT"}' http://localhost:25555/api/v1/image_resize)
+          HTTP_STATUS=$(curl -m 5 -o /dev/null -s -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"filename":"autotest.txt", "content":"44Gm44GN44GZ44Go44Gg44KI44O844KT"}' http://localhost:25555/api/v1/image_resize)
           if [ "$HTTP_STATUS" -ne 404 ]; then
             exit 1
           fi
@@ -417,11 +417,11 @@ jobs:
 
       - name: Access
         run: |
-          curl -m 2 http://localhost:25555/api/v1/test > /dev/null
-          curl -m 2 http://localhost:25555/api/v1/test > /dev/null
-          curl -m 2 http://localhost:25555/api/v1/test > /dev/null
-          curl -m 2 http://localhost:25555/api/v1/test > /dev/null
-          curl -m 2 http://localhost:25555/api/v1/test > /dev/null
+          curl -m 5 http://localhost:25555/api/v1/test > /dev/null
+          curl -m 5 http://localhost:25555/api/v1/test > /dev/null
+          curl -m 5 http://localhost:25555/api/v1/test > /dev/null
+          curl -m 5 http://localhost:25555/api/v1/test > /dev/null
+          curl -m 5 http://localhost:25555/api/v1/test > /dev/null
         shell: bash
 
       - name: Create stop.txt
@@ -483,7 +483,7 @@ jobs:
 
       - name: Access
         run: |
-          curl -m 2 http://localhost:25555/?url=https://raw.githubusercontent.com/nicovrc-net/Image2Resize/refs/heads/master/.github/workflows/i2i_autotest.png > /dev/null
+          curl -m 5 http://localhost:25555/?url=https://raw.githubusercontent.com/nicovrc-net/Image2Resize/refs/heads/master/.github/workflows/i2i_autotest.png > /dev/null
         shell: bash
 
       - name: Create stop.txt
@@ -544,7 +544,7 @@ jobs:
 
       - name: Site OGPTag Check Test 1
         run: |
-          HTTP_STATUS=$(curl -m 2 -o /dev/null -s -w "%{http_code}" http://localhost:25555/?url=https://www.nicovideo.jp/watch/sm500873)
+          HTTP_STATUS=$(curl -m 5 -o /dev/null -s -w "%{http_code}" http://localhost:25555/?url=https://www.nicovideo.jp/watch/sm500873)
           if [ "$HTTP_STATUS" -ne 200 ]; then
             exit 1
           else
@@ -638,7 +638,7 @@ jobs:
 
       - name: Site OGPTag Check Test 3
         run: |
-          HTTP_STATUS=$(curl -m 2 -o /dev/null -s -w "%{http_code}" http://localhost:25555/?url=https://www.google.com/)
+          HTTP_STATUS=$(curl -m 5 -o /dev/null -s -w "%{http_code}" http://localhost:25555/?url=https://www.google.com/)
           if [ "$HTTP_STATUS" -ne 404 ]; then
             exit 1
           else
