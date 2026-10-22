@@ -188,7 +188,11 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 2
+        run: |
+          while ! ss -tl | grep -q '25555'; do
+            sleep 1s
+          done
+        shell: bash
 
       - name: URL Resize Test
         run: |
@@ -230,7 +234,11 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 2
+        run: |
+          while ! ss -tl | grep -q '25555'; do
+            sleep 1s
+          done
+        shell: bash
 
       - name: API Check Test 1
         run: |
@@ -276,7 +284,11 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 2
+        run: |
+          while ! ss -tl | grep -q '25555'; do
+            sleep 1s
+          done
+        shell: bash
 
       - name: API Check Test 2-1
         run: |
@@ -318,7 +330,11 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 2
+        run: |
+          while ! ss -tl | grep -q '25555'; do
+            sleep 1s
+          done
+        shell: bash
 
       - name: API Check Test 2-2
         run: |
@@ -393,7 +409,11 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 2
+        run: |
+          while ! ss -tl | grep -q '25555'; do
+            sleep 1s
+          done
+        shell: bash
 
       - name: Access
         run: |
@@ -455,7 +475,11 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 2
+        run: |
+          while ! ss -tl | grep -q '25555'; do
+            sleep 1s
+          done
+        shell: bash
 
       - name: Access
         run: |
@@ -512,7 +536,11 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 2
+        run: |
+          while ! ss -tl | grep -q '25555'; do
+            sleep 1s
+          done
+        shell: bash
 
       - name: Site OGPTag Check Test 1
         run: |
@@ -555,7 +583,11 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 2
+        run: |
+          while ! ss -tl | grep -q '25555'; do
+            sleep 1s
+          done
+        shell: bash
 
       - name: Site OGPTag Check Test 3
         run: |
@@ -598,7 +630,11 @@ jobs:
         shell: bash
 
       - name: Wait for the application to start
-        run: sleep 2
+        run: |
+          while ! ss -tl | grep -q '25555'; do
+            sleep 1s
+          done
+        shell: bash
 
       - name: Site OGPTag Check Test 3
         run: |
