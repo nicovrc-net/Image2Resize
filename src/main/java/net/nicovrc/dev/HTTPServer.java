@@ -210,7 +210,7 @@ public class HTTPServer {
             asyncChannel.accept(null, this);
 
             // handle this connection
-            Context ctx = new Context(asyncSocketChannel, ByteBuffer.allocate(1024));
+            Context ctx = new Context(asyncSocketChannel, ByteBuffer.allocate(1024768));
             asyncSocketChannel.read(ctx.buffer, ctx, requestHandler);
         }
 
