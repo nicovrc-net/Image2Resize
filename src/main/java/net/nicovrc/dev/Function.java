@@ -34,7 +34,7 @@ public class Function {
 
     public static final int HTTPPort = 25555;
     public static final String UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0 image2resize/"+Function.Version;
-    public static final String Version = "1.4.1";
+    public static final String Version = "1.4.0";
     public static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     public static final Gson gson = new Gson();
 
