@@ -22,7 +22,7 @@ public class ImageCall implements ServiceInterface {
     private String httpVersion = null;
     private String URI = null;
 
-    private final Pattern ogp_image_nicovideo = Pattern.compile("<meta data-server=\"1\" property=\"og:image\" content=\"(.+)\" /><meta data-server=");
+    private final Pattern ogp_image_nicovideo = Pattern.compile("<meta data-server=\"1\" property=\"og:image\" content=\"(.+)\" /><meta data-server=\"1\" property=\"og:locale\"");
     private final Pattern ogp_image_web = Pattern.compile("<meta property=\"og:image\" content=\"(.+)\"");
 
     private final ConcurrentHashMap<String, Date> TempCacheList = new ConcurrentHashMap<>();
